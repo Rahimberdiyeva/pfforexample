@@ -10,7 +10,6 @@ body {
     color: #1f1a1c;
 }
 
-/* --- Гамбургер меню (скрыто на десктопе) --- */
 .menu-toggle {
     display: none; 
     background: none;
@@ -25,7 +24,7 @@ body {
     line-height: 1;
 }
 
-.logo-block { background: #3b2a30; padding: 12px 24px; text-align: center; flex-shrink: 0; }
+.logo-block { background: #3b2a30; padding: 12px 24px; text-align: center; flex-shrink: 0; position: relative; }
 .logo { font-size: 1.9rem; font-weight: 700; background: linear-gradient(135deg, #ffdce8, #ffb7ca); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 .pattern-bar {
@@ -96,7 +95,7 @@ select, button, .file-input-btn { background: white; border: 1px solid #e2b7c4; 
 
 .bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 
-.layers-list { max-height: 200px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
+.layers-list { max-height: 250px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
 .layer-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; transition: all 0.1s; }
 .layer-item.selected { background: #ffd9e2; border-left: 4px solid #cf8e9e; }
 .layer-thumb { width: 40px; height: 40px; background: #eee; border-radius: 8px; object-fit: cover; }
@@ -105,7 +104,6 @@ select, button, .file-input-btn { background: white; border: 1px solid #e2b7c4; 
 .layer-controls button { background: none; border: none; font-size: 1rem; cursor: pointer; }
 .interactive-canvas canvas { cursor: crosshair; }
 
-/* --- ФУТЕР --- */
 .global-footer {
     background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 14px 20px;
     flex-shrink: 0; display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap; align-items: center;
@@ -114,12 +112,11 @@ select, button, .file-input-btn { background: white; border: 1px solid #e2b7c4; 
 .footer-label { font-weight: 600; color: #2e1e24; font-size: 0.9rem; white-space: nowrap; }
 .export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; }
 
-/* --- АДАПТИВНОСТЬ (МОБИЛЬНЫЕ УСТРОЙСТВА) --- */
+/* АДАПТИВНОСТЬ */
 @media (max-width: 860px) {
     .menu-toggle { display: block; }
     .logo-block { padding-left: 50px; text-align: left; }
     
-    /* Гамбургер меню слева */
     .pattern-bar {
         position: fixed; left: -280px; top: 0; bottom: 0; width: 260px;
         flex-direction: column; align-items: flex-start; padding: 60px 20px 20px;
@@ -135,7 +132,6 @@ select, button, .file-input-btn { background: white; border: 1px solid #e2b7c4; 
     .settings-column { max-height: 45vh; }
     .texture-column, .view3d-column { flex: 1; }
 
-    /* Аккуратный футер */
     .global-footer { 
         gap: 10px; padding: 10px 5px; flex-direction: column; align-items: stretch; 
     }
