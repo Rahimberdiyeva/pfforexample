@@ -1,5 +1,4 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background: #fef5f8;
@@ -11,6 +10,21 @@ body {
     color: #1f1a1c;
 }
 
+/* --- Гамбургер меню (скрыто на десктопе) --- */
+.menu-toggle {
+    display: none; 
+    background: none;
+    border: none;
+    color: #ffdce8;
+    font-size: 1.8rem;
+    cursor: pointer;
+    position: absolute;
+    left: 15px;
+    top: 12px;
+    z-index: 1001;
+    line-height: 1;
+}
+
 .logo-block { background: #3b2a30; padding: 12px 24px; text-align: center; flex-shrink: 0; }
 .logo { font-size: 1.9rem; font-weight: 700; background: linear-gradient(135deg, #ffdce8, #ffb7ca); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
@@ -18,7 +32,6 @@ body {
     background: #fce9ef; padding: 10px 20px; border-bottom: 1px solid #e9cfd8;
     display: flex; justify-content: center; align-items: center; flex-shrink: 0; overflow-x: auto;
 }
-
 .category-filters { display: flex; flex-wrap: nowrap; gap: 20px; justify-content: center; align-items: center; }
 .category-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .category-label { font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
@@ -42,7 +55,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     border: 1px solid #fad3df; box-shadow: 0 6px 14px rgba(100, 60, 70, 0.08);
 }
 .setting-group h3 { font-size: 1rem; margin-bottom: 14px; color: #2e1e24; font-weight: 700; }
-
 .control-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .control-row label { width: 110px; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .control-row input[type="range"] { flex: 1; min-width: 120px; height: 5px; background: #f0cdd8; border-radius: 5px; accent-color: #cf8e9e; }
@@ -84,76 +96,61 @@ select, button, .file-input-btn { background: white; border: 1px solid #e2b7c4; 
 
 .bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 
-/* Список слоёв */
-.layers-list {
-    max-height: 200px;
-    overflow-y: auto;
-    background: #fff9fb;
-    border-radius: 20px;
-    padding: 8px;
-    margin: 10px 0;
-    border: 1px solid #fad3df;
-}
-.layer-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    margin-bottom: 6px;
-    background: #fff0f5;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.1s;
-}
-.layer-item.selected {
-    background: #ffd9e2;
-    border-left: 4px solid #cf8e9e;
-}
-.layer-thumb {
-    width: 40px;
-    height: 40px;
-    background: #eee;
-    border-radius: 8px;
-    object-fit: cover;
-}
-.layer-name {
-    flex: 1;
-    font-size: 0.8rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.layer-controls {
-    display: flex;
-    gap: 4px;
-}
-.layer-controls button {
-    background: none;
-    border: none;
-    font-size: 1rem;
-    cursor: pointer;
-}
+.layers-list { max-height: 200px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
+.layer-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; transition: all 0.1s; }
+.layer-item.selected { background: #ffd9e2; border-left: 4px solid #cf8e9e; }
+.layer-thumb { width: 40px; height: 40px; background: #eee; border-radius: 8px; object-fit: cover; }
+.layer-name { flex: 1; font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-controls { display: flex; gap: 4px; }
+.layer-controls button { background: none; border: none; font-size: 1rem; cursor: pointer; }
+.interactive-canvas canvas { cursor: crosshair; }
 
-.interactive-canvas canvas {
-    cursor: crosshair;
-}
-
+/* --- ФУТЕР --- */
 .global-footer {
     background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 14px 20px;
-    flex-shrink: 0; display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;
+    flex-shrink: 0; display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap; align-items: center;
 }
-.footer-item { display: flex; align-items: center; gap: 10px; }
-.footer-label { font-weight: 600; color: #2e1e24; font-size: 0.9rem; }
+.footer-item { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; justify-content: center; min-width: 200px; }
+.footer-label { font-weight: 600; color: #2e1e24; font-size: 0.9rem; white-space: nowrap; }
 .export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; }
 
+/* --- АДАПТИВНОСТЬ (МОБИЛЬНЫЕ УСТРОЙСТВА) --- */
 @media (max-width: 860px) {
+    .menu-toggle { display: block; }
+    .logo-block { padding-left: 50px; text-align: left; }
+    
+    /* Гамбургер меню слева */
+    .pattern-bar {
+        position: fixed; left: -280px; top: 0; bottom: 0; width: 260px;
+        flex-direction: column; align-items: flex-start; padding: 60px 20px 20px;
+        transition: left 0.3s ease; z-index: 1000;
+        box-shadow: 2px 0 15px rgba(0,0,0,0.2); overflow-y: auto; background: #fce9ef;
+    }
+    .pattern-bar.open { left: 0; }
+    .category-filters { flex-direction: column; width: 100%; gap: 15px; align-items: stretch; }
+    .category-group { width: 100%; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .category-select { width: 100%; min-width: unset; }
+
     .main-layout { flex-direction: column; }
     .settings-column { max-height: 45vh; }
     .texture-column, .view3d-column { flex: 1; }
-    .global-footer { gap: 12px; flex-direction: column; align-items: center; }
-    .category-select { min-width: 110px; }
+
+    /* Аккуратный футер */
+    .global-footer { 
+        gap: 10px; padding: 10px 5px; flex-direction: column; align-items: stretch; 
+    }
+    .footer-item {
+        flex: 1 1 100%; flex-wrap: wrap; justify-content: center; gap: 6px;
+        padding: 8px; background: #fff; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .footer-label {
+        flex: 1 1 100%; text-align: center; font-size: 0.85rem; margin-bottom: 4px;
+    }
+    .footer-item select, .footer-item button {
+        flex: 1; font-size: 0.75rem; padding: 8px 6px; min-width: 0;
+    }
 }
+
 @media (max-width: 480px) {
     .control-row label { width: 90px; font-size: 0.75rem; }
     .category-label { font-size: 0.7rem; }
