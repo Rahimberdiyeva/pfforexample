@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PatternForge — Генератор текстур и 3D</title>
+    <!-- Профессиональный шрифт Inter (открытая лицензия) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,12 +36,16 @@
             </div>
         </div>
     </div>
+    <!-- Затемнение для закрытия меню свайпом/кликом -->
+    <div class="menu-overlay" id="menuOverlay"></div>
 
     <div class="main-layout">
-        <!-- 1. Настройки -->
+        <!-- 1. Настройки (чуть шире для удобства) -->
         <div class="settings-column">
             <div class="preview-header">Генерация</div>
             <div class="settings-panel">
+                
+                <!-- Параметры -->
                 <div class="setting-group">
                     <h3>Параметры</h3>
                     <div class="control-row">
@@ -67,10 +75,24 @@
                     </div>
                     <div class="control-row">
                         <label>Смешивание</label>
-                        <select id="blendMode">
+                        <select id="blendMode" class="compact-select">
                             <option value="0">Линейное</option>
                             <option value="1">Мультипликативное</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Рельеф (2D) перенесен сюда -->
+                <div class="setting-group">
+                    <h3>Рельеф (2D)</h3>
+                    <div class="control-row">
+                        <label>Включить</label>
+                        <input type="checkbox" id="relief2d">
+                    </div>
+                    <div class="control-row">
+                        <label>Высота рельефа</label>
+                        <input type="range" id="reliefStrength" min="0" max="3" step="0.01" value="1.00">
+                        <span class="value-display" id="reliefStrengthVal">1.00</span>
                     </div>
                 </div>
 
@@ -93,7 +115,7 @@
                     </div>
                     <div class="control-row">
                         <label>Зеркало</label>
-                        <select id="mirror">
+                        <select id="mirror" class="compact-select">
                             <option value="0">Нет</option>
                             <option value="1">X</option>
                             <option value="2">Y</option>
@@ -105,7 +127,7 @@
                 <div class="setting-group">
                     <h3>Цветовая палитра</h3>
                     <div class="color-list" id="colorListContainer"></div>
-                    <button id="addColorBtn">Добавить цвет</button>
+                    <button id="addColorBtn" class="full-width-btn">Добавить цвет</button>
                 </div>
 
                 <div class="setting-group">
@@ -123,19 +145,6 @@
                         <label>Октавы warp</label>
                         <input type="range" id="warpOctaves" min="1" max="5" step="1" value="2">
                         <span class="value-display" id="warpOctavesVal">2</span>
-                    </div>
-                </div>
-
-                <div class="setting-group">
-                    <h3>Рельеф (2D)</h3>
-                    <div class="control-row">
-                        <label>Включить</label>
-                        <input type="checkbox" id="relief2d">
-                    </div>
-                    <div class="control-row">
-                        <label>Высота рельефа</label>
-                        <input type="range" id="reliefStrength" min="0" max="3" step="0.01" value="1.00">
-                        <span class="value-display" id="reliefStrengthVal">1.00</span>
                     </div>
                 </div>
 
@@ -159,22 +168,22 @@
                 <div class="setting-group">
                     <h3>Фоновое изображение</h3>
                     <div class="bg-upload-row">
-                        <label class="file-input-btn">
+                        <label class="file-input-btn full-width-btn">
                             Выбрать фон
                             <input type="file" id="bgImageInput" accept="image/*" style="display:none">
                         </label>
-                        <button id="clearBgBtn" class="hidden">Удалить фон</button>
+                        <button id="clearBgBtn" class="hidden full-width-btn" style="background:#ef7e8a;">Удалить фон</button>
                     </div>
-                    <div class="control-row">
+                    <div class="control-row" style="margin-top: 16px;">
                         <label>Прозрачность</label>
                         <input type="range" id="bgOpacity" min="0" max="1" step="0.01" value="1.00">
                     </div>
                 </div>
 
                 <div class="setting-group">
-                    <h3>Наложение (слои)</h3>
-                    <label class="file-input-btn">
-                        Добавить изображения
+                    <h3>Паттерны</h3>
+                    <label class="file-input-btn full-width-btn" style="margin-bottom: 12px;">
+                        Добавить картинку
                         <input type="file" id="multiTextureInput" accept="image/*" multiple style="display:none">
                     </label>
                     <div class="layers-list" id="overlayLayersList"></div>
@@ -183,30 +192,35 @@
                         <input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1.00">
                         <span class="value-display" id="layerOpacityVal">1.00</span>
                     </div>
-                    <button id="clearOverlayBtn">Удалить все слои</button>
+                    <button id="clearOverlayBtn" class="full-width-btn hidden" style="background:#b46e7e; margin-top: 12px;">Удалить все картинки</button>
                 </div>
 
                 <div class="setting-group">
                     <h3>Пресет</h3>
                     <div style="display:flex; gap:10px;">
-                        <button id="savePresetBtn">Сохранить</button>
-                        <button id="loadPresetBtn">Загрузить</button>
+                        <button id="savePresetBtn" style="flex:1;">Сохранить</button>
+                        <button id="loadPresetBtn" style="flex:1;">Загрузить</button>
                         <input type="file" id="loadPresetInput" accept=".json" style="display:none">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 2. 2D Предпросмотр -->
-        <div class="texture-column">
-            <div class="preview-header">2D текстура</div>
-            <div class="canvas-container interactive-canvas" id="canvas2d"></div>
-        </div>
-
-        <!-- 3. 3D Предпросмотр -->
-        <div class="view3d-column">
-            <div class="preview-header">3D визуализация</div>
-            <div class="canvas-container" id="canvas3d"></div>
+        <!-- Область предпросмотра с табами -->
+        <div class="preview-wrapper">
+            <div class="preview-tabs">
+                <button class="tab-btn active" data-view="2d">2D Текстура</button>
+                <button class="tab-btn" data-view="3d">3D Модель</button>
+                <button class="tab-btn pbr-tab-btn" id="openPbrModalBtn">Просмотр PBR</button>
+            </div>
+            
+            <div class="texture-column active-view" id="view2d">
+                <div class="canvas-container interactive-canvas" id="canvas2d"></div>
+            </div>
+            
+            <div class="view3d-column" id="view3d">
+                <div class="canvas-container" id="canvas3d"></div>
+            </div>
         </div>
     </div>
 
@@ -235,6 +249,17 @@
                 <option value="obj">OBJ + MTL</option>
             </select>
             <button id="exportModelBtn" class="export-btn">Скачать</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для просмотра PBR -->
+    <div class="pbr-modal" id="pbrModal">
+        <div class="pbr-modal-content">
+            <span class="pbr-close" id="closePbrModal">&times;</span>
+            <h3>Предпросмотр PBR карт</h3>
+            <div class="pbr-grid" id="pbrGrid">
+                <!-- Канвасы будут сгенерированы JS -->
+            </div>
         </div>
     </div>
 
