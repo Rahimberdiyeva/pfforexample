@@ -11,25 +11,30 @@ body {
   color: #1f1a1c;
 }
 
+/* --- Хедер и Меню --- */
+.logo-block { 
+  background: #3b2a30; 
+  padding: 12px 24px; 
+  display: flex; 
+  align-items: center; 
+  position: relative; 
+  flex-shrink: 0; 
+}
+
 .menu-toggle {
   display: none;
   background: none;
   border: none;
   color: #ffdce8;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   cursor: pointer;
-  position: absolute;
-  left: 15px;
-  top: 12px;
-  z-index: 1002;
   line-height: 1;
   padding: 8px;
+  margin-right: 12px;
 }
 
-.logo-block { background: #3b2a30; padding: 12px 24px; text-align: center; flex-shrink: 0; position: relative; }
-.logo { font-size: 1.9rem; font-weight: 700; background: linear-gradient(135deg, #ffdce8, #ffb7ca); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.logo { font-size: 1.7rem; font-weight: 700; background: linear-gradient(135deg, #ffdce8, #ffb7ca); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-/* --- Панель категорий --- */
 .pattern-bar {
   background: #fce9ef; padding: 10px 20px; border-bottom: 1px solid #e9cfd8;
   display: flex; justify-content: center; align-items: center; flex-shrink: 0; overflow-x: auto;
@@ -40,11 +45,44 @@ body {
 .category-label { font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .category-select { padding: 8px 16px; border-radius: 40px; background: white; border: 1px solid #dcb7c2; font-weight: 500; font-size: 0.85rem; min-width: 130px; cursor: pointer; }
 
-/* --- Основная сетка (Десктоп: 3 колонки в ряд) --- */
-.main-layout { flex: 1; display: flex; flex-direction: row; gap: 1px; background: #f0e2e8; overflow: hidden; min-height: 0; }
-.settings-column { flex: 0 0 340px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
-.texture-column { flex: 1; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid #f0dfe6; border-right: 1px solid #f0dfe6; }
-.view3d-column { flex: 0 0 400px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
+/* Затемнение для мобильного меню */
+.menu-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 998;
+  display: none; backdrop-filter: blur(2px);
+}
+.menu-overlay.active { display: block; }
+
+/* --- Основная сетка --- */
+.main-layout { flex: 1; display: flex; gap: 1px; background: #f0e2e8; overflow: hidden; min-height: 0; }
+
+/* Чуть шире для удобства ползунков, но не слишком */
+.settings-column { flex: 0 0 360px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
+
+.preview-wrapper { flex: 1; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid #f0dfe6; }
+
+.preview-tabs {
+  display: flex; background: #d9b7c2cc; backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e9cfd8; flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1; padding: 12px; background: transparent; border: none; border-radius: 0;
+  font-weight: 600; color: #3b2a30; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; font-family: 'Inter', sans-serif;
+}
+.tab-btn.active { background: #fffafc; color: #cf8e9e; border-bottom: 3px solid #cf8e9e; }
+.pbr-tab-btn { flex: 0 0 auto; padding: 12px 20px; border-left: 1px solid #e9cfd8; }
+
+.texture-column, .view3d-column { 
+  flex: 1; display: none; flex-direction: column; overflow: hidden; 
+}
+/* По умолчанию на десктопе показываем оба, но на мобильном переключается через JS */
+@media (min-width: 861px) {
+  .preview-wrapper { flex-direction: row; border-left: none; }
+  .texture-column { flex: 1.2; border-right: 1px solid #f0dfe6; display: flex; }
+  .view3d-column { flex: 1; display: flex; }
+  .preview-tabs { display: none; } /* На десктопе табы не нужны, места хватает */
+}
+
+.texture-column.active-view, .view3d-column.active-view { display: flex; }
 
 .preview-header { background: #d9b7c2cc; backdrop-filter: blur(8px); padding: 12px; font-weight: 600; border-bottom: 1px solid #e9cfd8; text-align: center; flex-shrink: 0; }
 .canvas-container { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
@@ -54,13 +92,15 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .setting-group { background: #ffeef3; border-radius: 28px; padding: 18px 20px; border: 1px solid #fad3df; box-shadow: 0 6px 14px rgba(100, 60, 70, 0.08); }
 .setting-group h3 { font-size: 1rem; margin-bottom: 14px; color: #2e1e24; font-weight: 700; }
 
-/* --- Элементы управления (ИСПРАВЛЕНО: без растягивания) --- */
+/* Контролы: защита от выхода за рамки */
 .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
-.control-row label { width: 100px; flex-shrink: 0; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
+.control-row label { width: 110px; flex-shrink: 0; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .control-row input[type="range"] { flex: 1; min-width: 0; height: 6px; background: #f0cdd8; border-radius: 6px; accent-color: #cf8e9e; cursor: pointer; }
 .value-display { width: 45px; text-align: right; flex-shrink: 0; font-family: monospace; font-weight: 500; font-size: 0.85rem; }
 
-/* --- Цвета --- */
+.compact-select { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 40px; background: white; border: 1px solid #e2b7c4; font-size: 0.85rem; }
+
+/* Цвета */
 .color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-bottom: 8px; }
 .color-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
 .color-circle-input { width: 56px; height: 56px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; padding: 0; background: none; overflow: hidden; }
@@ -68,63 +108,24 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
-/* --- Кнопки и селекты (ИСПРАВЛЕНО: четкие размеры, без растянутых рамок) --- */
-button, .file-input-btn, select { 
-  background: white; 
-  border: 1px solid #e2b7c4; 
-  border-radius: 40px; 
-  padding: 8px 16px; 
-  font-size: 0.85rem; 
-  cursor: pointer; 
-  font-weight: 500; 
-  width: auto; /* Запрещаем растягивание */
-  flex-shrink: 0; /* Запрещаем сжатие */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.2;
-  transition: all 0.2s;
-}
+/* Кнопки */
+.full-width-btn { width: 100%; text-align: center; display: block; }
+button, .file-input-btn, select { background: white; border: 1px solid #e2b7c4; border-radius: 40px; padding: 8px 16px; font-size: 0.85rem; cursor: pointer; font-weight: 500; transition: all 0.2s; }
 button:hover, .file-input-btn:hover { background: #fff0f5; border-color: #cf8e9e; }
-.file-input-btn { display: inline-flex; text-align: center; margin-top: 8px; }
+.file-input-btn { display: inline-block; margin-top: 8px; }
 
-/* --- ИСПРАВЛЕНО: Выравнивание строки 3D модели --- */
-.model-row { 
-  display: flex; 
-  gap: 10px; 
-  align-items: center; /* Идеальное вертикальное выравнивание */
-  flex-wrap: wrap; 
-  margin-bottom: 8px; 
-}
-.model-row select, .model-row .file-input-btn {
-  height: 36px; /* Фиксированная высота для идеального совпадения */
-  padding: 0 16px;
-  margin-top: 0;
-}
-
-/* --- Цвета кнопок пресетов (ИСПРАВЛЕНО: разный UX) --- */
-#savePresetBtn {
-  background: #cf8e9e;
-  color: white;
-  border: none;
-  flex: 1;
-}
-#savePresetBtn:hover { background: #b46e7e; }
-
-#loadPresetBtn {
-  background: #fff0f5;
-  color: #cf8e9e;
-  border: 1px solid #cf8e9e;
-  flex: 1;
-}
+#addColorBtn, #savePresetBtn, #clearOverlayBtn, #clearBgBtn { background: #cf8e9e; color: white; border: none; margin: 4px 0; }
+/* Кнопка загрузки пресета теперь хорошо видна */
+#loadPresetBtn { background: #ffffff; color: #cf8e9e; border: 2px solid #cf8e9e; font-weight: 700; }
 #loadPresetBtn:hover { background: #fce9ef; }
-
-#addColorBtn, #clearOverlayBtn, #clearBgBtn {
-  background: #cf8e9e; color: white; border: none; border-radius: 40px;
-  padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin: 4px 0; width: 100%;
-}
-#clearOverlayBtn { margin-top: 12px; background: #b46e7e; }
+#clearOverlayBtn { background: #b46e7e; }
 .hidden { display: none !important; }
+
+.model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
+.model-row select, .model-row .file-input-btn { flex-shrink: 0; height: 36px; margin-top: 0; padding: 0 16px; display: inline-flex; align-items: center; }
+
+/* Увеличенное расстояние для фона */
+.bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 
 .layers-list { max-height: 250px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
 .layer-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; }
@@ -134,55 +135,64 @@ button:hover, .file-input-btn:hover { background: #fff0f5; border-color: #cf8e9e
 .layer-controls { display: flex; gap: 4px; }
 .layer-controls button { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; width: auto; height: auto; }
 
-/* --- Футер --- */
+/* Футер: строгие рамки, без растягивания */
 .global-footer {
-  background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 14px 20px;
-  flex-shrink: 0; display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap; align-items: center;
+  background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 14px 24px;
+  flex-shrink: 0; display: flex; justify-content: center; gap: 24px; flex-wrap: nowrap; align-items: center;
 }
-.footer-item { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; justify-content: center; min-width: 200px; }
+.footer-item { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; }
 .footer-label { font-weight: 600; color: #2e1e24; font-size: 0.9rem; white-space: nowrap; }
-.export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; padding: 10px 20px; }
+.export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; padding: 10px 20px; white-space: nowrap; }
 .export-btn:hover { opacity: 0.9; }
 
+/* --- PBR Модальное окно --- */
+.pbr-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000;
+  align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.pbr-modal.active { display: flex; }
+.pbr-modal-content {
+  background: #fffafc; padding: 24px; border-radius: 20px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;
+  position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.pbr-close { position: absolute; top: 16px; right: 20px; font-size: 2rem; cursor: pointer; color: #3b2a30; line-height: 1; }
+.pbr-modal-content h3 { text-align: center; margin-bottom: 20px; color: #2e1e24; }
+.pbr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.pbr-item { text-align: center; }
+.pbr-item canvas { width: 100%; border-radius: 12px; border: 1px solid #e9cfd8; background: #eee; }
+.pbr-item span { display: block; margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 
 /* ==========================================================================
    АДАПТИВНОСТЬ (МОБИЛЬНЫЕ УСТРОЙСТВА <= 860px)
    ========================================================================== */
 @media (max-width: 860px) {
   .menu-toggle { display: block; }
-  .logo-block { padding-left: 55px; text-align: left; }
   
-  /* Бургер-меню */
+  /* Меню: компактное, прижато влево, темная подложка */
   .pattern-bar {
-    position: fixed; left: -300px; top: 0; bottom: 0; width: 280px;
-    flex-direction: column; align-items: flex-start; padding: 70px 20px 20px;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.15); overflow-y: auto; background: #fce9ef;
+    position: fixed; left: -260px; top: 0; bottom: 0; width: 260px;
+    flex-direction: column; align-items: flex-start; padding: 70px 16px 20px;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.2); overflow-y: auto; background: #fce9ef;
   }
   .pattern-bar.open { left: 0; }
-  .pattern-bar.open::before {
-    content: ''; position: fixed; top: 0; left: 280px; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(2px); z-index: -1;
-  }
-
+  
   .category-filters { flex-direction: column; width: 100%; gap: 15px; align-items: stretch; }
-  .category-group { width: 100%; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .category-group { width: 100%; flex-direction: column; align-items: flex-start; gap: 6px; }
   .category-select { width: 100%; min-width: unset; padding: 12px 16px; }
 
-  /* На мобильном стек вертикальный: Настройки -> 2D -> 3D */
   .main-layout { flex-direction: column; overflow-y: auto; }
   
   .settings-column { 
-    order: 1; flex: 0 0 auto; max-height: none; overflow-y: auto; border-bottom: 1px solid #f0dfe6; 
+    order: 1; flex: 0 0 auto; max-height: none; overflow-y: visible; border-bottom: 1px solid #f0dfe6; 
   }
   
-  .texture-column { 
-    order: 2; flex: 0 0 45vh; border: none; border-bottom: 1px solid #f0dfe6; 
+  .preview-wrapper { 
+    order: 2; flex: 0 0 50vh; border: none; 
   }
   
-  .view3d-column { 
-    order: 3; flex: 0 0 40vh; border: none; 
-  }
+  /* На мобильном табы управляют видимостью */
+  .texture-column, .view3d-column { flex: 1; }
 
   .setting-group { padding: 16px; border-radius: 20px; }
   .control-row { gap: 8px; }
@@ -191,24 +201,26 @@ button:hover, .file-input-btn:hover { background: #fff0f5; border-color: #cf8e9e
   
   .color-circle-input { width: 48px; height: 48px; }
   
-  /* На мобильном кнопки могут быть шире для удобства пальца, но не растянуты криво */
   button, .file-input-btn, select { padding: 12px 16px; font-size: 0.9rem; }
   .model-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .model-row select, .model-row .file-input-btn { width: 100%; height: 44px; }
 
-  /* Футер на мобильном: каждый элемент на новой строке */
-  .global-footer { position: relative; bottom: auto; padding: 12px; gap: 12px; flex-direction: column; }
-  .footer-item {
-    flex: 1 1 100%; flex-direction: column; align-items: stretch; width: 100%; 
-    padding: 16px; background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); gap: 10px;
+  /* Футер на мобильном: компактный стек, без растягивания в ширину */
+  .global-footer { 
+    position: relative; bottom: auto; padding: 12px; gap: 12px; flex-direction: column; 
   }
-  .footer-label { width: 100%; text-align: center; font-size: 0.9rem; margin-bottom: 4px; font-weight: 700; }
-  .footer-item select, .footer-item .export-btn { width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px; }
+  .footer-item {
+    flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; justify-content: space-between; 
+    width: 100%; padding: 12px 16px; background: #fff; border-radius: 16px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); gap: 8px;
+  }
+  .footer-label { width: 100%; text-align: left; font-size: 0.85rem; margin-bottom: 4px; font-weight: 700; }
+  .footer-item select { flex: 1; min-width: 0; padding: 10px; font-size: 0.85rem; }
+  .footer-item .export-btn { flex: 0 0 auto; padding: 10px 16px; font-size: 0.85rem; }
 }
 
 @media (max-width: 480px) {
-  .texture-column { flex: 0 0 40vh; }
-  .view3d-column { flex: 0 0 35vh; }
-  .logo { font-size: 1.5rem; }
+  .preview-wrapper { flex: 0 0 45vh; }
+  .logo { font-size: 1.4rem; }
   .category-label { font-size: 0.75rem; }
 }
