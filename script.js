@@ -8,19 +8,14 @@ import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 const container2d = document.getElementById('canvas2d');
 const container3d = document.getElementById('canvas3d');
 
-const scene2d = new THREE.Scene(); 
-scene2d.background = null;
-const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
-camera2d.position.z = 1;
+const scene2d = new THREE.Scene(); scene2d.background = null;
+const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene();
-// УБРАН серый фон, теперь он прозрачный
-scene3d.background = null; 
-const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); 
-camera3d.position.set(2.2, 1.6, 2.8);
-// Добавлен alpha: true для корректной прозрачности
+scene3d.background = null; // Прозрачный фон
+const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
 container2d.appendChild(renderer2d.domElement);
@@ -28,15 +23,7 @@ container3d.appendChild(renderer3d.domElement);
 
 function updateSizes() {
     const rect2d = container2d.parentElement.getBoundingClientRect();
-    let size2d;
-    
-    // ИСПРАВЛЕНИЕ: На мобильных используем всю ширину, на десктопе - квадрат
-    if (window.innerWidth < 860) {
-        size2d = rect2d.width;
-    } else {
-        size2d = Math.min(rect2d.width, rect2d.height);
-    }
-    
+    let size2d = Math.min(rect2d.width, rect2d.height);
     if (size2d <= 0) size2d = 256;
     renderer2d.setSize(size2d, size2d);
     
@@ -54,9 +41,7 @@ window.addEventListener('resize', updateSizes);
 updateSizes();
 
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
-controls3d.enableDamping = true; 
-controls3d.enableZoom = true; 
-controls3d.target.set(0, 0, 0);
+controls3d.enableDamping = true; controls3d.enableZoom = true; controls3d.target.set(0, 0, 0);
 
 // --- Освещение ---
 scene3d.add(new THREE.AmbientLight(0xffffff, 0.4));
@@ -325,7 +310,7 @@ function rebuildColorUI() {
         if (activeColors.length > 2) {
             const removeBtn = document.createElement('button'); removeBtn.className = 'remove-color-btn'; removeBtn.textContent = '✕';
             removeBtn.addEventListener('click', (e) => { e.stopPropagation(); if (activeColors.length > 2) { activeColors.splice(idx,1); rebuildColorUI(); updateColorUniforms(); updateMaterial(); } });
-            div.appendChild(removeBtn);
+            div.appendChild(removeBtn); // Теперь кнопка будет строго под кружком благодаря flex-direction: column
         }
         colorContainer.appendChild(div);
     });
@@ -397,6 +382,29 @@ populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
+
+// ---- Переключатель 2D / 3D ----
+const tabBtns = document.querySelectorAll('.tab-btn');
+const view2d = document.getElementById('view2d');
+const view3d = document.getElementById('view3d');
+
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const view = btn.dataset.view;
+        if (view === '2d') {
+            view2d.classList.add('active-view');
+            view3d.classList.remove('active-view');
+        } else {
+            view2d.classList.remove('active-view');
+            view3d.classList.add('active-view');
+        }
+        // Важно: пересчитать размеры canvas после смены видимости
+        setTimeout(updateSizes, 50);
+    });
+});
 
 // ---- Пресеты ----
 const savePresetBtn = document.getElementById('savePresetBtn');
@@ -724,15 +732,21 @@ async function captureTextureImage() {
     return blob;
 }
 
-document.getElementById('menuToggle')?.addEventListener('click', (e) => {
+// --- Гамбургер меню для мобильных ---
+const menuToggle = document.getElementById('menuToggle');
+const patternBar = document.getElementById('patternBar');
+
+menuToggle?.addEventListener('click', (e) => {
     e.stopPropagation();
-    document.querySelector('.pattern-bar')?.classList.toggle('open');
+    patternBar?.classList.toggle('open');
 });
+
+// Закрытие меню при клике на затемненную область (подложку)
 document.addEventListener('click', (e) => {
-    const menu = document.querySelector('.pattern-bar');
-    const toggle = document.getElementById('menuToggle');
-    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !toggle?.contains(e.target)) {
-        menu.classList.remove('open');
+    if (patternBar && patternBar.classList.contains('open')) {
+        if (!patternBar.contains(e.target) && !menuToggle?.contains(e.target)) {
+            patternBar.classList.remove('open');
+        }
     }
 });
 
