@@ -4,26 +4,18 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 
-// --- Инициализация рендереров ---
 const container2d = document.getElementById('canvas2d');
 const container3d = document.getElementById('canvas3d');
 
-const scene2d = new THREE.Scene(); 
-scene2d.background = null;
-
-const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
-camera2d.position.z = 1;
-
+const scene2d = new THREE.Scene(); scene2d.background = null;
+const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene(); 
-// ЗАДАЧА 1: Прозрачный фон вместо серого
-scene3d.background = null; 
+scene3d.background = null; // ЗАДАЧА 1: Прозрачный фон
 
-const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); 
-camera3d.position.set(2.2, 1.6, 2.8);
-
+const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer3d.setClearColor(0x000000, 0);
 
@@ -43,25 +35,17 @@ function updateSizes() {
         camera3d.updateProjectionMatrix(); 
     }
 }
-
 new ResizeObserver(() => updateSizes()).observe(container3d);
 new ResizeObserver(() => updateSizes()).observe(container2d.parentElement);
 window.addEventListener('resize', updateSizes);
 updateSizes();
 
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
-controls3d.enableDamping = true; 
-controls3d.enableZoom = true; 
-controls3d.target.set(0, 0, 0);
+controls3d.enableDamping = true; controls3d.enableZoom = true; controls3d.target.set(0, 0, 0);
 
-// --- Освещение ---
 scene3d.add(new THREE.AmbientLight(0xffffff, 0.6));
-const keyLight = new THREE.DirectionalLight(0xffffff, 1.0); 
-keyLight.position.set(5, 5, 5); 
-scene3d.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.4); 
-fillLight.position.set(-5, 0, 5); 
-scene3d.add(fillLight);
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.0); keyLight.position.set(5, 5, 5); scene3d.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.4); fillLight.position.set(-5, 0, 5); scene3d.add(fillLight);
 
 let currentMesh3d = null, currentGeometryType = 'cube', customModel = null, overlayTexture = null;
 let backgroundImageEl = null;
@@ -71,34 +55,17 @@ let layers = [];
 let selectedLayerId = null;
 let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
-let lastScale = 3.00; // Для синхронизации масштаба
-
-// --- Функция для добавления элементов управления ---
-function ensureUIControls() {
-    const genGroup = document.querySelector('.setting-group');
-    if (!genGroup) return;
-    
-    if (!document.getElementById('intensity')) {
-        const row = document.createElement('div');
-        row.className = 'control-row';
-        row.innerHTML = `<label>Интенсивность</label><input type="range" id="intensity" min="0" max="2" step="0.01" value="1.13"><span class="value-display" id="intensityVal">1.13</span>`;
-        genGroup.appendChild(row);
-        document.getElementById('intensity').addEventListener('input', updateUniformsFromUI);
-    }
-}
+let lastScale = 3.00;
 
 // ЗАДАЧА 3: Дефолтные значения из ТЗ
 const uniforms = {
-    uScale: { value: 3.00 }, 
-    uIntensity: { value: 1.13 }, 
-    uPatternType: { value: 0 },
+    uScale: { value: 3.00 }, uIntensity: { value: 1.13 }, uPatternType: { value: 0 },
     uColor0: { value: new THREE.Vector3() }, uColor1: { value: new THREE.Vector3() }, uColor2: { value: new THREE.Vector3() }, uColor3: { value: new THREE.Vector3() },
     uColor4: { value: new THREE.Vector3() }, uColor5: { value: new THREE.Vector3() }, uColor6: { value: new THREE.Vector3() }, uColor7: { value: new THREE.Vector3() },
     uColorsCount: { value: 4 }, uSaturation: { value: 1.5 }, uBlendMode: { value: 0 },
     uRotation: { value: 0 }, uOffset: { value: new THREE.Vector2(0, 0) }, uMirror: { value: 0 },
     uOctaves: { value: 4 }, uPersistence: { value: 0.53 }, uLacunarity: { value: 2.10 },
-    uTileEnabled: { value: 1 }, // ЗАДАЧА 4: Включено по умолчанию для бесшовности
-    uOverlayTexture: { value: null }, uUseOverlay: { value: 1 },
+    uTileEnabled: { value: 1 }, uOverlayTexture: { value: null }, uUseOverlay: { value: 1 },
     uWarpEnable: { value: 0 }, uWarpStrength: { value: 0.3 }, uWarpOctaves: { value: 2 },
     uShowRelief: { value: 0 }, uReliefStrength: { value: 1.12 }, uTile3DScale: { value: 2.80 },
     uTime: { value: 0 }, uOverlayScale: { value: 1.0 },
@@ -115,25 +82,18 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдеры (без разрывов в ключевых словах) ---
 const vertexShader = `
-varying vec2 vUv; 
-varying vec3 vWorldPosition; 
-varying vec3 vNormalW; 
-uniform float uTile3DScale; 
-
+varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW; uniform float uTile3DScale; 
 void main() { 
     vUv = uv * uTile3DScale; 
     vec4 worldPos = modelMatrix * vec4(position, 1.0); 
     vWorldPosition = worldPos.xyz; 
     vNormalW = normalize(mat3(modelMatrix) * normal); 
     gl_Position = projectionMatrix * viewMatrix * worldPos; 
-}
-`;
+}`;
 
 const fragmentShader = `
 precision highp float;
-
 uniform float uScale; uniform float uIntensity; uniform int uPatternType;
 uniform vec3 uColor0; uniform vec3 uColor1; uniform vec3 uColor2; uniform vec3 uColor3;
 uniform vec3 uColor4; uniform vec3 uColor5; uniform vec3 uColor6; uniform vec3 uColor7;
@@ -143,14 +103,11 @@ uniform int uOctaves; uniform float uPersistence; uniform float uLacunarity; uni
 uniform sampler2D uOverlayTexture; uniform int uUseOverlay;
 uniform int uWarpEnable; uniform float uWarpStrength; uniform int uWarpOctaves;
 uniform int uShowRelief; uniform float uReliefStrength;
-uniform float uTime;
-uniform int uExportMode;
-
+uniform float uTime; uniform int uExportMode;
 varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW;
 
 float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
 vec2 hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(vec2(p.x * p.y, p.y * p.x)) * 2.0 - 1.0; }
-
 float perlinNoise(vec2 st) {
     vec2 i = floor(st); vec2 f = fract(st); vec2 u = f * f * (3.0 - 2.0 * f);
     vec2 grad00 = hash(i); vec2 grad10 = hash(i + vec2(1.0, 0.0));
@@ -159,13 +116,11 @@ float perlinNoise(vec2 st) {
     float dot01 = dot(grad01, f - vec2(0.0, 1.0)); float dot11 = dot(grad11, f - vec2(1.0, 1.0));
     return mix(mix(dot00, dot10, u.x), mix(dot01, dot11, u.x), u.y) * 0.5 + 0.5;
 }
-
 float fbmPerlin(vec2 st, int oct, float pers, float lac) {
     float val = 0.0, amp = 0.5, freq = 2.0;
     for(int i = 0; i < 6; i++) { if(i >= oct) break; val += amp * (perlinNoise(st * freq) * 2.0 - 1.0); amp *= pers; freq *= lac; }
     return val * 0.5 + 0.5;
 }
-
 float worley(vec2 uv) {
     vec2 p = floor(uv); vec2 f = fract(uv); float res = 1.0;
     for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++) {
@@ -173,15 +128,12 @@ float worley(vec2 uv) {
         res = min(res, dot(r, r));
     } return sqrt(res);
 }
-
 float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x * 10.0) * cos(t + uv.y * 10.0); return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t)); }
-
 vec2 domainWarp(vec2 uv, float strength, int octaves) {
     vec2 warped = uv;
     for(int i = 0; i < 5; i++) { if(i >= octaves) break; warped += strength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i + 1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i + 1) + uTime)); }
     return warped;
 }
-
 float reactionDiffusion(vec2 uv) { vec2 p = uv * 4.0; float a = sin(p.x * 3.0) * cos(p.y * 3.0); float b = cos(p.x * 4.2) * sin(p.y * 4.2); return clamp(a * 0.5 + b * 0.5 + 0.5, 0.0, 1.0); }
 float flowField(vec2 uv) { vec2 q = uv * 3.0; float angle = sin(q.y * 0.7) * cos(q.x * 0.5); vec2 gradient = vec2(cos(angle), sin(angle)); uv += gradient * 0.1; float field = sin(uv.x * 10.0) * cos(uv.y * 10.0); return smoothstep(-0.3, 0.7, field); }
 float wfcPattern(vec2 uv) { vec2 tile = floor(uv * 8.0); float hashVal = random(tile); int rule = int(floor(hashVal * 6.0)); float pattern = 0.0; vec2 sub = fract(uv * 8.0); if(rule == 0) pattern = step(0.5, sub.x) * step(0.5, sub.y); else if(rule == 1) pattern = step(0.5, sub.x + sub.y); else if(rule == 2) pattern = step(0.5, sub.x - sub.y + 0.5); else if(rule == 3) pattern = sin(sub.x * 3.14159 * 4.0) * 0.5 + 0.5; else if(rule == 4) pattern = (sub.x > 0.25 && sub.x < 0.75 && sub.y > 0.25 && sub.y < 0.75) ? 1.0 : 0.0; else pattern = fract(sub.x * 3.0 + sub.y * 2.0); return pattern; }
@@ -223,9 +175,7 @@ float computePattern(vec2 uv) {
     vec2 centered = uv - 0.5;
     vec2 rotated = vec2(centered.x * cos(angle) - centered.y * sin(angle), centered.x * sin(angle) + centered.y * cos(angle));
     uv = rotated + 0.5 + uOffset;
-    if(uMirror == 1) uv.x = 1.0 - uv.x; 
-    else if(uMirror == 2) uv.y = 1.0 - uv.y; 
-    else if(uMirror == 3) { uv.x = 1.0 - uv.x; uv.y = 1.0 - uv.y; }
+    if(uMirror == 1) uv.x = 1.0 - uv.x; else if(uMirror == 2) uv.y = 1.0 - uv.y; else if(uMirror == 3) { uv.x = 1.0 - uv.x; uv.y = 1.0 - uv.y; }
     
     // ЗАДАЧА 4: Бесшовность через fract ПОСЛЕ умножения на масштаб
     vec2 st = uv * uScale;
@@ -316,7 +266,6 @@ let plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), createMaterial());
 scene2d.add(plane2d);
 currentMaterial = plane2d.material;
 
-// ---- Цвета ----
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
 function rebuildColorUI() {
@@ -337,27 +286,27 @@ function rebuildColorUI() {
 addColorBtn.addEventListener('click', () => { if (activeColors.length < 8) { activeColors.push(new THREE.Color('#FFB347')); rebuildColorUI(); updateColorUniforms(); updateMaterial(); } });
 rebuildColorUI();
 
-// ---- Обновление параметров ----
 function updateUniformsFromUI() {
-    const newScale = parseFloat(document.getElementById('scale').value);
+    const newScale = parseFloat(document.getElementById('scale')?.value || 3.00);
     uniforms.uScale.value = newScale;
     
     const intensityEl = document.getElementById('intensity');
     if (intensityEl) uniforms.uIntensity.value = parseFloat(intensityEl.value);
     
-    uniforms.uOctaves.value = parseInt(document.getElementById('octaves').value);
-    uniforms.uPersistence.value = parseFloat(document.getElementById('persistence').value);
-    uniforms.uLacunarity.value = parseFloat(document.getElementById('lacunarity').value);
-    uniforms.uSaturation.value = parseFloat(document.getElementById('saturation').value);
-    uniforms.uBlendMode.value = parseInt(document.getElementById('blendMode').value);
-    uniforms.uRotation.value = parseFloat(document.getElementById('rotate').value);
-    uniforms.uOffset.value.set(parseFloat(document.getElementById('offsetX').value), parseFloat(document.getElementById('offsetY').value));
-    uniforms.uMirror.value = parseInt(document.getElementById('mirror').value);
-    uniforms.uWarpEnable.value = document.getElementById('warpEnable').checked ? 1 : 0;
-    uniforms.uWarpStrength.value = parseFloat(document.getElementById('warpStrength').value);
-    uniforms.uWarpOctaves.value = parseInt(document.getElementById('warpOctaves').value);
-    uniforms.uShowRelief.value = document.getElementById('relief2d').checked ? 1 : 0;
-    uniforms.uReliefStrength.value = parseFloat(document.getElementById('reliefStrength').value);
+    const octavesEl = document.getElementById('octaves'); if (octavesEl) uniforms.uOctaves.value = parseInt(octavesEl.value);
+    const persistenceEl = document.getElementById('persistence'); if (persistenceEl) uniforms.uPersistence.value = parseFloat(persistenceEl.value);
+    const lacunarityEl = document.getElementById('lacunarity'); if (lacunarityEl) uniforms.uLacunarity.value = parseFloat(lacunarityEl.value);
+    const saturationEl = document.getElementById('saturation'); if (saturationEl) uniforms.uSaturation.value = parseFloat(saturationEl.value);
+    const blendModeEl = document.getElementById('blendMode'); if (blendModeEl) uniforms.uBlendMode.value = parseInt(blendModeEl.value);
+    const rotateEl = document.getElementById('rotate'); if (rotateEl) uniforms.uRotation.value = parseFloat(rotateEl.value);
+    const offsetXEl = document.getElementById('offsetX'); const offsetYEl = document.getElementById('offsetY');
+    if (offsetXEl && offsetYEl) uniforms.uOffset.value.set(parseFloat(offsetXEl.value), parseFloat(offsetYEl.value));
+    const mirrorEl = document.getElementById('mirror'); if (mirrorEl) uniforms.uMirror.value = parseInt(mirrorEl.value);
+    const warpEnableEl = document.getElementById('warpEnable'); if (warpEnableEl) uniforms.uWarpEnable.value = warpEnableEl.checked ? 1 : 0;
+    const warpStrengthEl = document.getElementById('warpStrength'); if (warpStrengthEl) uniforms.uWarpStrength.value = parseFloat(warpStrengthEl.value);
+    const warpOctavesEl = document.getElementById('warpOctaves'); if (warpOctavesEl) uniforms.uWarpOctaves.value = parseInt(warpOctavesEl.value);
+    const relief2dEl = document.getElementById('relief2d'); if (relief2dEl) uniforms.uShowRelief.value = relief2dEl.checked ? 1 : 0;
+    const reliefStrengthEl = document.getElementById('reliefStrength'); if (reliefStrengthEl) uniforms.uReliefStrength.value = parseFloat(reliefStrengthEl.value);
     
     const tile3dEl = document.getElementById('tile3dScale');
     if (tile3dEl) uniforms.uTile3DScale.value = parseFloat(tile3dEl.value);
@@ -374,7 +323,9 @@ function updateUniformsFromUI() {
     }
     lastScale = newScale;
 
-    const metallicVal = document.getElementById('metallic') ? parseFloat(document.getElementById('metallic').value).toFixed(2) : '0.56';
+    const metallicEl = document.getElementById('metallic');
+    const metallicVal = metallicEl ? parseFloat(metallicEl.value).toFixed(2) : '0.56';
+    
     const vals = {
         scaleVal: uniforms.uScale.value.toFixed(2), octavesVal: uniforms.uOctaves.value,
         persistenceVal: uniforms.uPersistence.value.toFixed(2), lacunarityVal: uniforms.uLacunarity.value.toFixed(2),
@@ -399,10 +350,8 @@ document.getElementById('warpEnable')?.addEventListener('change', updateUniforms
 document.getElementById('relief2d')?.addEventListener('change', updateUniformsFromUI);
 document.getElementById('syncTexturePattern')?.addEventListener('change', updateUniformsFromUI);
 
-ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов ----
 const noisePatterns = [{name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного (Worley)", v:1}, {name: "Волны", v:0}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC (коллапс волн)", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
@@ -418,7 +367,6 @@ populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
 
-// ---- Пресеты ----
 const savePresetBtn = document.getElementById('savePresetBtn');
 const loadPresetInput = document.getElementById('loadPresetInput');
 const loadPresetBtn = document.getElementById('loadPresetBtn');
@@ -436,7 +384,6 @@ savePresetBtn.onclick = () => { const p = getCurrentPreset(); const blob = new B
 loadPresetBtn.onclick = () => loadPresetInput.click();
 loadPresetInput.onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev => { try { applyPreset(JSON.parse(ev.target.result)); } catch(e) { alert('Ошибка'); } }; r.readAsText(f); };
 
-// ---- 3D модель ----
 function createGeometry(type) {
     if(type === 'cube') return new THREE.BoxGeometry(1.2, 1.2, 1.2);
     if(type === 'torus') return new THREE.TorusKnotGeometry(0.85, 0.22, 200, 32, 3, 4);
@@ -462,7 +409,6 @@ document.getElementById('modelFileInput')?.addEventListener('change', e => {
     }, undefined, () => document.getElementById('modelStatus').textContent = 'Ошибка');
 });
 
-// ---- Фоновое изображение ----
 document.getElementById('bgImageInput')?.addEventListener('change', e => {
     if (e.target.files[0]) {
         const img = new Image(); img.onload = () => { backgroundImageEl = img; generateOverlayTexture(); }; img.src = URL.createObjectURL(e.target.files[0]);
@@ -472,7 +418,6 @@ document.getElementById('bgImageInput')?.addEventListener('change', e => {
 document.getElementById('clearBgBtn')?.addEventListener('click', () => { backgroundImageEl = null; document.getElementById('clearBgBtn')?.classList.add('hidden'); generateOverlayTexture(); });
 document.getElementById('bgOpacity')?.addEventListener('input', () => generateOverlayTexture());
 
-// ---- Генерация оверлея ----
 async function generateOverlayTexture() {
     const size = 1024;
     const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
@@ -481,7 +426,10 @@ async function generateOverlayTexture() {
     
     if (backgroundImageEl) {
         const bgOpacity = document.getElementById('bgOpacity') ? parseFloat(document.getElementById('bgOpacity').value) : 1.0;
-        ctx.globalAlpha = bgOpacity; drawImageCover(ctx, backgroundImageEl, size, size); ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = bgOpacity; 
+        const ratio = Math.max(size / backgroundImageEl.width, size / backgroundImageEl.height);
+        ctx.drawImage(backgroundImageEl, 0, 0, backgroundImageEl.width, backgroundImageEl.height, (size - backgroundImageEl.width * ratio) / 2, (size - backgroundImageEl.height * ratio) / 2, backgroundImageEl.width * ratio, backgroundImageEl.height * ratio);
+        ctx.globalAlpha = 1.0;
     }
 
     const syncRotation = uniforms.uRotation.value, syncOffsetX = uniforms.uOffset.value.x, syncOffsetY = uniforms.uOffset.value.y, syncMirror = uniforms.uMirror.value;
@@ -525,10 +473,10 @@ async function generateOverlayTexture() {
     }
 
     // ЗАДАЧА 4: 16px bleed для бесшовности на краях
-    ctx.drawImage(canvas, 0, 0, 16, size, size, 0, 16, size); // Left to Right
-    ctx.drawImage(canvas, size - 16, 0, 16, size, 0, 0, 16, size); // Right to Left
-    ctx.drawImage(canvas, 0, 0, size, 16, 0, size, size, 16); // Top to Bottom
-    ctx.drawImage(canvas, 0, size - 16, size, 16, 0, 0, size, 16); // Bottom to Top
+    ctx.drawImage(canvas, 0, 0, 16, size, size, 0, 16, size);
+    ctx.drawImage(canvas, size - 16, 0, 16, size, 0, 0, 16, size);
+    ctx.drawImage(canvas, 0, 0, size, 16, 0, size, size, 16);
+    ctx.drawImage(canvas, 0, size - 16, size, 16, 0, 0, size, 16);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping; 
@@ -541,12 +489,6 @@ async function generateOverlayTexture() {
     renderer2d.render(scene2d, camera2d);
 }
 
-function drawImageCover(ctx, img, w, h) {
-    const ratio = Math.max(w / img.width, h / img.height);
-    ctx.drawImage(img, 0, 0, img.width, img.height, (w - img.width * ratio) / 2, (h - img.height * ratio) / 2, img.width * ratio, img.height * ratio);
-}
-
-// ---- UI слоёв ----
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
@@ -621,7 +563,6 @@ if (layerOpacitySlider) {
     });
 }
 
-// ---- Загрузка слоёв ----
 async function loadFilesAsLayers(files) {
     for (const file of files) {
         const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
@@ -632,7 +573,6 @@ async function loadFilesAsLayers(files) {
 }
 document.getElementById('multiTextureInput')?.addEventListener('change', async (e) => { if (e.target.files.length) await loadFilesAsLayers(Array.from(e.target.files)); e.target.value = ''; });
 
-// ---- Drag & Drop ----
 const canvas2dElem = renderer2d.domElement;
 canvas2dElem.style.cursor = 'crosshair';
 canvas2dElem.addEventListener('dragover', (e) => { e.preventDefault(); canvas2dElem.style.border = '2px dashed #4CC9F0'; });
@@ -683,7 +623,6 @@ canvas2dElem.addEventListener('wheel', (e) => {
     generateOverlayTexture(); updateLayersUI();
 });
 
-// ---- Экспорт ----
 document.getElementById('export2DBtn')?.addEventListener('click', async () => {
     const format = document.getElementById('export2DFormat').value, res = parseInt(document.getElementById('exportResolution').value);
     if (format === 'pbr') {
