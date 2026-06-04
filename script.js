@@ -8,22 +8,35 @@ import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 const container2d = document.getElementById('canvas2d');
 const container3d = document.getElementById('canvas3d');
 
-const scene2d = new THREE.Scene(); scene2d.background = null;
-const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); camera2d.position.z = 1;
+const scene2d = new THREE.Scene(); 
+scene2d.background = null;
+const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
+camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
 
-const scene3d = new THREE.Scene(); 
+const scene3d = new THREE.Scene();
+// УБРАН серый фон, теперь он прозрачный
 scene3d.background = null; 
-const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
-const renderer3d = new THREE.WebGLRenderer({ antialias: true });
+const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); 
+camera3d.position.set(2.2, 1.6, 2.8);
+// Добавлен alpha: true для корректной прозрачности
+const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
 function updateSizes() {
     const rect2d = container2d.parentElement.getBoundingClientRect();
-    let size2d = Math.min(rect2d.width, rect2d.height);
+    let size2d;
+    
+    // ИСПРАВЛЕНИЕ: На мобильных используем всю ширину, на десктопе - квадрат
+    if (window.innerWidth < 860) {
+        size2d = rect2d.width;
+    } else {
+        size2d = Math.min(rect2d.width, rect2d.height);
+    }
+    
     if (size2d <= 0) size2d = 256;
     renderer2d.setSize(size2d, size2d);
     
@@ -41,7 +54,9 @@ window.addEventListener('resize', updateSizes);
 updateSizes();
 
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
-controls3d.enableDamping = true; controls3d.enableZoom = true; controls3d.target.set(0, 0, 0);
+controls3d.enableDamping = true; 
+controls3d.enableZoom = true; 
+controls3d.target.set(0, 0, 0);
 
 // --- Освещение ---
 scene3d.add(new THREE.AmbientLight(0xffffff, 0.4));
@@ -52,7 +67,6 @@ const rimLight = new THREE.DirectionalLight(0xffffff, 0.8); rimLight.position.se
 let currentMesh3d = null, currentGeometryType = 'cube', customModel = null, overlayTexture = null;
 let backgroundImageEl = null;
 let activeColors = [ new THREE.Color('#FF6B8B'), new THREE.Color('#4CC9F0'), new THREE.Color('#F9C74F'), new THREE.Color('#9B5DE5') ];
-
 let layers = [];
 let selectedLayerId = null;
 let isDraggingLayer = false;
@@ -86,7 +100,7 @@ const uniforms = {
     uWarpEnable: { value: 0 }, uWarpStrength: { value: 0.3 }, uWarpOctaves: { value: 2 },
     uShowRelief: { value: 0 }, uReliefStrength: { value: 1.0 }, uTile3DScale: { value: 1.0 },
     uTime: { value: 0 }, uOverlayScale: { value: 1.0 },
-    uExportMode: { value: 0 } // 0: Color, 1: Normal, 2: Roughness, 3: Metallic, 4: Height, 5: AO
+    uExportMode: { value: 0 }
 };
 
 function updateColorUniforms() {
@@ -100,20 +114,10 @@ function updateColorUniforms() {
 updateColorUniforms();
 
 // --- Шейдеры ---
-const vertexShader = `
-varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW; uniform float uTile3DScale; 
-void main() { 
-    vUv = uv * uTile3DScale; 
-    vec4 worldPos = modelMatrix * vec4(position, 1.0); 
-    vWorldPosition = worldPos.xyz; 
-    vNormalW = normalize(mat3(modelMatrix) * normal); 
-    gl_Position = projectionMatrix * viewMatrix * worldPos; 
-}`;
+const vertexShader = `varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW; uniform float uTile3DScale; void main() { vUv = uv * uTile3DScale; vec4 worldPos = modelMatrix * vec4(position, 1.0); vWorldPosition = worldPos.xyz; vNormalW = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * worldPos; }`;
 
 const fragmentShader = `
 precision highp float;
-// В WebGL 2.0 dFdx/dFdy встроены в ядро, #extension не нужен и вызывает ошибку компиляции!
-
 uniform float uScale; uniform float uIntensity; uniform int uPatternType;
 uniform vec3 uColor0; uniform vec3 uColor1; uniform vec3 uColor2; uniform vec3 uColor3;
 uniform vec3 uColor4; uniform vec3 uColor5; uniform vec3 uColor6; uniform vec3 uColor7;
@@ -124,12 +128,12 @@ uniform sampler2D uOverlayTexture; uniform int uUseOverlay;
 uniform int uWarpEnable; uniform float uWarpStrength; uniform int uWarpOctaves;
 uniform int uShowRelief; uniform float uReliefStrength;
 uniform float uTime;
-uniform int uExportMode; 
-
+uniform int uExportMode;
 varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW;
 
-float random (vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
+float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
 vec2 hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(vec2(p.x * p.y, p.y * p.x)) * 2.0 - 1.0; }
+
 float perlinNoise(vec2 st) {
     vec2 i = floor(st); vec2 f = fract(st); vec2 u = f * f * (3.0 - 2.0 * f);
     vec2 grad00 = hash(i); vec2 grad10 = hash(i + vec2(1.0, 0.0));
@@ -138,33 +142,54 @@ float perlinNoise(vec2 st) {
     float dot01 = dot(grad01, f - vec2(0.0, 1.0)); float dot11 = dot(grad11, f - vec2(1.0, 1.0));
     return mix(mix(dot00, dot10, u.x), mix(dot01, dot11, u.x), u.y) * 0.5 + 0.5;
 }
+
 float fbmPerlin(vec2 st, int oct, float pers, float lac) {
     float val = 0.0, amp = 0.5, freq = 2.0;
-    for(int i=0; i < 6; i++) { if(i >= oct) break; val += amp * (perlinNoise(st * freq)*2.0-1.0); amp *= pers; freq *= lac; }
+    for(int i=0; i < 6; i++) { if(i >= oct) break; val += amp * (perlinNoise(st * freq) * 2.0 - 1.0); amp *= pers; freq *= lac; }
     return val * 0.5 + 0.5;
 }
+
 float worley(vec2 uv) {
     vec2 p = floor(uv); vec2 f = fract(uv); float res = 1.0;
-    for(int j=-1; j <=1; j++) for(int i=-1; i <=1; i++) {
+    for(int j=-1; j <= 1; j++) for(int i=-1; i <= 1; i++) {
         vec2 b = vec2(float(i), float(j)); vec2 r = b - f + random(p + b);
         res = min(res, dot(r,r));
     } return sqrt(res);
 }
-float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x*10.) * cos(t + uv.y*10.); return step(length(uv), 0.4+0.2*sin(angle*20.+t)); }
+
+float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x * 10.0) * cos(t + uv.y * 10.0); return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t)); }
+
 vec2 domainWarp(vec2 uv, float strength, int octaves) {
     vec2 warped = uv;
     for(int i=0; i < 5; i++) { if(i >= octaves) break; warped += strength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i+1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i+1) + uTime)); }
     return warped;
 }
+
 float reactionDiffusion(vec2 uv) { vec2 p = uv * 4.0; float a = sin(p.x * 3.0) * cos(p.y * 3.0); float b = cos(p.x * 4.2) * sin(p.y * 4.2); return clamp(a * 0.5 + b * 0.5 + 0.5, 0.0, 1.0); }
 float flowField(vec2 uv) { vec2 q = uv * 3.0; float angle = sin(q.y * 0.7) * cos(q.x * 0.5); vec2 gradient = vec2(cos(angle), sin(angle)); uv += gradient * 0.1; float field = sin(uv.x * 10.0) * cos(uv.y * 10.0); return smoothstep(-0.3, 0.7, field); }
-float wfcPattern(vec2 uv) { vec2 tile = floor(uv * 8.0); float hashVal = random(tile); int rule = int(floor(hashVal * 6.0)); float pattern = 0.0; vec2 sub = fract(uv * 8.0); if(rule == 0) pattern = step(0.5, sub.x) * step(0.5, sub.y); else if(rule == 1) pattern = step(0.5, sub.x + sub.y); else if(rule == 2) pattern = step(0.5, sub.x - sub.y + 0.5); else if(rule == 3) pattern = sin(sub.x * 3.14159 * 4.0) * 0.5 + 0.5; else if(rule == 4) pattern = (sub.x > 0.25 && sub.x < 0.75 && sub.y > 0.25 && sub.y < 0.75) ? 1.0 : 0.0; else pattern = fract(sub.x * 3.0 + sub.y * 2.0); return pattern; }
-float ridgedMF(vec2 uv, int oct, float pers, float lac) { float val = 0.0, amp = 0.5, freq = 2.0; for(int i=0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; } return clamp(val, 0.0, 1.0); }
+
+float wfcPattern(vec2 uv) { 
+    vec2 tile = floor(uv * 8.0); float hashVal = random(tile); int rule = int(floor(hashVal * 6.0)); float pattern = 0.0; vec2 sub = fract(uv * 8.0); 
+    if(rule == 0) pattern = step(0.5, sub.x) * step(0.5, sub.y); 
+    else if(rule == 1) pattern = step(0.5, sub.x + sub.y);  
+    else if(rule == 2) pattern = step(0.5, sub.x - sub.y + 0.5); 
+    else if(rule == 3) pattern = sin(sub.x * 3.14159 * 4.0) * 0.5 + 0.5; 
+    else if(rule == 4) pattern = (sub.x > 0.25 && sub.x < 0.75 && sub.y > 0.25 && sub.y < 0.75) ? 1.0 : 0.0; 
+    else pattern = fract(sub.x * 3.0 + sub.y * 2.0); 
+    return pattern; 
+}
+
+float ridgedMF(vec2 uv, int oct, float pers, float lac) { 
+    float val = 0.0, amp = 0.5, freq = 2.0; 
+    for(int i=0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; } 
+    return clamp(val, 0.0, 1.0); 
+}
+
 float checker(vec2 uv, float freq) { vec2 p = floor(uv * freq); return mod(p.x + p.y, 2.0); }
 float stripes(vec2 uv, float freq) { return step(0.5, fract(uv.x * freq)); }
 float circles(vec2 uv, float freq) { vec2 center = vec2(0.5, 0.5); float radius = length(uv - center) * freq; return fract(radius * 2.0); }
 float grid(vec2 uv, float freq) { vec2 g = fract(uv * freq); return max(step(0.92, g.x), step(0.92, g.y)); }
-float tiles(vec2 uv, float freq) { vec2 f = fract(uv * freq); float line = step(0.75, f.x) + step(0.75, f.y); return clamp(1.0 - line, 0.0, 1.0); } 
+float tiles(vec2 uv, float freq) { vec2 f = fract(uv * freq); float line = step(0.75, f.x) + step(0.75, f.y); return clamp(1.0 - line, 0.0, 1.0); }
 float wood(vec2 uv, float freq) { vec2 center = vec2(0.5, 0.5); float dist = length(uv - center) * 2.0; float rings = sin(dist * freq * 12.0 + sin(uv.x * 8.0) * 1.5); return clamp(rings * 0.5 + 0.5, 0.0, 1.0); }
 float marble(vec2 uv, float freq) { float noise = fbmPerlin(uv * freq * 3.0, 4, 0.6, 2.0); float veins = sin((uv.x * freq * 5.0 + noise * 3.0) * 3.14159); return clamp(veins * 0.6 + 0.5, 0.0, 1.0); }
 float linearGradient(vec2 uv) { return uv.x; }
@@ -195,20 +220,20 @@ vec3 getColor(float t) {
 float computePattern(vec2 uv) {
     float angle = uRotation * 3.14159 / 180.0;
     vec2 centered = uv - 0.5;
-    vec2 rotated = vec2(centered.x*cos(angle)-centered.y*sin(angle), centered.x*sin(angle)+centered.y*cos(angle));
+    vec2 rotated = vec2(centered.x * cos(angle) - centered.y * sin(angle), centered.x * sin(angle) + centered.y * cos(angle));
     uv = rotated + 0.5 + uOffset;
     if(uMirror == 1) uv.x = 1.0 - uv.x; else if(uMirror == 2) uv.y = 1.0 - uv.y; else if(uMirror == 3) { uv.x = 1.0 - uv.x; uv.y = 1.0 - uv.y; }
     if(uTileEnabled == 1) uv = fract(uv);
     vec2 st = uv * uScale;
     if(uWarpEnable == 1) st = domainWarp(st, uWarpStrength, uWarpOctaves);
     float patternValue;
-    if(uPatternType == 0) { float w1 = sin(st.x*8.0)*cos(st.y*8.0); float w2 = sin(st.y*12.0+st.x*5.0); patternValue = (w1 + w2)*0.6+0.5; }
-    else if(uPatternType == 1) { patternValue = worley(st*3.5); patternValue = pow(patternValue*1.2, 0.8); }
+    if(uPatternType == 0) { float w1 = sin(st.x * 8.0) * cos(st.y * 8.0); float w2 = sin(st.y * 12.0 + st.x * 5.0); patternValue = (w1 + w2) * 0.6 + 0.5; }
+    else if(uPatternType == 1) { patternValue = worley(st * 3.5); patternValue = pow(patternValue * 1.2, 0.8); }
     else if(uPatternType == 2) { patternValue = fbmPerlin(st, uOctaves, uPersistence, uLacunarity); }
     else if(uPatternType == 4) { patternValue = random(st); }
     else if(uPatternType == 5) { patternValue = reactionDiffusion(st); }
     else if(uPatternType == 6) { patternValue = wfcPattern(st); }
-    else if(uPatternType == 7) { patternValue = flowField(st); }
+    else if(uPatternType == 7) { patternValue = flowField(st); } 
     else if(uPatternType == 12) { patternValue = ridgedMF(st, uOctaves, uPersistence, uLacunarity); }
     else if(uPatternType == 8) { patternValue = checker(st, 4.0); }
     else if(uPatternType == 9) { patternValue = stripes(st, 6.0); }
@@ -220,7 +245,7 @@ float computePattern(vec2 uv) {
     else if(uPatternType == 17) { patternValue = linearGradient(uv); }
     else if(uPatternType == 18) { patternValue = radialGradient(uv); }
     else if(uPatternType == 19) { patternValue = angularGradient(uv); }
-    else if(uPatternType == 3) { patternValue = truchetPattern(st*3.0, uTime); patternValue = patternValue*0.8+0.2; }
+    else if(uPatternType == 3) { patternValue = truchetPattern(st * 3.0, uTime); patternValue = patternValue * 0.8 + 0.2; }
     else { patternValue = fbmPerlin(st, uOctaves, uPersistence, uLacunarity); }
     return clamp(patternValue * uIntensity, 0.0, 1.0);
 }
@@ -231,12 +256,11 @@ void main() {
     float triScale = 0.8; uvX *= triScale; uvY *= triScale; uvZ *= triScale;
     float patX = computePattern(uvX), patY = computePattern(uvY), patZ = computePattern(uvZ);
     float patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
-    
     vec3 color = getColor(patternValue);
     float gray = dot(color, vec3(0.299, 0.587, 0.114));
     color = mix(vec3(gray), color, uSaturation);
     if(uBlendMode == 1) color = color * patternValue;
-    
+
     vec3 finalColor = color;
     if(uUseOverlay == 1) {
         vec4 overlayRGBA = texture2D(uOverlayTexture, vUv);
@@ -250,15 +274,14 @@ void main() {
         finalColor = finalColor * (0.6 + diff * 0.5);
     }
 
-    // --- ЛОГИКА ЭКСПОРТА PBR КАРТ ---
-    if (uExportMode == 1) { // NORMAL MAP
+    if (uExportMode == 1) { 
         vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
         vec3 normal = normalize(vec3(-grad.x * 2.0, -grad.y * 2.0, 1.0));
         finalColor = normal * 0.5 + 0.5; 
-    } else if (uExportMode == 2) { finalColor = vec3(patternValue); } // ROUGHNESS
-    else if (uExportMode == 3) { finalColor = vec3(patternValue); }   // METALLIC
-    else if (uExportMode == 4) { finalColor = vec3(patternValue); }   // HEIGHT
-    else if (uExportMode == 5) { finalColor = vec3(1.0 - patternValue); } // AO
+    } else if (uExportMode == 2) { finalColor = vec3(patternValue); } 
+    else if (uExportMode == 3) { finalColor = vec3(patternValue); }   
+    else if (uExportMode == 4) { finalColor = vec3(patternValue); }   
+    else if (uExportMode == 5) { finalColor = vec3(1.0 - patternValue); } 
 
     gl_FragColor = vec4(finalColor, 1.0);
 }
@@ -291,6 +314,7 @@ currentMaterial = plane2d.material;
 // ---- Цвета ----
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
+
 function rebuildColorUI() {
     colorContainer.innerHTML = '';
     activeColors.forEach((col, idx) => {
@@ -306,6 +330,7 @@ function rebuildColorUI() {
         colorContainer.appendChild(div);
     });
 }
+
 addColorBtn.addEventListener('click', () => { if (activeColors.length < 8) { activeColors.push(new THREE.Color('#FFB347')); rebuildColorUI(); updateColorUniforms(); updateMaterial(); } });
 rebuildColorUI();
 
@@ -329,7 +354,7 @@ function updateUniformsFromUI() {
     uniforms.uReliefStrength.value = parseFloat(document.getElementById('reliefStrength').value);
     const tile3dEl = document.getElementById('tile3dScale');
     if (tile3dEl) uniforms.uTile3DScale.value = parseFloat(tile3dEl.value);
-
+    
     const metallicVal = document.getElementById('metallic') ? parseFloat(document.getElementById('metallic').value).toFixed(2) : '0.50';
     const vals = {
         scaleVal: uniforms.uScale.value.toFixed(2), octavesVal: uniforms.uOctaves.value,
@@ -341,6 +366,7 @@ function updateUniformsFromUI() {
     };
     if (document.getElementById('intensityVal')) vals.intensityVal = uniforms.uIntensity.value.toFixed(2);
     if (document.getElementById('tile3dScaleVal')) vals.tile3dScaleVal = uniforms.uTile3DScale.value.toFixed(2);
+    
     for (let id in vals) { const el = document.getElementById(id); if (el) el.innerText = vals[id]; }
 
     renderer2d.render(scene2d, camera2d);
@@ -366,6 +392,7 @@ function populateSelect(id, items, cur) {
     items.forEach(i => { const o = document.createElement('option'); o.value=i.v; o.textContent=i.name; if(i.v===cur) o.selected=true; sel.appendChild(o); });
     sel.addEventListener('change', e => { uniforms.uPatternType.value = parseInt(e.target.value); updateUniformsFromUI(); });
 }
+
 populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
@@ -375,9 +402,15 @@ populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value
 const savePresetBtn = document.getElementById('savePresetBtn');
 const loadPresetInput = document.getElementById('loadPresetInput');
 const loadPresetBtn = document.getElementById('loadPresetBtn');
+
 function getCurrentPreset() {
-    return { colors: activeColors.map(c => c.getHexString()), uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, tile3dScale:uniforms.uTile3DScale.value }, patternType:uniforms.uPatternType.value };
+    return { 
+        colors: activeColors.map(c => c.getHexString()), 
+        uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, tile3dScale:uniforms.uTile3DScale.value }, 
+        patternType:uniforms.uPatternType.value 
+    };
 }
+
 function applyPreset(p) {
     if (!p.colors) return;
     activeColors = p.colors.map(h => new THREE.Color('#'+h)); rebuildColorUI(); updateColorUniforms();
@@ -385,6 +418,7 @@ function applyPreset(p) {
     if (p.patternType !== undefined) uniforms.uPatternType.value = p.patternType;
     updateMaterial();
 }
+
 savePresetBtn.onclick = () => { const p = getCurrentPreset(); const blob = new Blob([JSON.stringify(p)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`preset_${Date.now()}.json`; a.click(); };
 loadPresetBtn.onclick = () => loadPresetInput.click();
 loadPresetInput.onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev => { try { applyPreset(JSON.parse(ev.target.result)); } catch(e) { alert('Ошибка'); } }; r.readAsText(f); };
@@ -396,12 +430,14 @@ function createGeometry(type) {
     if(type==='sphere') return new THREE.SphereGeometry(0.9,128,128);
     return new THREE.CylinderGeometry(0.8,0.8,1.2,64);
 }
+
 function update3dModel() {
     if(currentMesh3d) scene3d.remove(currentMesh3d);
     if(customModel) { customModel.traverse(c=>{if(c.isMesh) c.material = currentMaterial;}); scene3d.add(customModel); currentMesh3d=customModel; }
     else { const m = new THREE.Mesh(createGeometry(currentGeometryType), currentMaterial); scene3d.add(m); currentMesh3d=m; }
     const box = new THREE.Box3().setFromObject(currentMesh3d); controls3d.target.copy(box.getCenter(new THREE.Vector3())); controls3d.update(); updateSizes();
 }
+
 document.getElementById('geometrySelect')?.addEventListener('change', e => { customModel=null; currentGeometryType=e.target.value; update3dModel(); });
 document.getElementById('modelFileInput')?.addEventListener('change', e => {
     if(!e.target.files[0]) return;
@@ -410,8 +446,8 @@ document.getElementById('modelFileInput')?.addEventListener('change', e => {
         if(currentMesh3d) scene3d.remove(currentMesh3d);
         customModel = gltf.scene; const box = new THREE.Box3().setFromObject(customModel); const size = box.getSize(new THREE.Vector3()).length();
         const scl = 1.2 / size; customModel.scale.set(scl,scl,scl); customModel.position.sub(box.getCenter(new THREE.Vector3()).multiplyScalar(scl));
-        update3dModel(); URL.revokeObjectURL(url); 
-        document.getElementById('modelStatus').textContent='Модель загружена'; 
+        update3dModel(); URL.revokeObjectURL(url);
+        document.getElementById('modelStatus').textContent='Модель загружена';
         setTimeout(()=>document.getElementById('modelStatus').textContent='',2000);
     }, undefined, () => document.getElementById('modelStatus').textContent='Ошибка');
 });
@@ -469,6 +505,7 @@ async function generateOverlayTexture() {
     uniforms.uUseOverlay.value = (layers.length > 0 || backgroundImageEl) ? 1 : 0;
     renderer2d.render(scene2d, camera2d);
 }
+
 function drawImageCover(ctx, img, w, h) {
     const ratio = Math.max(w / img.width, h / img.height);
     const centerShift_x = (w - img.width * ratio) / 2, centerShift_y = (h - img.height * ratio) / 2;
@@ -479,6 +516,7 @@ function drawImageCover(ctx, img, w, h) {
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
+
 function updateLayersUI() {
     if (!overlayLayersDiv) return;
     overlayLayersDiv.innerHTML = '';
@@ -491,21 +529,25 @@ function updateLayersUI() {
         delBtn.onclick = (e) => { e.stopPropagation(); deleteLayerById(layer.id); };
         controls.appendChild(delBtn);
         div.appendChild(thumb); div.appendChild(nameSpan); div.appendChild(controls);
+        
         const extraDiv = document.createElement('div'); extraDiv.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; width:100%; align-items:center;';
         const scaleRow = document.createElement('div'); scaleRow.style.display = 'flex'; scaleRow.style.alignItems = 'center'; scaleRow.style.gap = '6px';
         scaleRow.innerHTML = `<span style="font-size:0.7rem;">Масштаб:</span><input type="range" min="0.1" max="2.0" step="0.01" value="${layer.scale}" style="width:80px;"><span style="font-size:0.7rem;">${layer.scale.toFixed(2)}</span>`;
         scaleRow.querySelector('input').addEventListener('input', (e) => { layer.scale = parseFloat(e.target.value); scaleRow.querySelector('span:last-child').innerText = layer.scale.toFixed(2); generateOverlayTexture(); });
         extraDiv.appendChild(scaleRow);
+        
         const syncRow = document.createElement('div'); syncRow.style.display = 'flex'; syncRow.style.alignItems = 'center'; syncRow.style.gap = '6px';
         const syncCheck = document.createElement('input'); syncCheck.type = 'checkbox'; syncCheck.checked = layer.syncWithPattern || false;
         syncCheck.addEventListener('change', (e) => { layer.syncWithPattern = e.target.checked; generateOverlayTexture(); });
         syncRow.appendChild(syncCheck); syncRow.appendChild(document.createTextNode('Синхр. с ген.')); extraDiv.appendChild(syncRow);
+        
         const tileRow = document.createElement('div'); tileRow.style.display = 'flex'; tileRow.style.alignItems = 'center'; tileRow.style.gap = '6px';
         tileRow.innerHTML = `<span style="font-size:0.7rem;">Повт X:</span><input type="number" min="1" max="10" step="1" value="${layer.tileX || 1}" style="width:50px;"><span style="font-size:0.7rem;">Y:</span><input type="number" min="1" max="10" step="1" value="${layer.tileY || 1}" style="width:50px;">`;
         const inpX = tileRow.querySelector('input:first-of-type'), inpY = tileRow.querySelector('input:last-of-type');
         inpX.addEventListener('change', () => { layer.tileX = Math.max(1, parseInt(inpX.value) || 1); generateOverlayTexture(); });
         inpY.addEventListener('change', () => { layer.tileY = Math.max(1, parseInt(inpY.value) || 1); generateOverlayTexture(); });
         extraDiv.appendChild(tileRow);
+        
         div.appendChild(extraDiv);
         div.addEventListener('click', (e) => { if (!e.target.closest('.layer-controls')) selectLayer(layer.id); });
         overlayLayersDiv.appendChild(div);
@@ -515,11 +557,13 @@ function updateLayersUI() {
         if (layer) { layerOpacitySlider.value = layer.opacity; if (layerOpacityVal) layerOpacityVal.innerText = layer.opacity.toFixed(2); }
     }
 }
+
 function selectLayer(id) { selectedLayerId = id; updateLayersUI(); }
 function deleteLayerById(id) {
     const idx = layers.findIndex(l => l.id === id);
     if (idx !== -1) { layers.splice(idx,1); if (selectedLayerId === id) selectedLayerId = null; generateOverlayTexture(); updateLayersUI(); }
 }
+
 document.getElementById('clearOverlayBtn')?.addEventListener('click', () => { layers = []; selectedLayerId = null; generateOverlayTexture(); updateLayersUI(); });
 if (layerOpacitySlider) {
     layerOpacitySlider.addEventListener('input', () => {
@@ -560,6 +604,7 @@ function findLayerUnderPointer(uv) {
     }
     return null;
 }
+
 function getCanvasCoords(e) {
     const rect = canvas2dElem.getBoundingClientRect();
     const scaleX = canvas2dElem.width / rect.width, scaleY = canvas2dElem.height / rect.height;
@@ -569,6 +614,7 @@ function getCanvasCoords(e) {
     canvasX = Math.min(Math.max(0, canvasX), canvas2dElem.width); canvasY = Math.min(Math.max(0, canvasY), canvas2dElem.height);
     return { x: canvasX / canvas2dElem.width, y: canvasY / canvas2dElem.height };
 }
+
 canvas2dElem.addEventListener('mousedown', (e) => {
     e.preventDefault(); const uv = getCanvasCoords(e); const layer = findLayerUnderPointer(uv);
     if (layer) { selectLayer(layer.id); isDraggingLayer = true; dragStart = { x: uv.x, y: uv.y, layerX: layer.x, layerY: layer.y }; canvas2dElem.style.cursor = 'grabbing'; }
@@ -645,20 +691,17 @@ renderer3d.domElement.addEventListener('dblclick', () => document.getElementById
 
 function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
 
-// --- Безопасное клонирование униформ ---
 function cloneUniforms(src) {
     const dst = {};
     for (const key in src) dst[key] = { value: src[key].value };
     return dst;
 }
 
-// --- Рендер PBR карт ---
 async function renderPBRMap(res, type) {
     const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
     const tuni = cloneUniforms(uniforms);
     tuni.uUseOverlay = { value: 0 }; tuni.uShowRelief = { value: 0 };
     tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
-
     const sc = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); cam.position.z = 1;
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
@@ -681,7 +724,6 @@ async function captureTextureImage() {
     return blob;
 }
 
-// --- Гамбургер меню для мобильных ---
 document.getElementById('menuToggle')?.addEventListener('click', (e) => {
     e.stopPropagation();
     document.querySelector('.pattern-bar')?.classList.toggle('open');
@@ -700,7 +742,6 @@ function animate() {
     controls3d.update();
     renderer3d.render(scene3d, camera3d);
 }
-
 animate();
 update3dModel();
 generateOverlayTexture();
