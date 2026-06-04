@@ -102,11 +102,11 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// ---- Автообновление PBR (Перемещено вверх для избежания ReferenceError) ----
+// ---- Автообновление PBR ----
 let pbrUpdateTimeout;
 function schedulePBRUpdate() {
     clearTimeout(pbrUpdateTimeout);
-    pbrUpdateTimeout = setTimeout(updatePBRPreviews, 300); // Задержка 300мс для производительности
+    pbrUpdateTimeout = setTimeout(updatePBRPreviews, 300);
 }
 
 async function updatePBRPreviews() {
@@ -329,7 +329,7 @@ function updateMaterial() {
         if (customModel) customModel.traverse(c => { if (c.isMesh) c.material = currentMaterial; });
         else currentMesh3d.material = currentMaterial;
     }
-    schedulePBRUpdate(); // Автообновление PBR при смене материала
+    schedulePBRUpdate();
 }
 
 let plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2,2), createMaterial());
@@ -398,7 +398,7 @@ function updateUniformsFromUI() {
     renderer3d.render(scene3d, camera3d);
     if (layers.some(l => l.syncWithPattern)) generateOverlayTexture();
     
-    schedulePBRUpdate(); // Автообновление PBR
+    schedulePBRUpdate();
 }
 
 const controlIds = ['scale','octaves','persistence','lacunarity','saturation','blendMode','rotate','offsetX','offsetY','mirror','warpStrength','warpOctaves','reliefStrength','metallic'];
@@ -810,7 +810,7 @@ function cloneUniforms(src) {
     return dst;
 }
 
-// --- Рендер PBR карт (ИСПОЛЬЗУЕТ ОДИН И ТОТ ЖЕ РЕНДЕРЕР) ---
+// --- Рендер PBR карт ---
 async function renderPBRMap(res, type) {
     const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
     const tuni = cloneUniforms(uniforms);
