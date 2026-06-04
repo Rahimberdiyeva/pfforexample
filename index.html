@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PatternForge — Генератор текстур и 3D</title>
-    <!-- Подключение шрифтов Space Grotesk и системного Geist/system-ui -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -39,7 +38,7 @@
     <div class="menu-overlay" id="menuOverlay"></div>
 
     <div class="main-layout">
-        <!-- Блок настроек -->
+        <!-- 1. Панель генерации (расширенная) -->
         <div class="settings-column">
             <div class="preview-header">Параметры генерации</div>
             <div class="settings-panel">
@@ -123,7 +122,7 @@
                 <div class="setting-group">
                     <h3>Цветовая палитра</h3>
                     <div class="color-list" id="colorListContainer"></div>
-                    <button id="addColorBtn" class="full-width-btn">Добавить цвет</button>
+                    <button id="addColorBtn">Добавить цвет</button>
                 </div>
 
                 <div class="setting-group">
@@ -164,11 +163,11 @@
                 <div class="setting-group">
                     <h3>Фоновое изображение</h3>
                     <div class="bg-upload-row">
-                        <label class="file-input-btn full-width-btn">
+                        <label class="file-input-btn">
                             Выбрать фон
                             <input type="file" id="bgImageInput" accept="image/*" style="display:none">
                         </label>
-                        <button id="clearBgBtn" class="hidden full-width-btn" style="background:#ef7e8a; margin-top: 8px;">Удалить фон</button>
+                        <button id="clearBgBtn" class="hidden" style="background:#ef7e8a; color:white; border:none;">Удалить фон</button>
                     </div>
                     <div class="control-row" style="margin-top: 12px;">
                         <label>Прозрачность</label>
@@ -178,7 +177,7 @@
 
                 <div class="setting-group">
                     <h3>Паттерны (слои)</h3>
-                    <label class="file-input-btn full-width-btn" style="margin-bottom: 12px;">
+                    <label class="file-input-btn" style="margin-bottom: 12px;">
                         Добавить картинку
                         <input type="file" id="multiTextureInput" accept="image/*" multiple style="display:none">
                     </label>
@@ -188,7 +187,7 @@
                         <input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1.00">
                         <span class="value-display" id="layerOpacityVal">1.00</span>
                     </div>
-                    <button id="clearOverlayBtn" class="full-width-btn hidden" style="background:#b46e7e; margin-top: 12px;">Удалить все картинки</button>
+                    <button id="clearOverlayBtn" class="hidden" style="background:#b46e7e; color:white; border:none; margin-top: 12px;">Удалить все картинки</button>
                 </div>
 
                 <div class="setting-group">
@@ -202,62 +201,71 @@
             </div>
         </div>
 
-        <!-- Обертка предпросмотра ( Sticky на мобильных ) -->
+        <!-- 2. Область предпросмотра (2D -> 3D -> PBR) -->
         <div class="preview-wrapper">
-            <div class="preview-tabs">
-                <button class="tab-btn active" data-view="2d">2D Текстура</button>
-                <button class="tab-btn" data-view="3d">3D Модель</button>
+            <!-- Мобильные табы (видны только на маленьких экранах) -->
+            <div class="mobile-preview-tabs">
+                <button class="mobile-tab-btn active" data-view="view2d">2D Текстура</button>
+                <button class="mobile-tab-btn" data-view="view3d">3D Модель</button>
+                <button class="mobile-tab-btn" data-view="viewPbr">PBR Карты</button>
+            </div>
+
+            <!-- 2D Текстура (с зумом) -->
+            <div class="preview-section view2d active-view">
+                <div class="preview-header">2D Текстура (Колесико: зум, Зажать: перемещение)</div>
+                <div class="zoom-pan-container" id="zoomPanContainer">
+                    <div class="canvas-container interactive-canvas" id="canvas2d"></div a>
+                </div>
             </div>
             
-            <div class="texture-column active-view" id="view2d">
-                <div class="preview-header">2D Текстура</div>
-                <div class="canvas-container interactive-canvas" id="canvas2d"></div>
-            </div>
-            
-            <div class="view3d-column" id="view3d">
+            <!-- 3D Модель -->
+            <div class="preview-section view3d">
                 <div class="preview-header">3D Визуализация</div>
                 <div class="canvas-container" id="canvas3d"></div>
             </div>
+
+            <!-- PBR Карты (отдельная секция, не модальное окно) -->
+            <div class="preview-section viewPbr">
+                <div class="preview-header">PBR Карты</div>
+                <div class="pbr-grid-container" id="pbrGridContainer">
+                    <p style="text-align:center; padding: 20px; color: #666;">Нажмите "Сгенерировать PBR" для предпросмотра</p>
+                    <button id="generatePbrBtn" class="export-btn" style="margin: 0 auto 20px; display:block;">Сгенерировать PBR</button>
+                    <div class="pbr-grid" id="pbrGrid"></div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Футер: 2 колонки, элементы сверху, подпись снизу -->
     <div class="global-footer">
         <div class="footer-item">
+            <div class="footer-controls">
+                <select id="export2DFormat">
+                    <option value="png">PNG</option>
+                    <option value="jpg">JPG</option>
+                    <option value="svg">SVG</option>
+                    <option value="pbr">PBR (ZIP)</option>
+                </select>
+                <select id="exportResolution">
+                    <option value="1024">1K</option>
+                    <option value="2048">2K</option>
+                    <option value="4096">4K</option>
+                    <option value="8192">8K</option>
+                </select>
+                <button id="export2DBtn" class="export-btn">Скачать</button>
+            </div>
             <span class="footer-label">Экспорт 2D</span>
-            <select id="export2DFormat">
-                <option value="png">PNG</option>
-                <option value="jpg">JPG</option>
-                <option value="svg">SVG</option>
-                <option value="pbr">PBR (ZIP)</option>
-            </select>
-            <select id="exportResolution">
-                <option value="1024">1K</option>
-                <option value="2048">2K</option>
-                <option value="4096">4K</option>
-                <option value="8192">8K</option>
-            </select>
-            <button id="export2DBtn" class="export-btn">Скачать</button>
         </div>
         <div class="footer-item">
+            <div class="footer-controls">
+                <select id="exportModelFormat">
+                    <option value="glb">GLB</option>
+                    <option value="gltf">glTF</option>
+                    <option value="obj">OBJ + MTL</option>
+                </select>
+                <button id="exportModelBtn" class="export-btn">Скачать</button>
+            </div>
             <span class="footer-label">Экспорт 3D</span>
-            <select id="exportModelFormat">
-                <option value="glb">GLB</option>
-                <option value="gltf">glTF</option>
-                <option value="obj">OBJ + MTL</option>
-            </select>
-            <button id="exportModelBtn" class="export-btn">Скачать</button>
-        </div>
-        <div class="footer-item" style="justify-content: center;">
-            <button id="openPbrModalBtn" class="export-btn" style="background: #9b6c7a; width: 100%;">Просмотр PBR карт</button>
-        </div>
-    </div>
-
-    <!-- Модальное окно PBR (Работает на всех устройствах) -->
-    <div class="pbr-modal" id="pbrModal">
-        <div class="pbr-modal-content">
-            <span class="pbr-close" id="closePbrModal">&times;</span>
-            <h3>Предпросмотр PBR карт</h3>
-            <div class="pbr-grid" id="pbrGrid"></div>
         </div>
     </div>
 
