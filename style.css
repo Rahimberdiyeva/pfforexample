@@ -11,94 +11,138 @@ body {
   color: #1f1a1c;
 }
 
-.menu-toggle { display: none; } /* Скрыт, так как меню теперь всегда видно */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: #ffdce8;
+  font-size: 1.8rem;
+  cursor: pointer;
+  position: absolute;
+  left: 15px;
+  top: 12px;
+  z-index: 1002;
+  line-height: 1;
+  padding: 8px;
+}
 
 .logo-block { background: #3b2a30; padding: 12px 24px; text-align: center; flex-shrink: 0; position: relative; }
 .logo { font-size: 1.9rem; font-weight: 700; background: linear-gradient(135deg, #ffdce8, #ffb7ca); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-/* --- Панель категорий (Всегда видна, горизонтальный скролл на мобильных) --- */
+/* --- Панель категорий (Бургер на мобильных) --- */
 .pattern-bar {
-  background: #fce9ef; 
-  padding: 10px 20px; 
-  border-bottom: 1px solid #e9cfd8;
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
-  flex-shrink: 0; 
-  overflow-x: auto;
+  background: #fce9ef; padding: 10px 20px; border-bottom: 1px solid #e9cfd8;
+  display: flex; justify-content: center; align-items: center; flex-shrink: 0; overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .category-filters { display: flex; flex-wrap: nowrap; gap: 20px; justify-content: center; align-items: center; }
 .category-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .category-label { font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
-
-.category-select {
-  padding: 8px 16px; 
-  border-radius: 40px; 
-  background: white; 
-  border: 1px solid #dcb7c2;
-  font-weight: 500; 
-  font-size: 0.85rem; 
-  min-width: 130px; 
-  cursor: pointer;
-}
+.category-select { padding: 8px 16px; border-radius: 40px; background: white; border: 1px solid #dcb7c2; font-weight: 500; font-size: 0.85rem; min-width: 130px; cursor: pointer; }
 
 /* --- Основная сетка --- */
-.main-layout { 
-  flex: 1; 
-  display: flex; 
-  gap: 1px; 
-  background: #f0e2e8; 
-  overflow: hidden; 
-  min-height: 0; 
-}
-
+.main-layout { flex: 1; display: flex; gap: 1px; background: #f0e2e8; overflow: hidden; min-height: 0; }
 .settings-column { flex: 1; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
-.texture-column { flex: 2; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid #f0dfe6; border-right: 1px solid #f0dfe6; }
-.view3d-column { flex: 1; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
 
-.preview-header { background: #d9b7c2cc; backdrop-filter: blur(8px); padding: 12px; font-weight: 600; border-bottom: 1px solid #e9cfd8; text-align: center; flex-shrink: 0; }
+/* Обертка для превью с табами */
+.preview-wrapper { flex: 2; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid #f0dfe6; border-right: 1px solid #f0dfe6; }
 
-.canvas-container { 
-  position: relative; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
+.preview-tabs {
+  display: flex;
+  background: #d9b7c2cc;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e9cfd8;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-weight: 600;
+  color: #3b2a30;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: #fffafc;
+  color: #cf8e9e;
+  border-bottom: 3px solid #cf8e9e;
+}
+
+.texture-column, .view3d-column { 
   flex: 1; 
-  min-height: 0; 
+  display: none; /* Скрыто по умолчанию, управляется через JS/CSS */
+  flex-direction: column; 
   overflow: hidden; 
-  background: transparent; 
 }
 
-canvas { 
-  display: block; 
-  outline: none; 
-  max-width: 100%; 
-  max-height: 100%; 
-  object-fit: contain; 
-  touch-action: none; /* КРИТИЧНО: Запрещает скролл страницы при свайпах по холсту */
+.texture-column.active-view, .view3d-column.active-view {
+  display: flex;
 }
+
+.canvas-container { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
+canvas { display: block; outline: none; max-width: 100%; max-height: 100%; object-fit: contain; touch-action: none; }
 
 .settings-panel { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 20px; }
 
 .setting-group {
-  background: #ffeef3; 
-  border-radius: 28px; 
-  padding: 18px 20px;
-  border: 1px solid #fad3df; 
-  box-shadow: 0 6px 14px rgba(100, 60, 70, 0.08);
+  background: #ffeef3; border-radius: 28px; padding: 18px 20px;
+  border: 1px solid #fad3df; box-shadow: 0 6px 14px rgba(100, 60, 70, 0.08);
 }
 
 .setting-group h3 { font-size: 1rem; margin-bottom: 14px; color: #2e1e24; font-weight: 700; }
-.control-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-.control-row label { width: 110px; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
-.control-row input[type="range"] { flex: 1; min-width: 120px; height: 6px; background: #f0cdd8; border-radius: 6px; accent-color: #cf8e9e; cursor: pointer; }
-.value-display { width: auto; min-width: 48px; text-align: right; font-family: monospace; font-weight: 500; }
 
-/* Цвета и кнопки */
-.color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 8px; }
-.color-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
+/* ИСПРАВЛЕНИЕ: Выравнивание чисел и ползунков */
+.control-row { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  margin-bottom: 12px; 
+  flex-wrap: nowrap; /* Запрещаем перенос, чтобы числа не съезжали */
+}
+
+.control-row label { 
+  width: 100px; 
+  flex-shrink: 0; 
+  font-size: 0.85rem; 
+  font-weight: 600; 
+  color: #3b2a30; 
+}
+
+.control-row input[type="range"] { 
+  flex: 1; 
+  min-width: 0; 
+  height: 6px; 
+  background: #f0cdd8; 
+  border-radius: 6px; 
+  accent-color: #cf8e9e; 
+  cursor: pointer; 
+}
+
+.value-display { 
+  width: 45px; 
+  text-align: right; 
+  flex-shrink: 0; /* КРИТИЧНО: запрещает обрезку текста */
+  font-family: monospace; 
+  font-weight: 500; 
+  font-size: 0.85rem; 
+}
+
+/* ИСПРАВЛЕНИЕ: Кнопка удаления строго под цветом */
+.color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-bottom: 8px; }
+.color-item { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 6px; 
+  min-width: 60px; 
+}
 
 .color-circle-input {
   width: 56px; height: 56px; border-radius: 50%;
@@ -109,10 +153,10 @@ canvas {
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 
 .remove-color-btn {
+  width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white;
   background: #ef7e8a; border: none; border-radius: 50%;
-  width: 24px; height: 24px; font-size: 14px; font-weight: bold; color: white;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  margin-top: -35px; margin-left: 38px; z-index: 2;
+  margin: 0; /* Убраны старые сдвигающие margin */
 }
 
 #addColorBtn, #savePresetBtn, #loadPresetBtn, #clearOverlayBtn, #clearBgBtn {
@@ -123,10 +167,7 @@ canvas {
 #clearOverlayBtn { margin-top: 12px; background: #b46e7e; }
 .hidden { display: none !important; }
 
-select, button, .file-input-btn { 
-  background: white; border: 1px solid #e2b7c4; border-radius: 40px; 
-  padding: 10px 16px; font-size: 0.85rem; cursor: pointer; font-weight: 500; 
-}
+select, button, .file-input-btn { background: white; border: 1px solid #e2b7c4; border-radius: 40px; padding: 10px 16px; font-size: 0.85rem; cursor: pointer; font-weight: 500; }
 .file-input-btn { display: inline-block; text-align: center; margin-top: 8px; }
 
 .model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
@@ -154,141 +195,82 @@ select, button, .file-input-btn {
    АДАПТИВНОСТЬ (МОБИЛЬНЫЕ УСТРОЙСТВА <= 860px)
    ========================================================================== */
 @media (max-width: 860px) {
-  /* 1. Категории всегда видны сверху с горизонтальным скроллом */
+  .menu-toggle { display: block; }
+  .logo-block { padding-left: 55px; text-align: left; }
+  
+  /* Бургер-меню: шторка с полупрозрачным фоном, не перекрывает всё наглухо */
   .pattern-bar {
-    position: static;
-    width: 100%;
-    left: auto; top: auto; bottom: auto;
-    display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 10px;
-    white-space: nowrap;
-    justify-content: flex-start;
+    position: fixed; left: -300px; top: 0; bottom: 0; width: 280px;
+    flex-direction: column; align-items: flex-start; padding: 70px 20px 20px;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15); overflow-y: auto; background: #fce9ef;
+  }
+  .pattern-bar.open { left: 0; }
+  
+  /* Полупрозрачная подложка при открытом меню */
+  .pattern-bar.open::before {
+    content: '';
+    position: fixed; top: 0; left: 280px; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    z-index: -1;
   }
 
-  .category-filters {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 10px;
-    min-width: max-content;
+  .category-filters { flex-direction: column; width: 100%; gap: 15px; align-items: stretch; }
+  .category-group { width: 100%; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .category-select { width: 100%; min-width: unset; padding: 12px 16px; }
+
+  .main-layout { flex-direction: column; overflow-y: auto; }
+  
+  .settings-column { 
+    order: 1; 
+    max-height: none; 
+    overflow-y: auto; 
+    border-bottom: 1px solid #f0dfe6; 
+  }
+  
+  .preview-wrapper { 
+    order: 2; 
+    flex: 0 0 50vh; /* Фиксированная высота для превью на мобильном */
+    border: none; 
   }
 
-  .category-group {
-    flex-shrink: 0;
-  }
+  /* Улучшение тач-интерфейса в настройках */
+  .setting-group { padding: 16px; border-radius: 20px; }
+  .control-row { gap: 8px; }
+  .control-row label { width: 90px; font-size: 0.8rem; }
+  .control-row input[type="range"] { height: 8px; }
+  
+  .color-circle-input { width: 48px; height: 48px; }
+  
+  button, .file-input-btn, select { padding: 12px 16px; font-size: 0.9rem; width: 100%; }
+  .model-row { flex-direction: column; align-items: stretch; gap: 8px; }
 
-  .category-select {
-    min-width: 160px;
-    width: auto;
+  /* ИСПРАВЛЕНИЕ ФУТЕРА: Каждый параметр на новой строке, полная ширина */
+  .global-footer { 
+    position: relative; bottom: auto; padding: 12px; gap: 12px; flex-direction: column; 
   }
-
-  /* 2. Изменение порядка блоков: Настройки -> 2D -> 3D */
-  .main-layout {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .settings-column {
-    order: 1;
-    max-height: none;
-    overflow-y: auto;
-    border-bottom: 1px solid #f0dfe6;
-  }
-
-  .texture-column {
-    order: 2;
-    flex: none;
-    height: 280px;
-    border: none;
-    border-bottom: 1px solid #f0dfe6;
-  }
-
-  .view3d-column {
-    order: 3;
-    flex: none;
-    height: 280px;
-    border: none;
-    border-bottom: 1px solid #f0dfe6;
-  }
-
-  /* 5. Улучшение панелей настроек под палец */
-  .setting-group {
-    padding: 14px;
-    border-radius: 16px;
-  }
-
-  .control-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-  }
-
-  .control-row label {
-    width: auto;
-  }
-
-  .value-display {
-    text-align: left;
-  }
-
-  .control-row input[type="range"] {
-    height: 8px;
-    min-width: 100%;
-  }
-
-  /* 3. Компактный футер */
-  .global-footer {
-    position: relative;
-    bottom: auto;
-    padding: 8px;
-    gap: 8px;
-    flex-wrap: wrap;
-    flex-direction: row;
-  }
-
   .footer-item {
-    flex: 1 1 100%;
-    padding: 8px;
-    min-width: 0;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    flex: 1 1 100%; 
+    flex-direction: column; /* Вертикальный стек */
+    align-items: stretch; 
+    width: 100%; 
+    padding: 16px; 
+    background: #fff; 
+    border-radius: 16px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    gap: 10px;
   }
-
   .footer-label {
-    font-size: 12px;
-    margin-bottom: 6px;
-    text-align: center;
-    width: 100%;
+    width: 100%; text-align: center; font-size: 0.9rem; margin-bottom: 4px; font-weight: 700;
   }
-
-  .footer-item select, 
-  .footer-item button, 
-  .export-btn {
-    flex: 1;
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    min-width: 0;
+  .footer-item select, .footer-item .export-btn {
+    width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px;
   }
 }
 
-/* ==========================================================================
-   МАЛЕНЬКИЕ ЭКРАНЫ (<= 480px)
-   ========================================================================== */
 @media (max-width: 480px) {
-  .texture-column {
-    height: 220px;
-  }
-
-  .view3d-column {
-    height: 220px;
-  }
-
+  .preview-wrapper { flex: 0 0 45vh; }
   .logo { font-size: 1.5rem; }
   .category-label { font-size: 0.75rem; }
-  
-  .color-circle-input {
-    width: 48px; height: 48px;
-  }
 }
