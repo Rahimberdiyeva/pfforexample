@@ -38,7 +38,6 @@
     <div class="menu-overlay" id="menuOverlay"></div>
 
     <div class="main-layout">
-        <!-- 1. Настройки (расширенная панель) -->
         <div class="settings-column">
             <div class="preview-header">Параметры генерации</div>
             <div class="settings-panel">
@@ -201,7 +200,6 @@
             </div>
         </div>
 
-        <!-- 2. Область предпросмотра (2D и 3D выровнены) -->
         <div class="preview-wrapper">
             <div class="texture-column">
                 <div class="preview-header">2D Текстура (Колесико: зум, Зажать: перемещение)</div>
@@ -210,7 +208,6 @@
                 </div>
             </div>
             
-            <!-- Разделитель для изменения ширины -->
             <div class="resize-handle" id="resizeHandle"></div>
 
             <div class="view3d-column">
@@ -218,20 +215,19 @@
                 <div class="canvas-container" id="canvas3d"></div>
             </div>
 
-            <!-- PBR Карты (компактные, автообновление) -->
             <div class="pbr-column">
                 <div class="preview-header">PBR Карты (Автообновление)</div>
                 <div class="pbr-grid-container">
+                    <button id="generatePbrBtn" class="export-btn" style="margin: 0 auto 16px; display:block;">Сгенерировать PBR</button>
                     <div class="pbr-grid" id="pbrGrid"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Футер: Подпись рядом с элементами -->
     <div class="global-footer">
         <div class="footer-item">
-            <span class="footer-label">Экспорт 2D:</span>
+            <span class="footer-label">Экспорт 2D</span>
             <div class="footer-controls">
                 <select id="export2DFormat">
                     <option value="png">PNG</option>
@@ -249,7 +245,7 @@
             </div>
         </div>
         <div class="footer-item">
-            <span class="footer-label">Экспорт 3D:</span>
+            <span class="footer-label">Экспорт 3D</span>
             <div class="footer-controls">
                 <select id="exportModelFormat">
                     <option value="glb">GLB</option>
