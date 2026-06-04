@@ -14,8 +14,7 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene(); 
-scene3d.background = new THREE.Color(0x888888); // Нейтральный серый для PBR
-
+scene3d.background = null; 
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true });
 
