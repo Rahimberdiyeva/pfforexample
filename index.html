@@ -14,22 +14,10 @@
 
     <div class="pattern-bar">
         <div class="category-filters">
-            <div class="category-group">
-                <span class="category-label">Шумовые</span>
-                <select id="selectNoise" class="category-select"></select>
-            </div>
-            <div class="category-group">
-                <span class="category-label">Фрактальные</span>
-                <select id="selectFractal" class="category-select"></select>
-            </div>
-            <div class="category-group">
-                <span class="category-label">Градиенты</span>
-                <select id="selectGradient" class="category-select"></select>
-            </div>
-            <div class="category-group">
-                <span class="category-label">Геометрия</span>
-                <select id="selectGeometric" class="category-select"></select>
-            </div>
+            <div class="category-group"><span class="category-label">Шумовые</span><select id="selectNoise" class="category-select"></select></div>
+            <div class="category-group"><span class="category-label">Фрактальные</span><select id="selectFractal" class="category-select"></select></div>
+            <div class="category-group"><span class="category-label">Градиенты</span><select id="selectGradient" class="category-select"></select></div>
+            <div class="category-group"><span class="category-label">Геометрия</span><select id="selectGeometric" class="category-select"></select></div>
         </div>
     </div>
 
@@ -59,27 +47,15 @@
                         <button id="addColorBtn">Добавить цвет</button>
                     </div>
                     <div class="control-row" style="margin-top:12px;"><label>Насыщенность</label><input type="range" id="saturation" min="0" max="2" step="0.01" value="1.50"><span class="value-display" id="saturationVal">1.50</span></div>
-                    <div class="control-row"><label>Смешивание</label>
-                        <select id="blendMode">
-                            <option value="0">Линейное</option>
-                            <option value="1">Мультипликативное</option>
-                        </select>
-                    </div>
+                    <div class="control-row"><label>Смешивание</label><select id="blendMode"><option value="0">Линейное</option><option value="1">Мультипликативное</option></select></div>
                 </div>
 
                 <div class="setting-group">
-                    <h3>Трансформы</div>
+                    <h3>Трансформы</h3>
                     <div class="control-row"><label>Поворот</label><input type="range" id="rotate" min="0" max="360" step="1" value="0"><span class="value-display" id="rotateVal">0°</span></div>
                     <div class="control-row"><label>Сдвиг X</label><input type="range" id="offsetX" min="-1" max="1" step="0.01" value="0.00"><span class="value-display" id="offsetXVal">0.00</span></div>
                     <div class="control-row"><label>Сдвиг Y</label><input type="range" id="offsetY" min="-1" max="1" step="0.01" value="0.00"><span class="value-display" id="offsetYVal">0.00</span></div>
-                    <div class="control-row"><label>Зеркало</label>
-                        <select id="mirror">
-                            <option value="0">Нет</option>
-                            <option value="1">X</option>
-                            <option value="2">Y</option>
-                            <option value="3">X+Y</option>
-                        </select>
-                    </div>
+                    <div class="control-row"><label>Зеркало</label><select id="mirror"><option value="0">Нет</option><option value="1">X</option><option value="2">Y</option><option value="3">X+Y</option></select></div>
                 </div>
 
                 <div class="setting-group">
@@ -93,16 +69,8 @@
                     <h3>3D модель</h3>
                     <div class="control-row"><label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="2.80"><span class="value-display" id="tile3dScaleVal">2.80</span></div>
                     <div class="model-row">
-                        <select id="geometrySelect">
-                            <option value="cube">Куб</option>
-                            <option value="torus">Тор-узел</option>
-                            <option value="sphere">Сфера</option>
-                            <option value="cylinder">Цилиндр</option>
-                        </select>
-                        <label class="file-input-btn">
-                            Загрузить модель
-                            <input type="file" id="modelFileInput" accept=".glb,.gltf" style="display:none">
-                        </label>
+                        <select id="geometrySelect"><option value="cube">Куб</option><option value="torus">Тор-узел</option><option value="sphere">Сфера</option><option value="cylinder">Цилиндр</option></select>
+                        <label class="file-input-btn">Загрузить модель<input type="file" id="modelFileInput" accept=".glb,.gltf" style="display:none"></label>
                     </div>
                     <div id="modelStatus" style="font-size:0.8rem; color:#cf8e9e; margin-top:4px;"></div>
                 </div>
@@ -110,10 +78,7 @@
                 <div class="setting-group">
                     <h3>Фоновое изображение</h3>
                     <div class="bg-upload-row">
-                        <label class="file-input-btn">
-                            Выбрать фон
-                            <input type="file" id="bgImageInput" accept="image/*" style="display:none">
-                        </label>
+                        <label class="file-input-btn">Выбрать фон<input type="file" id="bgImageInput" accept="image/*" style="display:none"></label>
                         <button id="clearBgBtn" class="hidden">Удалить фон</button>
                     </div>
                     <div class="control-row"><label>Прозрачность фона</label><input type="range" id="bgOpacity" min="0" max="1" step="0.01" value="1.00"><span class="value-display" id="bgOpacityVal">1.00</span></div>
@@ -121,14 +86,9 @@
 
                 <div class="setting-group">
                     <h3>Наложение картинок (слои)</h3>
-                    <div class="control-row">
-                        <label><input type="checkbox" id="syncTexturePattern" checked> Синхронность с текстурой</label>
-                    </div>
+                    <div class="control-row"><label><input type="checkbox" id="syncTexturePattern" checked> Синхронность с текстурой</label></div>
                     <div class="bg-upload-row">
-                        <label class="file-input-btn">
-                            Добавить изображения
-                            <input type="file" id="multiTextureInput" accept="image/*" multiple style="display:none">
-                        </label>
+                        <label class="file-input-btn">Добавить изображения<input type="file" id="multiTextureInput" accept="image/*" multiple style="display:none"></label>
                         <button id="clearOverlayBtn">Удалить все слои</button>
                     </div>
                     <div class="control-row"><label>Прозрачность слоя</label><input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1.00"><span class="value-display" id="layerOpacityVal">1.00</span></div>
@@ -163,10 +123,7 @@
         <div class="footer-item">
             <span class="footer-label">Пресет</span>
             <button id="savePresetBtn">Сохранить</button>
-            <label class="file-input-btn" style="margin:0;">
-                Загрузить
-                <input type="file" id="loadPresetInput" accept=".json" style="display:none">
-            </label>
+            <label class="file-input-btn" style="margin:0;">Загрузить<input type="file" id="loadPresetInput" accept=".json" style="display:none"></label>
             <button id="loadPresetBtn" style="display:none;"></button>
         </div>
     </div>
