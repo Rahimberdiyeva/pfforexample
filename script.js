@@ -13,7 +13,7 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene(); 
-scene3d.background = null; // Прозрачный фон
+scene3d.background = null;
 
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -104,7 +104,6 @@ void main() {
 
 const fragmentShader = `
 precision highp float;
-
 uniform float uScale; uniform float uIntensity; uniform int uPatternType;
 uniform vec3 uColor0; uniform vec3 uColor1; uniform vec3 uColor2; uniform vec3 uColor3;
 uniform vec3 uColor4; uniform vec3 uColor5; uniform vec3 uColor6; uniform vec3 uColor7;
@@ -115,97 +114,47 @@ uniform sampler2D uOverlayTexture; uniform int uUseOverlay;
 uniform int uWarpEnable; uniform float uWarpStrength; uniform int uWarpOctaves;
 uniform int uShowRelief; uniform float uReliefStrength;
 uniform float uTime; uniform int uExportMode;
-
 varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW;
 
-// --- БЕСШОВНЫЕ (TILING) ФУНКЦИИ ШУМА ---
-vec2 hashTiling(vec2 p, float period) {
-    p = mod(p, period);
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(vec2(p.x * p.y, p.y * p.x)) * 2.0 - 1.0;
-}
-
-float perlinNoiseTiling(vec2 st, float period) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    
-    vec2 pi = mod(i, period);
-    vec2 grad00 = hashTiling(pi, period);
-    vec2 grad10 = hashTiling(mod(pi + vec2(1.0, 0.0), period), period);
-    vec2 grad01 = hashTiling(mod(pi + vec2(0.0, 1.0), period), period);
-    vec2 grad11 = hashTiling(mod(pi + vec2(1.0, 1.0), period), period);
-    
-    float dot00 = dot(grad00, f);
-    float dot10 = dot(grad10, f - vec2(1.0, 0.0));
-    float dot01 = dot(grad01, f - vec2(0.0, 1.0));
-    float dot11 = dot(grad11, f - vec2(1.0, 1.0));
-    
+float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
+vec2 hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(vec2(p.x * p.y, p.y * p.x)) * 2.0 - 1.0; }
+float perlinNoise(vec2 st) {
+    vec2 i = floor(st); vec2 f = fract(st); vec2 u = f * f * (3.0 - 2.0 * f);
+    vec2 grad00 = hash(i); vec2 grad10 = hash(i + vec2(1.0, 0.0));
+    vec2 grad01 = hash(i + vec2(0.0, 1.0)); vec2 grad11 = hash(i + vec2(1.0, 1.0));
+    float dot00 = dot(grad00, f); float dot10 = dot(grad10, f - vec2(1.0, 0.0));
+    float dot01 = dot(grad01, f - vec2(0.0, 1.0)); float dot11 = dot(grad11, f - vec2(1.0, 1.0));
     return mix(mix(dot00, dot10, u.x), mix(dot01, dot11, u.x), u.y) * 0.5 + 0.5;
 }
-
-float fbmPerlinTiling(vec2 st, int oct, float pers, float lac, float period) {
+float fbmPerlin(vec2 st, int oct, float pers, float lac) {
     float val = 0.0, amp = 0.5, freq = 2.0;
-    float currentPeriod = period;
-    for(int i = 0; i < 6; i++) {
-        if(i >= oct) break;
-        val += amp * (perlinNoiseTiling(st * freq, currentPeriod) * 2.0 - 1.0);
-        amp *= pers;
-        freq *= lac;
-        currentPeriod = max(1.0, currentPeriod / lac);
-    }
+    for(int i = 0; i < 6; i++) { if(i >= oct) break; val += amp * (perlinNoise(st * freq) * 2.0 - 1.0); amp *= pers; freq *= lac; }
     return val * 0.5 + 0.5;
 }
-
-float worleyTiling(vec2 uv, float period) {
-    vec2 p = floor(uv);
-    vec2 f = fract(uv);
-    float res = 1.0;
-    for(int j = -1; j <= 1; j++) {
-        for(int i = -1; i <= 1; i++) {
-            vec2 b = vec2(float(i), float(j));
-            vec2 cell = mod(p + b, period);
-            vec2 r = b - f + hashTiling(cell, period);
-            res = min(res, dot(r, r));
-        }
-    }
-    return sqrt(res);
+float worley(vec2 uv) {
+    vec2 p = floor(uv); vec2 f = fract(uv); float res = 1.0;
+    for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++) {
+        vec2 b = vec2(float(i), float(j)); vec2 r = b - f + random(p + b);
+        res = min(res, dot(r, r));
+    } return sqrt(res);
 }
-
-float ridgedMFTiling(vec2 uv, int oct, float pers, float lac, float period) {
-    float val = 0.0, amp = 0.5, freq = 2.0;
-    float currentPeriod = period;
-    for(int i = 0; i < 6; i++) {
-        if(i >= oct) break;
-        float n = perlinNoiseTiling(uv * freq, currentPeriod) * 2.0 - 1.0;
-        n = 1.0 - abs(n);
-        val += amp * n;
-        amp *= pers;
-        freq *= lac;
-        currentPeriod = max(1.0, currentPeriod / lac);
-    }
-    return clamp(val, 0.0, 1.0);
-}
-
-float marbleTiling(vec2 uv, float freq, float period) {
-    float noise = fbmPerlinTiling(uv * freq * 3.0, 4, 0.6, 2.0, period * 3.0);
-    float veins = sin((uv.x * freq * 5.0 + noise * 3.0) * 3.14159);
-    return clamp(veins * 0.6 + 0.5, 0.0, 1.0);
-}
-
-// --- Остальные функции ---
-float random(vec2 st) { return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123); }
 float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x * 10.0) * cos(t + uv.y * 10.0); return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t)); }
+vec2 domainWarp(vec2 uv, float strength, int octaves) {
+    vec2 warped = uv;
+    for(int i = 0; i < 5; i++) { if(i >= octaves) break; warped += strength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i + 1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i + 1) + uTime)); }
+    return warped;
+}
 float reactionDiffusion(vec2 uv) { vec2 p = uv * 4.0; float a = sin(p.x * 3.0) * cos(p.y * 3.0); float b = cos(p.x * 4.2) * sin(p.y * 4.2); return clamp(a * 0.5 + b * 0.5 + 0.5, 0.0, 1.0); }
 float flowField(vec2 uv) { vec2 q = uv * 3.0; float angle = sin(q.y * 0.7) * cos(q.x * 0.5); vec2 gradient = vec2(cos(angle), sin(angle)); uv += gradient * 0.1; float field = sin(uv.x * 10.0) * cos(uv.y * 10.0); return smoothstep(-0.3, 0.7, field); }
 float wfcPattern(vec2 uv) { vec2 tile = floor(uv * 8.0); float hashVal = random(tile); int rule = int(floor(hashVal * 6.0)); float pattern = 0.0; vec2 sub = fract(uv * 8.0); if(rule == 0) pattern = step(0.5, sub.x) * step(0.5, sub.y); else if(rule == 1) pattern = step(0.5, sub.x + sub.y); else if(rule == 2) pattern = step(0.5, sub.x - sub.y + 0.5); else if(rule == 3) pattern = sin(sub.x * 3.14159 * 4.0) * 0.5 + 0.5; else if(rule == 4) pattern = (sub.x > 0.25 && sub.x < 0.75 && sub.y > 0.25 && sub.y < 0.75) ? 1.0 : 0.0; else pattern = fract(sub.x * 3.0 + sub.y * 2.0); return pattern; }
+float ridgedMF(vec2 uv, int oct, float pers, float lac) { float val = 0.0, amp = 0.5, freq = 2.0; for(int i = 0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; } return clamp(val, 0.0, 1.0); }
 float checker(vec2 uv, float freq) { vec2 p = floor(uv * freq); return mod(p.x + p.y, 2.0); }
 float stripes(vec2 uv, float freq) { return step(0.5, fract(uv.x * freq)); }
 float circles(vec2 uv, float freq) { vec2 center = vec2(0.5, 0.5); float radius = length(uv - center) * freq; return fract(radius * 2.0); }
 float grid(vec2 uv, float freq) { vec2 g = fract(uv * freq); return max(step(0.92, g.x), step(0.92, g.y)); }
 float tiles(vec2 uv, float freq) { vec2 f = fract(uv * freq); float line = step(0.75, f.x) + step(0.75, f.y); return clamp(1.0 - line, 0.0, 1.0); } 
 float wood(vec2 uv, float freq) { vec2 center = vec2(0.5, 0.5); float dist = length(uv - center) * 2.0; float rings = sin(dist * freq * 12.0 + sin(uv.x * 8.0) * 1.5); return clamp(rings * 0.5 + 0.5, 0.0, 1.0); }
+float marble(vec2 uv, float freq) { float noise = fbmPerlin(uv * freq * 3.0, 4, 0.6, 2.0); float veins = sin((uv.x * freq * 5.0 + noise * 3.0) * 3.14159); return clamp(veins * 0.6 + 0.5, 0.0, 1.0); }
 float linearGradient(vec2 uv) { return uv.x; }
 float radialGradient(vec2 uv) { return length(uv - 0.5) * 1.414; }
 float angularGradient(vec2 uv) { return atan(uv.y - 0.5, uv.x - 0.5) / (2.0 * 3.14159) + 0.5; }
@@ -240,41 +189,32 @@ float computePattern(vec2 uv) {
     else if(uMirror == 2) uv.y = 1.0 - uv.y; 
     else if(uMirror == 3) { uv.x = 1.0 - uv.x; uv.y = 1.0 - uv.y; }
     
-    // ГАРАНТИЯ БЕСШОВНОСТИ: период должен быть целым числом
-    float period = max(1.0, round(uScale));
-    vec2 st = uv * period;
+    vec2 st = uv * uScale;
+    if (uTileEnabled == 1) st = fract(st);
     
-    if(uWarpEnable == 1) {
-        vec2 warped = st;
-        for(int i = 0; i < 5; i++) {
-            if(i >= uWarpOctaves) break;
-            warped += uWarpStrength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i + 1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i + 1) + uTime));
-        }
-        st = warped;
-    }
+    if(uWarpEnable == 1) st = domainWarp(st, uWarpStrength, uWarpOctaves);
     
     float patternValue;
     if(uPatternType == 0) { float w1 = sin(st.x * 8.0) * cos(st.y * 8.0); float w2 = sin(st.y * 12.0 + st.x * 5.0); patternValue = (w1 + w2) * 0.6 + 0.5; }
-    else if(uPatternType == 1) { patternValue = worleyTiling(st * 3.5, period * 3.5); patternValue = pow(patternValue * 1.2, 0.8); }
-    else if(uPatternType == 2) { patternValue = fbmPerlinTiling(st, uOctaves, uPersistence, uLacunarity, period); }
-    else if(uPatternType == 4) { patternValue = random(mod(st, period)); }
+    else if(uPatternType == 1) { patternValue = worley(st * 3.5); patternValue = pow(patternValue * 1.2, 0.8); }
+    else if(uPatternType == 2) { patternValue = fbmPerlin(st, uOctaves, uPersistence, uLacunarity); }
+    else if(uPatternType == 4) { patternValue = random(st); }
     else if(uPatternType == 5) { patternValue = reactionDiffusion(st); }
     else if(uPatternType == 6) { patternValue = wfcPattern(st); }
     else if(uPatternType == 7) { patternValue = flowField(st); }
-    else if(uPatternType == 12) { patternValue = ridgedMFTiling(st, uOctaves, uPersistence, uLacunarity, period); }
+    else if(uPatternType == 12) { patternValue = ridgedMF(st, uOctaves, uPersistence, uLacunarity); }
     else if(uPatternType == 8) { patternValue = checker(st, 4.0); }
     else if(uPatternType == 9) { patternValue = stripes(st, 6.0); }
     else if(uPatternType == 10) { patternValue = circles(st, 3.0); }
     else if(uPatternType == 11) { patternValue = grid(st, 6.0); }
     else if(uPatternType == 14) { patternValue = wood(st, 0.8); }
-    else if(uPatternType == 15) { patternValue = marbleTiling(st, 1.2, period); }
+    else if(uPatternType == 15) { patternValue = marble(st, 1.2); }
     else if(uPatternType == 16) { patternValue = tiles(st, 5.0); }
     else if(uPatternType == 17) { patternValue = linearGradient(uv); }
     else if(uPatternType == 18) { patternValue = radialGradient(uv); }
     else if(uPatternType == 19) { patternValue = angularGradient(uv); }
     else if(uPatternType == 3) { patternValue = truchetPattern(st * 3.0, uTime); patternValue = patternValue * 0.8 + 0.2; }
-    else { patternValue = fbmPerlinTiling(st, uOctaves, uPersistence, uLacunarity, period); }
-    
+    else { patternValue = fbmPerlin(st, uOctaves, uPersistence, uLacunarity); }
     return clamp(patternValue * uIntensity, 0.0, 1.0);
 }
 
@@ -359,12 +299,6 @@ rebuildColorUI();
 
 function updateUniformsFromUI() {
     let newScale = parseFloat(document.getElementById('scale').value);
-    
-    // ГАРАНТИЯ БЕСШОВНОСТИ: если включен тайлинг, округляем масштаб до целого
-    if (uniforms.uTileEnabled.value === 1) {
-        newScale = Math.round(newScale);
-        document.getElementById('scale').value = newScale;
-    }
     uniforms.uScale.value = newScale;
     
     const intensityEl = document.getElementById('intensity');
@@ -549,7 +483,6 @@ async function generateOverlayTexture() {
         ctx.restore();
     }
 
-    // 16px bleed для бесшовности на краях canvas
     ctx.drawImage(canvas, 0, 0, 16, size, size, 0, 16, size);
     ctx.drawImage(canvas, size - 16, 0, 16, size, 0, 0, 16, size);
     ctx.drawImage(canvas, 0, 0, size, 16, 0, size, size, 16);
