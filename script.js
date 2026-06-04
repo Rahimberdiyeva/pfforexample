@@ -366,7 +366,7 @@ document.getElementById('relief2d')?.addEventListener('change', updateUniformsFr
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов (Без английских названий) ----
+// ---- Категории паттернов (Без английских названий, первый элемент по умолчанию) ----
 const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
@@ -378,14 +378,13 @@ function populateSelect(id, items, cur) {
     sel.addEventListener('change', e => { uniforms.uPatternType.value = parseInt(e.target.value); updateUniformsFromUI(); });
 }
 
-// Гарантируем, что первый элемент первой категории выбран по умолчанию (v:0)
 populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
 
-// ---- Переключатель 2D / 3D ----
-const tabBtns = document.querySelectorAll('.tab-btn:not(.pbr-tab-btn)');
+// ---- Переключатель 2D / 3D (Для мобильных) ----
+const tabBtns = document.querySelectorAll('.tab-btn');
 const view2d = document.getElementById('view2d');
 const view3d = document.getElementById('view3d');
 
@@ -512,7 +511,6 @@ async function generateOverlayTexture() {
     uniforms.uOverlayTexture.value = overlayTexture;
     uniforms.uUseOverlay.value = (layers.length > 0 || backgroundImageEl) ? 1 : 0;
     
-    // Управление видимостью кнопки "Удалить все картинки"
     const clearBtn = document.getElementById('clearOverlayBtn');
     if (layers.length > 0) clearBtn.classList.remove('hidden');
     else clearBtn.classList.add('hidden');
@@ -738,7 +736,7 @@ async function captureTextureImage() {
     return blob;
 }
 
-// --- PBR Модальное окно (Не влияет на основные сцены) ---
+// --- PBR Модальное окно (Работает на ВСЕХ устройствах) ---
 const pbrModal = document.getElementById('pbrModal');
 const openPbrBtn = document.getElementById('openPbrModalBtn');
 const closePbrBtn = document.getElementById('closePbrModal');
@@ -746,7 +744,7 @@ const pbrGrid = document.getElementById('pbrGrid');
 
 openPbrBtn?.addEventListener('click', async () => {
     pbrModal.classList.add('active');
-    pbrGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center;">Генерация...</p>';
+    pbrGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; padding: 20px;">Генерация карт...</p>';
     
     const maps = [
         { name: 'Base Color', type: 'basecolor' },
