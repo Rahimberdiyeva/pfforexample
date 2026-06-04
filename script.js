@@ -14,7 +14,7 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene();
-scene3d.background = null; 
+scene3d.background = null; // Прозрачный фон
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
@@ -79,7 +79,7 @@ function ensureUIControls() {
 }
 
 const uniforms = {
-    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 },
+    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 }, // 0 = первый тип по умолчанию
     uColor0: { value: new THREE.Vector3() }, uColor1: { value: new THREE.Vector3() }, uColor2: { value: new THREE.Vector3() }, uColor3: { value: new THREE.Vector3() },
     uColor4: { value: new THREE.Vector3() }, uColor5: { value: new THREE.Vector3() }, uColor6: { value: new THREE.Vector3() }, uColor7: { value: new THREE.Vector3() },
     uColorsCount: { value: 4 }, uSaturation: { value: 1.5 }, uBlendMode: { value: 0 },
@@ -370,7 +370,7 @@ document.getElementById('relief2d')?.addEventListener('change', updateUniformsFr
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов ----
+// ---- Категории паттернов (Без английских названий) ----
 const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
@@ -447,7 +447,6 @@ window.addEventListener('mouseup', () => {
     if (zoomPanContainer) zoomPanContainer.style.cursor = 'grab';
 });
 
-// Сброс зума при двойном клике
 zoomPanContainer?.addEventListener('dblclick', () => {
     zoomScale = 1; panX = 0; panY = 0;
     updateZoomPan();
@@ -774,7 +773,6 @@ async function renderPBRMap(res, type) {
     
     const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
     mat.dispose();
-    // Не вызываем offscreenRenderer.dispose()! Мы его переиспользуем.
     return blob;
 }
 
@@ -792,7 +790,7 @@ async function captureTextureImage() {
     return blob;
 }
 
-// --- PBR Секция (Не модальное окно) ---
+// --- PBR Секция ---
 const generatePbrBtn = document.getElementById('generatePbrBtn');
 const pbrGrid = document.getElementById('pbrGrid');
 
