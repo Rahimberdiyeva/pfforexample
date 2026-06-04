@@ -21,7 +21,7 @@ const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
-// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (ОДИН НА ВСЕХ, чтобы не было утечки контекстов) ---
+// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (ОДИН НА ВСЕХ) ---
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -101,6 +101,41 @@ function updateColorUniforms() {
     uniforms.uColorsCount.value = activeColors.length;
 }
 updateColorUniforms();
+
+// ---- Автообновление PBR (Перемещено вверх для избежания ReferenceError) ----
+let pbrUpdateTimeout;
+function schedulePBRUpdate() {
+    clearTimeout(pbrUpdateTimeout);
+    pbrUpdateTimeout = setTimeout(updatePBRPreviews, 300); // Задержка 300мс для производительности
+}
+
+async function updatePBRPreviews() {
+    const pbrGrid = document.getElementById('pbrGrid');
+    if (!pbrGrid) return;
+    
+    if (pbrGrid.children.length === 0) {
+        const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
+        const names = ['Base Color', 'Normal', 'Roughness', 'Metallic', 'Height', 'AO'];
+        maps.forEach((type, i) => {
+            const div = document.createElement('div'); div.className = 'pbr-item';
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
+            const span = document.createElement('span'); span.textContent = names[i];
+            div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div);
+        });
+    }
+    
+    const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
+    for (let i = 0; i < maps.length; i++) {
+        const canvas = pbrGrid.children[i].querySelector('canvas');
+        const blob = await renderPBRMap(128, maps[i]);
+        const img = new Image();
+        img.onload = () => { 
+            const ctx = canvas.getContext('2d'); 
+            ctx.drawImage(img, 0, 0, 128, 128); 
+        };
+        img.src = URL.createObjectURL(blob);
+    }
+}
 
 // --- Шейдеры ---
 const vertexShader = `varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW; uniform float uTile3DScale; void main() { vUv = uv * uTile3DScale; vec4 worldPos = modelMatrix * vec4(position, 1.0); vWorldPosition = worldPos.xyz; vNormalW = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * worldPos; }`;
@@ -393,43 +428,6 @@ populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
 
-// ---- Автообновление PBR (Debounced) ----
-let pbrUpdateTimeout;
-function schedulePBRUpdate() {
-    clearTimeout(pbrUpdateTimeout);
-    pbrUpdateTimeout = setTimeout(updatePBRPreviews, 300); // Задержка 300мс для производительности
-}
-
-async function updatePBRPreviews() {
-    const pbrGrid = document.getElementById('pbrGrid');
-    if (!pbrGrid) return;
-    
-    // Создаем структуру, если пустая
-    if (pbrGrid.children.length === 0) {
-        const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
-        const names = ['Base Color', 'Normal', 'Roughness', 'Metallic', 'Height', 'AO'];
-        maps.forEach((type, i) => {
-            const div = document.createElement('div'); div.className = 'pbr-item';
-            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128; // Компактный размер
-            const span = document.createElement('span'); span.textContent = names[i];
-            div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div);
-        });
-    }
-    
-    // Рендерим каждую карту
-    const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
-    for (let i = 0; i < maps.length; i++) {
-        const canvas = pbrGrid.children[i].querySelector('canvas');
-        const blob = await renderPBRMap(128, maps[i]); // 128px достаточно для превью
-        const img = new Image();
-        img.onload = () => { 
-            const ctx = canvas.getContext('2d'); 
-            ctx.drawImage(img, 0, 0, 128, 128); 
-        };
-        img.src = URL.createObjectURL(blob);
-    }
-}
-
 // ---- Изменение ширины 2D и 3D окон ----
 const resizeHandle = document.getElementById('resizeHandle');
 const textureCol = document.querySelector('.texture-column');
@@ -448,11 +446,10 @@ document.addEventListener('mousemove', (e) => {
     const wrapperRect = document.querySelector('.preview-wrapper').getBoundingClientRect();
     const newTextureWidth = e.clientX - wrapperRect.left;
     
-    // Ограничиваем минимальную и максимальную ширину
     if (newTextureWidth > 200 && newTextureWidth < wrapperRect.width - 200) {
         textureCol.style.flex = `0 0 ${newTextureWidth}px`;
-        view3dCol.style.flex = '1'; // 3D занимает оставшееся место
-        updateSizes(); // Обновляем размеры canvas
+        view3dCol.style.flex = '1';
+        updateSizes();
     }
 });
 
@@ -744,7 +741,10 @@ window.addEventListener('mousemove', (e) => {
         layer.x = newX; layer.y = newY; generateOverlayTexture(); updateLayersUI();
     }
 });
-window.addEventListener('mouseup', () => { isDraggingLayer = false; canvas2dElem.style.cursor = 'crosshair'; });
+window.addEventListener('mouseup', () => {
+    isDraggingLayer = false;
+    if (zoomPanContainer) zoomPanContainer.style.cursor = 'grab';
+});
 canvas2dElem.addEventListener('wheel', (e) => {
     e.preventDefault(); if (selectedLayerId === null) return;
     const layer = layers.find(l => l.id === selectedLayerId); if (!layer) return;
@@ -823,7 +823,6 @@ async function renderPBRMap(res, type) {
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
     
-    // Переиспользуем offscreenRenderer вместо создания нового!
     offscreenRenderer.setSize(res, res);
     offscreenRenderer.render(sc, cam);
     
