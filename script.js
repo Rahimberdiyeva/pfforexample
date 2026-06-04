@@ -14,12 +14,16 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene();
-scene3d.background = null; // Прозрачный фон
+scene3d.background = null; 
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
+
+// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (РЕШЕНИЕ ПРОБЛЕМЫ УТЕЧКИ КОНТЕКСТОВ) ---
+const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+offscreenRenderer.setSize(1024, 1024);
 
 function updateSizes() {
     const rect2d = container2d.parentElement.getBoundingClientRect();
@@ -75,7 +79,7 @@ function ensureUIControls() {
 }
 
 const uniforms = {
-    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 }, // 0 = первый тип (Волны)
+    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 },
     uColor0: { value: new THREE.Vector3() }, uColor1: { value: new THREE.Vector3() }, uColor2: { value: new THREE.Vector3() }, uColor3: { value: new THREE.Vector3() },
     uColor4: { value: new THREE.Vector3() }, uColor5: { value: new THREE.Vector3() }, uColor6: { value: new THREE.Vector3() }, uColor7: { value: new THREE.Vector3() },
     uColorsCount: { value: 4 }, uSaturation: { value: 1.5 }, uBlendMode: { value: 0 },
@@ -366,7 +370,7 @@ document.getElementById('relief2d')?.addEventListener('change', updateUniformsFr
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов (Без английских названий, первый элемент по умолчанию) ----
+// ---- Категории паттернов ----
 const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
@@ -383,26 +387,70 @@ populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
 
-// ---- Переключатель 2D / 3D (Для мобильных) ----
-const tabBtns = document.querySelectorAll('.tab-btn');
-const view2d = document.getElementById('view2d');
-const view3d = document.getElementById('view3d');
+// ---- Мобильные табы (2D / 3D / PBR) ----
+const mobileTabBtns = document.querySelectorAll('.mobile-tab-btn');
+const previewSections = document.querySelectorAll('.preview-section');
 
-tabBtns.forEach(btn => {
+mobileTabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        tabBtns.forEach(b => b.classList.remove('active'));
+        mobileTabBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         
-        const view = btn.dataset.view;
-        if (view === '2d') {
-            view2d.classList.add('active-view');
-            view3d.classList.remove('active-view');
-        } else {
-            view2d.classList.remove('active-view');
-            view3d.classList.add('active-view');
-        }
+        const targetView = btn.dataset.view;
+        previewSections.forEach(section => {
+            if (section.classList.contains(targetView)) {
+                section.classList.add('active-view');
+            } else {
+                section.classList.remove('active-view');
+            }
+        });
         setTimeout(updateSizes, 50);
     });
+});
+
+// ---- Зум и Пан для 2D текстуры ----
+const zoomPanContainer = document.getElementById('zoomPanContainer');
+let zoomScale = 1;
+let panX = 0, panY = 0;
+let isPanning = false;
+let startPanX = 0, startPanY = 0;
+
+function updateZoomPan() {
+    if (container2d.firstChild) {
+        container2d.firstChild.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+    }
+}
+
+zoomPanContainer?.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    zoomScale = Math.min(Math.max(0.5, zoomScale + delta), 4);
+    updateZoomPan();
+}, { passive: false });
+
+zoomPanContainer?.addEventListener('mousedown', (e) => {
+    isPanning = true;
+    startPanX = e.clientX - panX;
+    startPanY = e.clientY - panY;
+    zoomPanContainer.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    panX = e.clientX - startPanX;
+    panY = e.clientY - startPanY;
+    updateZoomPan();
+});
+
+window.addEventListener('mouseup', () => {
+    isPanning = false;
+    if (zoomPanContainer) zoomPanContainer.style.cursor = 'grab';
+});
+
+// Сброс зума при двойном клике
+zoomPanContainer?.addEventListener('dblclick', () => {
+    zoomScale = 1; panX = 0; panY = 0;
+    updateZoomPan();
 });
 
 // ---- Пресеты ----
@@ -676,7 +724,6 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
         exportCanvas.toBlob(blob => downloadBlob(blob, `texture.${format}`), mime, 0.95);
     }
 });
-renderer2d.domElement.addEventListener('dblclick', () => document.getElementById('export2DBtn')?.click());
 
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
     const format = document.getElementById('exportModelFormat').value;
@@ -699,7 +746,6 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
         }
     } catch(e) { alert("Ошибка экспорта: "+e.message); }
 });
-renderer3d.domElement.addEventListener('dblclick', () => document.getElementById('exportModelBtn')?.click());
 
 function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
 
@@ -709,18 +755,26 @@ function cloneUniforms(src) {
     return dst;
 }
 
+// --- Рендер PBR карт (ИСПОЛЬЗУЕТ ОДИН И ТОТ ЖЕ РЕНДЕРЕР) ---
 async function renderPBRMap(res, type) {
     const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
     const tuni = cloneUniforms(uniforms);
     tuni.uUseOverlay = { value: 0 }; tuni.uShowRelief = { value: 0 };
     tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
-    const sc = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); cam.position.z = 1;
+    
+    const sc = new THREE.Scene(); 
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
+    cam.position.z = 1;
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
-    const renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true, alpha: false });
-    renderer.setSize(res, res); renderer.render(sc, cam);
-    const blob = await new Promise(r => renderer.domElement.toBlob(r, 'image/png'));
-    renderer.dispose(); mat.dispose();
+    
+    // Переиспользуем offscreenRenderer вместо создания нового!
+    offscreenRenderer.setSize(res, res);
+    offscreenRenderer.render(sc, cam);
+    
+    const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
+    mat.dispose();
+    // Не вызываем offscreenRenderer.dispose()! Мы его переиспользуем.
     return blob;
 }
 
@@ -729,22 +783,23 @@ async function captureTextureImage() {
     const sc = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); cam.position.z = 1;
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
-    const renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true, alpha: false });
-    renderer.setSize(1024, 1024); renderer.render(sc, cam);
-    const blob = await new Promise(r => renderer.domElement.toBlob(r, 'image/png'));
-    renderer.dispose(); mat.dispose();
+    
+    offscreenRenderer.setSize(1024, 1024);
+    offscreenRenderer.render(sc, cam);
+    
+    const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
+    mat.dispose();
     return blob;
 }
 
-// --- PBR Модальное окно (Работает на ВСЕХ устройствах) ---
-const pbrModal = document.getElementById('pbrModal');
-const openPbrBtn = document.getElementById('openPbrModalBtn');
-const closePbrBtn = document.getElementById('closePbrModal');
+// --- PBR Секция (Не модальное окно) ---
+const generatePbrBtn = document.getElementById('generatePbrBtn');
 const pbrGrid = document.getElementById('pbrGrid');
 
-openPbrBtn?.addEventListener('click', async () => {
-    pbrModal.classList.add('active');
-    pbrGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; padding: 20px;">Генерация карт...</p>';
+generatePbrBtn?.addEventListener('click', async () => {
+    generatePbrBtn.textContent = 'Генерация...';
+    generatePbrBtn.disabled = true;
+    pbrGrid.innerHTML = '';
     
     const maps = [
         { name: 'Base Color', type: 'basecolor' },
@@ -755,7 +810,6 @@ openPbrBtn?.addEventListener('click', async () => {
         { name: 'AO', type: 'ao' }
     ];
     
-    pbrGrid.innerHTML = '';
     for (const map of maps) {
         const div = document.createElement('div'); div.className = 'pbr-item';
         const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
@@ -767,12 +821,12 @@ openPbrBtn?.addEventListener('click', async () => {
         img.onload = () => { const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, 256, 256); };
         img.src = URL.createObjectURL(blob);
     }
+    
+    generatePbrBtn.textContent = 'Сгенерировать PBR';
+    generatePbrBtn.disabled = false;
 });
 
-closePbrBtn?.addEventListener('click', () => pbrModal.classList.remove('active'));
-pbrModal?.addEventListener('click', (e) => { if (e.target === pbrModal) pbrModal.classList.remove('active'); });
-
-// --- Гамбургер меню (Свайп и затемнение) ---
+// --- Гамбургер меню ---
 const menuToggle = document.getElementById('menuToggle');
 const patternBar = document.getElementById('patternBar');
 const menuOverlay = document.getElementById('menuOverlay');
@@ -789,13 +843,12 @@ function closeMenu() {
 menuToggle?.addEventListener('click', (e) => { e.stopPropagation(); openMenu(); });
 menuOverlay?.addEventListener('click', closeMenu);
 
-// Свайп для закрытия
 let touchStartX = 0;
 let touchEndX = 0;
 patternBar?.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
 patternBar?.addEventListener('touchend', e => {
     touchEndX = e.changedTouches[0].screenX;
-    if (touchStartX - touchEndX > 50) closeMenu(); // Свайп влево закрывает
+    if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
 function animate() {
