@@ -310,7 +310,7 @@ function rebuildColorUI() {
         if (activeColors.length > 2) {
             const removeBtn = document.createElement('button'); removeBtn.className = 'remove-color-btn'; removeBtn.textContent = '✕';
             removeBtn.addEventListener('click', (e) => { e.stopPropagation(); if (activeColors.length > 2) { activeColors.splice(idx,1); rebuildColorUI(); updateColorUniforms(); updateMaterial(); } });
-            div.appendChild(removeBtn); // Теперь кнопка будет строго под кружком благодаря flex-direction: column
+            div.appendChild(removeBtn);
         }
         colorContainer.appendChild(div);
     });
@@ -382,29 +382,6 @@ populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
-
-// ---- Переключатель 2D / 3D ----
-const tabBtns = document.querySelectorAll('.tab-btn');
-const view2d = document.getElementById('view2d');
-const view3d = document.getElementById('view3d');
-
-tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        tabBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        const view = btn.dataset.view;
-        if (view === '2d') {
-            view2d.classList.add('active-view');
-            view3d.classList.remove('active-view');
-        } else {
-            view2d.classList.remove('active-view');
-            view3d.classList.add('active-view');
-        }
-        // Важно: пересчитать размеры canvas после смены видимости
-        setTimeout(updateSizes, 50);
-    });
-});
 
 // ---- Пресеты ----
 const savePresetBtn = document.getElementById('savePresetBtn');
@@ -733,20 +710,15 @@ async function captureTextureImage() {
 }
 
 // --- Гамбургер меню для мобильных ---
-const menuToggle = document.getElementById('menuToggle');
-const patternBar = document.getElementById('patternBar');
-
-menuToggle?.addEventListener('click', (e) => {
+document.getElementById('menuToggle')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    patternBar?.classList.toggle('open');
+    document.querySelector('.pattern-bar')?.classList.toggle('open');
 });
-
-// Закрытие меню при клике на затемненную область (подложку)
 document.addEventListener('click', (e) => {
-    if (patternBar && patternBar.classList.contains('open')) {
-        if (!patternBar.contains(e.target) && !menuToggle?.contains(e.target)) {
-            patternBar.classList.remove('open');
-        }
+    const menu = document.querySelector('.pattern-bar');
+    const toggle = document.getElementById('menuToggle');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !toggle?.contains(e.target)) {
+        menu.classList.remove('open');
     }
 });
 
