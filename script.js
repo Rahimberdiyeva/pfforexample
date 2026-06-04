@@ -14,14 +14,14 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 
 const scene3d = new THREE.Scene();
-scene3d.background = null; // Прозрачный фон
+scene3d.background = null; 
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
-// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (РЕШЕНИЕ ПРОБЛЕМЫ УТЕЧКИ КОНТЕКСТОВ) ---
+// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (ОДИН НА ВСЕХ, чтобы не было утечки контекстов) ---
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -68,18 +68,18 @@ function ensureUIControls() {
         const row = document.createElement('div'); row.className = 'control-row';
         row.innerHTML = `<label>Интенсивность</label><input type="range" id="intensity" min="0" max="2" step="0.01" value="1.0"><span class="value-display" id="intensityVal">1.00</span>`;
         genGroup.appendChild(row);
-        document.getElementById('intensity').addEventListener('input', updateUniformsFromUI);
+        document.getElementById('intensity').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
     }
     if (!document.getElementById('tile3dScale')) {
         const row = document.createElement('div'); row.className = 'control-row';
         row.innerHTML = `<label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0"><span class="value-display" id="tile3dScaleVal">1.00</span>`;
         genGroup.appendChild(row);
-        document.getElementById('tile3dScale').addEventListener('input', updateUniformsFromUI);
+        document.getElementById('tile3dScale').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
     }
 }
 
 const uniforms = {
-    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 }, // 0 = первый тип по умолчанию
+    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 },
     uColor0: { value: new THREE.Vector3() }, uColor1: { value: new THREE.Vector3() }, uColor2: { value: new THREE.Vector3() }, uColor3: { value: new THREE.Vector3() },
     uColor4: { value: new THREE.Vector3() }, uColor5: { value: new THREE.Vector3() }, uColor6: { value: new THREE.Vector3() }, uColor7: { value: new THREE.Vector3() },
     uColorsCount: { value: 4 }, uSaturation: { value: 1.5 }, uBlendMode: { value: 0 },
@@ -294,6 +294,7 @@ function updateMaterial() {
         if (customModel) customModel.traverse(c => { if (c.isMesh) c.material = currentMaterial; });
         else currentMesh3d.material = currentMaterial;
     }
+    schedulePBRUpdate(); // Автообновление PBR при смене материала
 }
 
 let plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2,2), createMaterial());
@@ -361,16 +362,21 @@ function updateUniformsFromUI() {
     renderer2d.render(scene2d, camera2d);
     renderer3d.render(scene3d, camera3d);
     if (layers.some(l => l.syncWithPattern)) generateOverlayTexture();
+    
+    schedulePBRUpdate(); // Автообновление PBR
 }
 
 const controlIds = ['scale','octaves','persistence','lacunarity','saturation','blendMode','rotate','offsetX','offsetY','mirror','warpStrength','warpOctaves','reliefStrength','metallic'];
-controlIds.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', updateUniformsFromUI); });
+controlIds.forEach(id => { 
+    const el = document.getElementById(id); 
+    if (el) el.addEventListener('input', updateUniformsFromUI); 
+});
 document.getElementById('warpEnable')?.addEventListener('change', updateUniformsFromUI);
 document.getElementById('relief2d')?.addEventListener('change', updateUniformsFromUI);
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов (Без английских названий) ----
+// ---- Категории паттернов ----
 const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
@@ -387,25 +393,75 @@ populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
 
-// ---- Мобильные табы (2D / 3D / PBR) ----
-const mobileTabBtns = document.querySelectorAll('.mobile-tab-btn');
-const previewSections = document.querySelectorAll('.preview-section');
+// ---- Автообновление PBR (Debounced) ----
+let pbrUpdateTimeout;
+function schedulePBRUpdate() {
+    clearTimeout(pbrUpdateTimeout);
+    pbrUpdateTimeout = setTimeout(updatePBRPreviews, 300); // Задержка 300мс для производительности
+}
 
-mobileTabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        mobileTabBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        const targetView = btn.dataset.view;
-        previewSections.forEach(section => {
-            if (section.classList.contains(targetView)) {
-                section.classList.add('active-view');
-            } else {
-                section.classList.remove('active-view');
-            }
+async function updatePBRPreviews() {
+    const pbrGrid = document.getElementById('pbrGrid');
+    if (!pbrGrid) return;
+    
+    // Создаем структуру, если пустая
+    if (pbrGrid.children.length === 0) {
+        const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
+        const names = ['Base Color', 'Normal', 'Roughness', 'Metallic', 'Height', 'AO'];
+        maps.forEach((type, i) => {
+            const div = document.createElement('div'); div.className = 'pbr-item';
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128; // Компактный размер
+            const span = document.createElement('span'); span.textContent = names[i];
+            div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div);
         });
-        setTimeout(updateSizes, 50);
-    });
+    }
+    
+    // Рендерим каждую карту
+    const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
+    for (let i = 0; i < maps.length; i++) {
+        const canvas = pbrGrid.children[i].querySelector('canvas');
+        const blob = await renderPBRMap(128, maps[i]); // 128px достаточно для превью
+        const img = new Image();
+        img.onload = () => { 
+            const ctx = canvas.getContext('2d'); 
+            ctx.drawImage(img, 0, 0, 128, 128); 
+        };
+        img.src = URL.createObjectURL(blob);
+    }
+}
+
+// ---- Изменение ширины 2D и 3D окон ----
+const resizeHandle = document.getElementById('resizeHandle');
+const textureCol = document.querySelector('.texture-column');
+const view3dCol = document.querySelector('.view3d-column');
+let isResizing = false;
+
+resizeHandle?.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const wrapperRect = document.querySelector('.preview-wrapper').getBoundingClientRect();
+    const newTextureWidth = e.clientX - wrapperRect.left;
+    
+    // Ограничиваем минимальную и максимальную ширину
+    if (newTextureWidth > 200 && newTextureWidth < wrapperRect.width - 200) {
+        textureCol.style.flex = `0 0 ${newTextureWidth}px`;
+        view3dCol.style.flex = '1'; // 3D занимает оставшееся место
+        updateSizes(); // Обновляем размеры canvas
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+    }
 });
 
 // ---- Зум и Пан для 2D текстуры ----
@@ -789,40 +845,6 @@ async function captureTextureImage() {
     mat.dispose();
     return blob;
 }
-
-// --- PBR Секция ---
-const generatePbrBtn = document.getElementById('generatePbrBtn');
-const pbrGrid = document.getElementById('pbrGrid');
-
-generatePbrBtn?.addEventListener('click', async () => {
-    generatePbrBtn.textContent = 'Генерация...';
-    generatePbrBtn.disabled = true;
-    pbrGrid.innerHTML = '';
-    
-    const maps = [
-        { name: 'Base Color', type: 'basecolor' },
-        { name: 'Normal', type: 'normal' },
-        { name: 'Roughness', type: 'roughness' },
-        { name: 'Metallic', type: 'metallic' },
-        { name: 'Height', type: 'height' },
-        { name: 'AO', type: 'ao' }
-    ];
-    
-    for (const map of maps) {
-        const div = document.createElement('div'); div.className = 'pbr-item';
-        const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-        const span = document.createElement('span'); span.textContent = map.name;
-        div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div);
-        
-        const blob = await renderPBRMap(256, map.type);
-        const img = new Image();
-        img.onload = () => { const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, 256, 256); };
-        img.src = URL.createObjectURL(blob);
-    }
-    
-    generatePbrBtn.textContent = 'Сгенерировать PBR';
-    generatePbrBtn.disabled = false;
-});
 
 // --- Гамбургер меню ---
 const menuToggle = document.getElementById('menuToggle');
