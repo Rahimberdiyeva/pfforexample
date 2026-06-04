@@ -59,9 +59,27 @@
                         <button id="addColorBtn">Добавить цвет</button>
                     </div>
                     <div class="control-row" style="margin-top:12px;"><label>Насыщенность</label><input type="range" id="saturation" min="0" max="2" step="0.01" value="1.50"><span class="value-display" id="saturationVal">1.50</span></div>
-                    <div class="control-row"><label>Смешивание</label><select id="blendMode"><option value="0">Лว่า>
+                    <div class="control-row"><label>Смешивание</label>
+                        <select id="blendMode">
+                            <option value="0">Линейное</option>
+                            <option value="1">Мультипликативное</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Трансформы</div>
+                    <div class="control-row"><label>Поворот</label><input type="range" id="rotate" min="0" max="360" step="1" value="0"><span class="value-display" id="rotateVal">0°</span></div>
+                    <div class="control-row"><label>Сдвиг X</label><input type="range" id="offsetX" min="-1" max="1" step="0.01" value="0.00"><span class="value-display" id="offsetXVal">0.00</span></div>
                     <div class="control-row"><label>Сдвиг Y</label><input type="range" id="offsetY" min="-1" max="1" step="0.01" value="0.00"><span class="value-display" id="offsetYVal">0.00</span></div>
-                    <div class="control-row"><label>Зеркало</label><select id="mirror"><option value="0">Нет</option><option value="1">X</option><option value="2">Y</option><option value="3">X+Y</option></select></div>
+                    <div class="control-row"><label>Зеркало</label>
+                        <select id="mirror">
+                            <option value="0">Нет</option>
+                            <option value="1">X</option>
+                            <option value="2">Y</option>
+                            <option value="3">X+Y</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="setting-group">
@@ -82,7 +100,7 @@
                             <option value="cylinder">Цилиндр</option>
                         </select>
                         <label class="file-input-btn">
-                            Загрузить свою модель
+                            Загрузить модель
                             <input type="file" id="modelFileInput" accept=".glb,.gltf" style="display:none">
                         </label>
                     </div>
