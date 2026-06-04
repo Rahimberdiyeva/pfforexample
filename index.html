@@ -34,6 +34,7 @@
     </div>
 
     <div class="main-layout">
+        <!-- 1. Настройки -->
         <div class="settings-column">
             <div class="preview-header">Генерация</div>
             <div class="settings-panel">
@@ -187,35 +188,31 @@
 
                 <div class="setting-group">
                     <h3>Пресет</h3>
-                    <div style="display:flex; gap:8px;">
-                        <button id="savePresetBtn" style="flex:1">Сохранить</button>
-                        <button id="loadPresetBtn" style="flex:1">Загрузить</button>
+                    <div style="display:flex; gap:10px;">
+                        <button id="savePresetBtn">Сохранить</button>
+                        <button id="loadPresetBtn">Загрузить</button>
                         <input type="file" id="loadPresetInput" accept=".json" style="display:none">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Объединенный блок предпросмотра с табами -->
-        <div class="preview-wrapper">
-            <div class="preview-tabs">
-                <button class="tab-btn active" data-view="2d">2D Текстура</button>
-                <button class="tab-btn" data-view="3d">3D Модель</button>
-            </div>
-            
-            <div class="texture-column active-view" id="view2d">
-                <div class="canvas-container interactive-canvas" id="canvas2d"></div>
-            </div>
-            
-            <div class="view3d-column" id="view3d">
-                <div class="canvas-container" id="canvas3d"></div>
-            </div>
+        <!-- 2. 2D Предпросмотр -->
+        <div class="texture-column">
+            <div class="preview-header">2D текстура</div>
+            <div class="canvas-container interactive-canvas" id="canvas2d"></div>
+        </div>
+
+        <!-- 3. 3D Предпросмотр -->
+        <div class="view3d-column">
+            <div class="preview-header">3D визуализация</div>
+            <div class="canvas-container" id="canvas3d"></div>
         </div>
     </div>
 
     <div class="global-footer">
         <div class="footer-item">
-            <span class="footer-label">Экспорт 2D текстуры</span>
+            <span class="footer-label">Экспорт 2D</span>
             <select id="export2DFormat">
                 <option value="png">PNG</option>
                 <option value="jpg">JPG</option>
@@ -231,14 +228,14 @@
             <button id="export2DBtn" class="export-btn">Скачать</button>
         </div>
         <div class="footer-item">
-            <span class="footer-label">Экспорт 3D модели</span>
+            <span class="footer-label">Экспорт 3D</span>
             <select id="exportModelFormat">
                 <option value="glb">GLB</option>
                 <option value="gltf">glTF</option>
                 <option value="obj">OBJ + MTL</option>
             </select>
             <button id="exportModelBtn" class="export-btn">Скачать</button>
-        </div
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
