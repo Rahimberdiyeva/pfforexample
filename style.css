@@ -34,7 +34,7 @@ body {
   position: absolute;
   left: 15px;
   top: 50%;
-  transform: translateY(-50%); /* Идеальное выравнивание по центру логотипа */
+  transform: translateY(-50%);
   z-index: 1002;
 }
 
@@ -64,24 +64,36 @@ body {
 }
 .menu-overlay.active { display: block; }
 
-/* --- ДЕСКТОПНАЯ СЕТКА (3 колонки) --- */
+/* --- Основная сетка --- */
 .main-layout { flex: 1; display: flex; flex-direction: row; gap: 1px; background: #f0e2e8; overflow: hidden; min-height: 0; }
 
-/* Широкая колонка настроек для удобных ползунков */
-.settings-column { flex: 0 0 380px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
+/* Увеличенная ширина панели настроек */
+.settings-column { flex: 0 0 420px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
 
+/* Выравнивание 2D и 3D по верхнему краю */
 .preview-wrapper { 
   flex: 1; 
   background: #fffafc; 
   display: flex; 
-  flex-direction: row; /* На десктопе в ряд */
+  flex-direction: row; 
+  align-items: stretch; /* Выравнивает дочерние элементы по высоте */
   overflow: hidden; 
   border-left: 1px solid #f0dfe6; 
 }
 
-.mobile-tabs { display: none; }
-.preview-section { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #f0dfe6; min-width: 0; }
-.preview-section:last-child { border-right: none; }
+.texture-column { flex: 1; display: flex; flex-direction: column; min-width: 200px; }
+.view3d-column { flex: 1; display: flex; flex-direction: column; min-width: 200px; }
+.pbr-column { flex: 0 0 300px; display: flex; flex-direction: column; border-left: 1px solid #f0dfe6; }
+
+/* Разделитель для изменения ширины */
+.resize-handle {
+  width: 6px;
+  background: #f0e2e8;
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.resize-handle:hover { background: #cf8e9e; }
 
 .preview-header { 
   background: #d9b7c2cc; 
@@ -103,11 +115,12 @@ body {
 .canvas-container { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
 canvas { display: block; outline: none; max-width: 100%; max-height: 100%; object-fit: contain; touch-action: none; }
 
-.pbr-grid-container { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
-.pbr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; flex: 1; align-content: start; }
+/* PBR Grid (компактный) */
+.pbr-grid-container { padding: 12px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
+.pbr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; align-content: start; }
 .pbr-item { text-align: center; }
-.pbr-item canvas { width: 100%; border-radius: 12px; border: 1px solid #e9cfd8; background: #eee; }
-.pbr-item span { display: block; margin-top: 8px; font-size: 0.8rem; font-weight: 600; color: #3b2a30; }
+.pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
+.pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
 
 /* --- Настройки --- */
 .settings-panel { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 20px; }
@@ -128,8 +141,8 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
-/* === ГЛОБАЛЬНОЕ ИСПРАВЛЕНИЕ КНОПОК (ЗАПРЕТ РАСТЯГИВАНИЯ) === */
-.std-btn, .file-input-btn, select { 
+/* === ИСПРАВЛЕНИЕ КНОПОК: по центру, но не растянуты === */
+.center-btn, .file-input-btn, select { 
   background: white; 
   border: 1px solid #e2b7c4; 
   border-radius: 40px; 
@@ -137,20 +150,19 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   font-size: 0.85rem; 
   cursor: pointer; 
   font-weight: 500; 
-  width: auto !important; /* Ключевое исправление: не растягивать */
-  flex-shrink: 0; 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: fit-content !important; /* Запрет растягивания */
+  max-width: 100%;
+  display: block; /* Для работы margin: auto */
+  margin: 8px auto 0 auto; /* Центрирование */
+  text-align: center;
   transition: all 0.2s;
   font-family: inherit;
 }
-.std-btn:hover, .file-input-btn:hover { background: #fff0f5; border-color: #cf8e9e; }
-.file-input-btn { margin-top: 0; }
+.center-btn:hover, .file-input-btn:hover { background: #fff0f5; border-color: #cf8e9e; }
 
 .model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
-.model-row select, .model-row .file-input-btn { height: 36px; margin-top: 0; padding: 0 16px; }
-.bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.model-row select, .model-row .file-input-btn { margin: 0; height: 36px; padding: 0 16px; }
+.bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; justify-content: center; }
 
 .layers-list { max-height: 250px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
 .layer-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; }
@@ -160,22 +172,24 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .layer-controls { display: flex; gap: 4px; }
 .layer-controls button { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; width: auto; height: auto; flex-shrink: 0; }
 
-#addColorBtn, #savePresetBtn, #clearOverlayBtn, #clearBgBtn { background: #cf8e9e; color: white; border: none; margin: 4px 0; }
+#addColorBtn, #savePresetBtn, #clearOverlayBtn, #clearBgBtn { background: #cf8e9e; color: white; border: none; }
 #loadPresetBtn { background: #ffffff; color: #cf8e9e; border: 2px solid #cf8e9e; font-weight: 700; }
 #loadPresetBtn:hover { background: #fce9ef; }
 #clearOverlayBtn { background: #b46e7e; }
 .hidden { display: none !important; }
 
-/* --- Футер (Десктоп: 2 колонки) --- */
+/* --- Футер (Подпись рядом с кнопками) --- */
 .global-footer {
   background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 16px 24px;
   flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
 }
 .footer-item { 
   display: flex; 
-  flex-direction: column; 
+  flex-direction: row; 
   align-items: center; 
-  gap: 10px; 
+  justify-content: center;
+  gap: 12px; 
+  flex-wrap: wrap;
 }
 .footer-controls {
   display: flex;
@@ -189,9 +203,9 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   color: #2e1e24; 
   font-size: 0.9rem; 
   white-space: nowrap; 
-  margin-top: 4px;
+  margin: 0; /* Убран отступ снизу */
 }
-.export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; padding: 10px 20px; }
+.export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; padding: 10px 20px; margin: 0; width: auto; display: inline-flex; }
 .export-btn:hover { opacity: 0.9; }
 
 
@@ -201,7 +215,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 @media (max-width: 860px) {
   .menu-toggle { display: block; }
   
-  /* Меню прижато к левому верхнему углу, контент выровнен по левому краю */
   .pattern-bar {
     position: fixed; left: -280px; top: 0; bottom: 0; width: 260px;
     flex-direction: column; align-items: flex-start; padding: 65px 16px 20px;
@@ -216,32 +229,21 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 
   .main-layout { flex-direction: column; overflow: hidden; }
   
-  /* Мобильные табы */
-  .mobile-tabs { 
-    display: flex; 
-    background: #d9b7c2cc; 
-    border-bottom: 1px solid #e9cfd8; 
-    flex-shrink: 0; 
-  }
-  .mobile-tab-btn { 
-    flex: 1; padding: 12px; background: transparent; border: none; border-radius: 0; 
-    font-weight: 600; color: #3b2a30; cursor: pointer; border-bottom: 3px solid transparent; font-family: inherit; 
-  }
-  .mobile-tab-btn.active { background: #fffafc; color: #cf8e9e; border-bottom: 3px solid #cf8e9e; }
-  
-  /* Переключение видов */
-  .preview-wrapper { flex-direction: column; flex: 1; overflow: hidden; border-left: none; }
-  .preview-section { display: none; flex: 1; min-height: 0; border-right: none; }
-  .preview-section.active-view { display: flex; }
-  .preview-section .preview-header { display: none; }
-
   .settings-column { 
     flex: 0 0 45vh; 
     order: 1; 
     border-bottom: 1px solid #f0dfe6; 
   }
   
-  .preview-wrapper { order: 2; }
+  .preview-wrapper { 
+    order: 2; 
+    flex: 1; 
+    flex-direction: column; /* На мобильном друг под другом или через табы, если добавите */
+    overflow-y: auto;
+  }
+  
+  .texture-column, .view3d-column, .pbr-column { flex: 0 0 33.33%; min-height: 250px; border-left: none; border-bottom: 1px solid #f0dfe6; }
+  .resize-handle { display: none; } /* Отключаем ресайз на мобильном */
 
   .setting-group { padding: 16px; border-radius: 16px; }
   .control-row { gap: 8px; }
@@ -249,13 +251,13 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .control-row input[type="range"] { height: 8px; }
   .color-circle-input { width: 48px; height: 48px; }
   
-  .std-btn, .file-input-btn, select { padding: 12px 16px; font-size: 0.9rem; }
+  .center-btn, .file-input-btn, select { padding: 12px 16px; font-size: 0.9rem; }
   .model-row { flex-direction: column; align-items: stretch; gap: 8px; }
-  .model-row select, .model-row .file-input-btn { width: 100%; height: 44px; justify-content: center; }
+  .model-row select, .model-row .file-input-btn { width: 100%; height: 44px; justify-content: center; margin: 0 auto; }
 
-  /* Футер на мобильном: 2 колонки, элементы управления в ряд, подпись снизу */
+  /* Футер на мобильном */
   .global-footer { 
-    grid-template-columns: 1fr 1fr; 
+    grid-template-columns: 1fr; 
     gap: 12px; 
     padding: 12px; 
   }
@@ -264,12 +266,14 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     background: #fff; 
     border-radius: 12px; 
     box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    flex-direction: column;
+    align-items: center;
     gap: 8px;
   }
-  .footer-controls { gap: 6px; width: 100%; justify-content: space-between; }
-  .footer-item select { flex: 1; min-width: 0; padding: 8px; font-size: 0.8rem; border-radius: 8px; }
-  .footer-item .export-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 0.8rem; border-radius: 8px; white-space: nowrap; }
-  .footer-label { font-size: 0.8rem; margin-top: 0; }
+  .footer-controls { gap: 6px; width: 100%; justify-content: center; }
+  .footer-item select { flex: 1; min-width: 0; padding: 8px; font-size: 0.8rem; border-radius: 8px; margin: 0; width: auto; display: inline-flex; }
+  .footer-item .export-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 0.8rem; border-radius: 8px; white-space: nowrap; margin: 0; width: auto; display: inline-flex; }
+  .footer-label { font-size: 0.85rem; }
 }
 
 @media (max-width: 480px) {
