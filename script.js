@@ -75,7 +75,7 @@ function ensureUIControls() {
 }
 
 const uniforms = {
-    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 },
+    uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 }, // 0 = первый тип (Волны)
     uColor0: { value: new THREE.Vector3() }, uColor1: { value: new THREE.Vector3() }, uColor2: { value: new THREE.Vector3() }, uColor3: { value: new THREE.Vector3() },
     uColor4: { value: new THREE.Vector3() }, uColor5: { value: new THREE.Vector3() }, uColor6: { value: new THREE.Vector3() }, uColor7: { value: new THREE.Vector3() },
     uColorsCount: { value: 4 }, uSaturation: { value: 1.5 }, uBlendMode: { value: 0 },
@@ -366,9 +366,9 @@ document.getElementById('relief2d')?.addEventListener('change', updateUniformsFr
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов ----
-const noisePatterns = [{name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного (Worley)", v:1}, {name: "Волны", v:0}];
-const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC (коллапс волн)", v:6}, {name: "Гребневый мультифрактал", v:12}];
+// ---- Категории паттернов (Без английских названий) ----
+const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
+const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
 const geometricPatterns = [{name: "Шахматная доска", v:8}, {name: "Полосы", v:9}, {name: "Концентрические круги", v:10}, {name: "Сетка", v:11}, {name: "Плитка", v:16}, {name: "Древесина", v:14}, {name: "Мрамор", v:15}, {name: "Truchet", v:3}];
 
@@ -378,10 +378,33 @@ function populateSelect(id, items, cur) {
     sel.addEventListener('change', e => { uniforms.uPatternType.value = parseInt(e.target.value); updateUniformsFromUI(); });
 }
 
+// Гарантируем, что первый элемент первой категории выбран по умолчанию (v:0)
 populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
+
+// ---- Переключатель 2D / 3D ----
+const tabBtns = document.querySelectorAll('.tab-btn:not(.pbr-tab-btn)');
+const view2d = document.getElementById('view2d');
+const view3d = document.getElementById('view3d');
+
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const view = btn.dataset.view;
+        if (view === '2d') {
+            view2d.classList.add('active-view');
+            view3d.classList.remove('active-view');
+        } else {
+            view2d.classList.remove('active-view');
+            view3d.classList.add('active-view');
+        }
+        setTimeout(updateSizes, 50);
+    });
+});
 
 // ---- Пресеты ----
 const savePresetBtn = document.getElementById('savePresetBtn');
@@ -488,6 +511,12 @@ async function generateOverlayTexture() {
     overlayTexture = texture;
     uniforms.uOverlayTexture.value = overlayTexture;
     uniforms.uUseOverlay.value = (layers.length > 0 || backgroundImageEl) ? 1 : 0;
+    
+    // Управление видимостью кнопки "Удалить все картинки"
+    const clearBtn = document.getElementById('clearOverlayBtn');
+    if (layers.length > 0) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+
     renderer2d.render(scene2d, camera2d);
 }
 
@@ -510,7 +539,7 @@ function updateLayersUI() {
         const thumb = document.createElement('img'); thumb.className = 'layer-thumb'; thumb.src = layer.imgElement.src;
         const nameSpan = document.createElement('span'); nameSpan.className = 'layer-name'; nameSpan.textContent = layer.name;
         const controls = document.createElement('div'); controls.className = 'layer-controls';
-        const delBtn = document.createElement('button'); delBtn.textContent = '🗑'; delBtn.title = 'Удалить слой';
+        const delBtn = document.createElement('button'); delBtn.textContent = '🗑'; delBtn.title = 'Удалить';
         delBtn.onclick = (e) => { e.stopPropagation(); deleteLayerById(layer.id); };
         controls.appendChild(delBtn);
         div.appendChild(thumb); div.appendChild(nameSpan); div.appendChild(controls);
@@ -524,7 +553,7 @@ function updateLayersUI() {
         const syncRow = document.createElement('div'); syncRow.style.display = 'flex'; syncRow.style.alignItems = 'center'; syncRow.style.gap = '6px';
         const syncCheck = document.createElement('input'); syncCheck.type = 'checkbox'; syncCheck.checked = layer.syncWithPattern || false;
         syncCheck.addEventListener('change', (e) => { layer.syncWithPattern = e.target.checked; generateOverlayTexture(); });
-        syncRow.appendChild(syncCheck); syncRow.appendChild(document.createTextNode('Синхр. с ген.')); extraDiv.appendChild(syncRow);
+        syncRow.appendChild(syncCheck); syncRow.appendChild(document.createTextNode('Синхр.')); extraDiv.appendChild(syncRow);
         
         const tileRow = document.createElement('div'); tileRow.style.display = 'flex'; tileRow.style.alignItems = 'center'; tileRow.style.gap = '6px';
         tileRow.innerHTML = `<span style="font-size:0.7rem;">Повт X:</span><input type="number" min="1" max="10" step="1" value="${layer.tileX || 1}" style="width:50px;"><span style="font-size:0.7rem;">Y:</span><input type="number" min="1" max="10" step="1" value="${layer.tileY || 1}" style="width:50px;">`;
@@ -709,18 +738,67 @@ async function captureTextureImage() {
     return blob;
 }
 
-// --- Гамбургер меню для мобильных ---
-document.getElementById('menuToggle')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.querySelector('.pattern-bar')?.classList.toggle('open');
-});
-document.addEventListener('click', (e) => {
-    const menu = document.querySelector('.pattern-bar');
-    const toggle = document.getElementById('menuToggle');
-    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !toggle?.contains(e.target)) {
-        menu.classList.remove('open');
+// --- PBR Модальное окно (Не влияет на основные сцены) ---
+const pbrModal = document.getElementById('pbrModal');
+const openPbrBtn = document.getElementById('openPbrModalBtn');
+const closePbrBtn = document.getElementById('closePbrModal');
+const pbrGrid = document.getElementById('pbrGrid');
+
+openPbrBtn?.addEventListener('click', async () => {
+    pbrModal.classList.add('active');
+    pbrGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center;">Генерация...</p>';
+    
+    const maps = [
+        { name: 'Base Color', type: 'basecolor' },
+        { name: 'Normal', type: 'normal' },
+        { name: 'Roughness', type: 'roughness' },
+        { name: 'Metallic', type: 'metallic' },
+        { name: 'Height', type: 'height' },
+        { name: 'AO', type: 'ao' }
+    ];
+    
+    pbrGrid.innerHTML = '';
+    for (const map of maps) {
+        const div = document.createElement('div'); div.className = 'pbr-item';
+        const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
+        const span = document.createElement('span'); span.textContent = map.name;
+        div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div);
+        
+        const blob = await renderPBRMap(256, map.type);
+        const img = new Image();
+        img.onload = () => { const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, 256, 256); };
+        img.src = URL.createObjectURL(blob);
     }
 });
+
+closePbrBtn?.addEventListener('click', () => pbrModal.classList.remove('active'));
+pbrModal?.addEventListener('click', (e) => { if (e.target === pbrModal) pbrModal.classList.remove('active'); });
+
+// --- Гамбургер меню (Свайп и затемнение) ---
+const menuToggle = document.getElementById('menuToggle');
+const patternBar = document.getElementById('patternBar');
+const menuOverlay = document.getElementById('menuOverlay');
+
+function openMenu() {
+    patternBar.classList.add('open');
+    menuOverlay.classList.add('active');
+}
+function closeMenu() {
+    patternBar.classList.remove('open');
+    menuOverlay.classList.remove('active');
+}
+
+menuToggle?.addEventListener('click', (e) => { e.stopPropagation(); openMenu(); });
+menuOverlay?.addEventListener('click', closeMenu);
+
+// Свайп для закрытия
+let touchStartX = 0;
+let touchEndX = 0;
+patternBar?.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+patternBar?.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchStartX - touchEndX > 50) closeMenu(); // Свайп влево закрывает
+}, {passive: true});
 
 function animate() {
     requestAnimationFrame(animate);
