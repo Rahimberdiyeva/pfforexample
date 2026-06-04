@@ -2,95 +2,254 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PatternForge — Генератор текстур и 3D</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
-<div class="logo-block"><div class="logo">PatternForge</div></div>
-
-<div class="pattern-bar">
-    <div class="category-filters">
-        <div class="category-group"><span class="category-label">Шумовые</span><select id="selectNoise" class="category-select"></select></div>
-        <div class="category-group"><span class="category-label">Фрактальные</span><select id="selectFractal" class="category-select"></select></div>
-        <div class="category-group"><span class="category-label">Градиенты</span><select id="selectGradient" class="category-select"></select></div>
-        <div class="category-group"><span class="category-label">Геометрия</span><select id="selectGeometric" class="category-select"></select></div>
+    <div class="logo-block">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <div class="logo">PatternForge</div>
     </div>
-</div>
 
-<div class="main-layout">
-    <div class="settings-column">
-        <div class="settings-panel">
-            <div class="setting-group">
-                <h3>Генерация</h3>
-                <div class="control-row"><label>Масштаб</label><input type="range" id="scale" min="0.2" max="3.0" step="0.01" value="0.8"><span class="value-display" id="scaleVal">0.80</span></div>
-                <div class="control-row"><label>Октавы</label><input type="range" id="octaves" min="1" max="6" step="1" value="3"><span class="value-display" id="octavesVal">3</span></div>
-                <div class="control-row"><label>Персистенс</label><input type="range" id="persistence" min="0.2" max="0.9" step="0.01" value="0.5"><span class="value-display" id="persistenceVal">0.50</span></div>
-                <div class="control-row"><label>Лакунарность</label><input type="range" id="lacunarity" min="1.2" max="3.0" step="0.05" value="2.0"><span class="value-display" id="lacunarityVal">2.00</span></div>
-                <div class="control-row"><label>Рельеф (2D)</label><input type="checkbox" id="relief2d"></div>
-                <div class="control-row"><label>Высота рельефа</label><input type="range" id="reliefStrength" min="0" max="2.0" step="0.01" value="1.0"><span class="value-display" id="reliefStrengthVal">1.00</span></div>
-                <div class="control-row"><label>Металличность</label><input type="range" id="metallic" min="0" max="1" step="0.01" value="0.5"><span class="value-display" id="metallicVal">0.50</span></div>
+    <div class="pattern-bar" id="patternBar">
+        <div class="category-filters">
+            <div class="category-group">
+                <span class="category-label">Шумовые</span>
+                <select id="selectNoise" class="category-select"></select>
             </div>
-            <div class="setting-group">
-                <h3>Цветовая палитра</h3>
-                <div class="color-palette"><div id="colorListContainer" class="color-list"></div><button id="addColorBtn">Добавить цвет</button>
-                <div class="control-row"><label>Насыщенность</label><input type="range" id="saturation" min="0" max="2.0" step="0.01" value="1.5"><span class="value-display" id="saturationVal">1.50</span></div>
-                <div class="control-row"><label>Смешивание</label><select id="blendMode"><option value="0">Линейное</option><option value="1">Мультипликат.</option></select></div></div>
+            <div class="category-group">
+                <span class="category-label">Фрактальные</span>
+                <select id="selectFractal" class="category-select"></select>
             </div>
-            <div class="setting-group">
-                <h3>Трансформы</h3>
-                <div class="control-row"><label>Поворот</label><input type="range" id="rotate" min="0" max="360" step="1" value="0"><span class="value-display" id="rotateVal">0°</span></div>
-                <div class="control-row"><label>Сдвиг X</label><input type="range" id="offsetX" min="-1" max="1" step="0.01" value="0"><span class="value-display" id="offsetXVal">0.00</span></div>
-                <div class="control-row"><label>Сдвиг Y</label><input type="range" id="offsetY" min="-1" max="1" step="0.01" value="0"><span class="value-display" id="offsetYVal">0.00</span></div>
-                <div class="control-row"><label>Зеркало</label><select id="mirror"><option value="0">Нет</option><option value="1">X</option><option value="2">Y</option><option value="3">X+Y</option></select></div>
+            <div class="category-group">
+                <span class="category-label">Градиенты</span>
+                <select id="selectGradient" class="category-select"></select>
             </div>
-            <div class="setting-group">
-                <h3>Domain Warping</h3>
-                <div class="control-row"><label>Активно</label><input type="checkbox" id="warpEnable"></div>
-                <div class="control-row"><label>Сила</label><input type="range" id="warpStrength" min="0" max="0.8" step="0.01" value="0.3"><span class="value-display" id="warpStrengthVal">0.30</span></div>
-                <div class="control-row"><label>Октавы warp</label><input type="range" id="warpOctaves" min="1" max="5" step="1" value="2"><span class="value-display" id="warpOctavesVal">2</span></div>
-            </div>
-            <div class="setting-group">
-                <h3>3D модель</h3>
-                <div class="model-row"><select id="geometrySelect"><option value="cube" selected>Куб</option><option value="torus">Тор-узел</option><option value="sphere">Сфера</option><option value="cylinder">Цилиндр</option></select>
-                <label class="file-input-btn">Загрузить свою модель<input type="file" id="modelFileInput" accept=".gltf,.glb" style="display: none;"></label></div>
-                <div id="modelStatus"></div>
-            </div>
-            <div class="setting-group">
-                <h3>Фоновое изображение</h3>
-                <div class="bg-upload-row"><label class="file-input-btn">Выбрать фон<input type="file" id="bgImageInput" accept="image/*" style="display: none;"></label><button id="clearBgBtn" class="hidden">Удалить фон</button></div>
-                <div class="control-row"><label>Прозрачность фона</label><input type="range" id="bgOpacity" min="0" max="1" step="0.01" value="1.0"><span class="value-display" id="bgOpacityVal">1.00</span></div>
-            </div>
-            <div class="setting-group">
-                <h3>Наложение картинок (слои)</h3>
-                <button id="addOverlayBtn">Добавить изображения</button>
-                <input type="file" id="multiTextureInput" accept="image/*" multiple style="display: none;">
-                <div id="overlayLayersList" class="layers-list"></div>
-                <div class="control-row"><label>Прозрачность слоя</label><input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1"><span id="layerOpacityVal">1.00</span></div>
-                <button id="clearOverlayBtn">Удалить все слои</button>
+            <div class="category-group">
+                <span class="category-label">Геометрия</span>
+                <select id="selectGeometric" class="category-select"></select>
             </div>
         </div>
     </div>
-    <div class="texture-column">
-        <div class="preview-header">2D текстура </div>
-        <div id="canvas2d" class="canvas-container interactive-canvas"></div>
-    </div>
-    <div class="view3d-column">
-        <div class="preview-header">3D визуализация</div>
-        <div id="canvas3d" class="canvas-container"></div>
-    </div>
-</div>
 
-<div class="global-footer">
-    <div class="footer-item"><span class="footer-label">2D текстура</span><select id="export2DFormat"><option value="png">PNG</option><option value="jpg">JPG</option><option value="svg">SVG</option><option value="pbr">PBR (ZIP)</option></select><select id="exportResolution"><option value="1024">1K</option><option value="2048" selected>2K</option><option value="4096">4K</option><option value="8192">8K</option></select><button id="export2DBtn" class="export-btn">Экспорт</button></div>
-    <div class="footer-item"><span class="footer-label">3D модель</span><select id="exportModelFormat"><option value="glb">GLB</option><option value="obj">OBJ + MTL</option><option value="gltf">glTF</option></select><button id="exportModelBtn" class="export-btn">Экспорт</button></div>
-    <div class="footer-item"><span class="footer-label">Пресет</span><button id="savePresetBtn">Сохранить</button><input type="file" id="loadPresetInput" accept=".json" style="display:none;"><button id="loadPresetBtn">Загрузить</button></div>
-</div>
+    <div class="main-layout">
+        <div class="settings-column">
+            <div class="preview-header">Генерация</div>
+            <div class="settings-panel">
+                <div class="setting-group">
+                    <h3>Параметры</h3>
+                    <div class="control-row">
+                        <label>Масштаб</label>
+                        <input type="range" id="scale" min="0.1" max="5" step="0.01" value="0.80">
+                        <span class="value-display" id="scaleVal">0.80</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Октавы</label>
+                        <input type="range" id="octaves" min="1" max="8" step="1" value="3">
+                        <span class="value-display" id="octavesVal">3</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Персистенс</label>
+                        <input type="range" id="persistence" min="0.1" max="1" step="0.01" value="0.50">
+                        <span class="value-display" id="persistenceVal">0.50</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Лакунарность</label>
+                        <input type="range" id="lacunarity" min="1" max="4" step="0.01" value="2.00">
+                        <span class="value-display" id="lacunarityVal">2.00</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Насыщенность</label>
+                        <input type="range" id="saturation" min="0" max="3" step="0.01" value="1.50">
+                        <span class="value-display" id="saturationVal">1.50</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Смешивание</label>
+                        <select id="blendMode">
+                            <option value="0">Линейное</option>
+                            <option value="1">Мультипликативное</option>
+                        </select>
+                    </div>
+                </div>
 
-<script type="importmap">
-    { "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" } }
-</script>
-<script type="module" src="script.js"></script>
+                <div class="setting-group">
+                    <h3>Трансформы</h3>
+                    <div class="control-row">
+                        <label>Поворот</label>
+                        <input type="range" id="rotate" min="0" max="360" step="1" value="0">
+                        <span class="value-display" id="rotateVal">0°</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Сдвиг X</label>
+                        <input type="range" id="offsetX" min="-1" max="1" step="0.01" value="0.00">
+                        <span class="value-display" id="offsetXVal">0.00</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Сдвиг Y</label>
+                        <input type="range" id="offsetY" min="-1" max="1" step="0.01" value="0.00">
+                        <span class="value-display" id="offsetYVal">0.00</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Зеркало</label>
+                        <select id="mirror">
+                            <option value="0">Нет</option>
+                            <option value="1">X</option>
+                            <option value="2">Y</option>
+                            <option value="3">X+Y</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Цветовая палитра</h3>
+                    <div class="color-list" id="colorListContainer"></div>
+                    <button id="addColorBtn">Добавить цвет</button>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Domain Warping</h3>
+                    <div class="control-row">
+                        <label>Активно</label>
+                        <input type="checkbox" id="warpEnable">
+                    </div>
+                    <div class="control-row">
+                        <label>Сила</label>
+                        <input type="range" id="warpStrength" min="0" max="1" step="0.01" value="0.30">
+                        <span class="value-display" id="warpStrengthVal">0.30</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Октавы warp</label>
+                        <input type="range" id="warpOctaves" min="1" max="5" step="1" value="2">
+                        <span class="value-display" id="warpOctavesVal">2</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Рельеф (2D)</h3>
+                    <div class="control-row">
+                        <label>Включить</label>
+                        <input type="checkbox" id="relief2d">
+                    </div>
+                    <div class="control-row">
+                        <label>Высота рельефа</label>
+                        <input type="range" id="reliefStrength" min="0" max="3" step="0.01" value="1.00">
+                        <span class="value-display" id="reliefStrengthVal">1.00</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>3D модель</h3>
+                    <div class="model-row">
+                        <select id="geometrySelect">
+                            <option value="cube">Куб</option>
+                            <option value="torus">Тор-узел</option>
+                            <option value="sphere">Сфера</option>
+                            <option value="cylinder">Цилиндр</option>
+                        </select>
+                        <label class="file-input-btn">
+                            Загрузить свою
+                            <input type="file" id="modelFileInput" accept=".glb,.gltf" style="display:none">
+                        </label>
+                    </div>
+                    <div id="modelStatus" style="font-size:0.8rem; color:#cf8e9e; margin-top:4px;"></div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Фоновое изображение</h3>
+                    <div class="bg-upload-row">
+                        <label class="file-input-btn">
+                            Выбрать фон
+                            <input type="file" id="bgImageInput" accept="image/*" style="display:none">
+                        </label>
+                        <button id="clearBgBtn" class="hidden">Удалить фон</button>
+                    </div>
+                    <div class="control-row">
+                        <label>Прозрачность</label>
+                        <input type="range" id="bgOpacity" min="0" max="1" step="0.01" value="1.00">
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Наложение (слои)</h3>
+                    <label class="file-input-btn">
+                        Добавить изображения
+                        <input type="file" id="multiTextureInput" accept="image/*" multiple style="display:none">
+                    </label>
+                    <div class="layers-list" id="overlayLayersList"></div>
+                    <div class="control-row" id="layerOpacityControl" style="display:none;">
+                        <label>Прозрачность</label>
+                        <input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1.00">
+                        <span class="value-display" id="layerOpacityVal">1.00</span>
+                    </div>
+                    <button id="clearOverlayBtn">Удалить все слои</button>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Пресет</h3>
+                    <div style="display:flex; gap:8px;">
+                        <button id="savePresetBtn" style="flex:1">Сохранить</button>
+                        <button id="loadPresetBtn" style="flex:1">Загрузить</button>
+                        <input type="file" id="loadPresetInput" accept=".json" style="display:none">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Объединенный блок предпросмотра с табами -->
+        <div class="preview-wrapper">
+            <div class="preview-tabs">
+                <button class="tab-btn active" data-view="2d">2D Текстура</button>
+                <button class="tab-btn" data-view="3d">3D Модель</button>
+            </div>
+            
+            <div class="texture-column active-view" id="view2d">
+                <div class="canvas-container interactive-canvas" id="canvas2d"></div>
+            </div>
+            
+            <div class="view3d-column" id="view3d">
+                <div class="canvas-container" id="canvas3d"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="global-footer">
+        <div class="footer-item">
+            <span class="footer-label">Экспорт 2D текстуры</span>
+            <select id="export2DFormat">
+                <option value="png">PNG</option>
+                <option value="jpg">JPG</option>
+                <option value="svg">SVG</option>
+                <option value="pbr">PBR (ZIP)</option>
+            </select>
+            <select id="exportResolution">
+                <option value="1024">1K</option>
+                <option value="2048">2K</option>
+                <option value="4096">4K</option>
+                <option value="8192">8K</option>
+            </select>
+            <button id="export2DBtn" class="export-btn">Скачать</button>
+        </div>
+        <div class="footer-item">
+            <span class="footer-label">Экспорт 3D модели</span>
+            <select id="exportModelFormat">
+                <option value="glb">GLB</option>
+                <option value="gltf">glTF</option>
+                <option value="obj">OBJ + MTL</option>
+            </select>
+            <button id="exportModelBtn" class="export-btn">Скачать</button>
+        </div
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
