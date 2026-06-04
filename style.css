@@ -67,16 +67,14 @@ body {
 /* --- Основная сетка --- */
 .main-layout { flex: 1; display: flex; flex-direction: row; gap: 1px; background: #f0e2e8; overflow: hidden; min-height: 0; }
 
-/* Увеличенная ширина панели настроек */
 .settings-column { flex: 0 0 420px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; }
 
-/* Выравнивание 2D и 3D по верхнему краю */
 .preview-wrapper { 
   flex: 1; 
   background: #fffafc; 
   display: flex; 
   flex-direction: row; 
-  align-items: stretch; /* Выравнивает дочерние элементы по высоте */
+  align-items: stretch; 
   overflow: hidden; 
   border-left: 1px solid #f0dfe6; 
 }
@@ -85,25 +83,14 @@ body {
 .view3d-column { flex: 1; display: flex; flex-direction: column; min-width: 200px; }
 .pbr-column { flex: 0 0 300px; display: flex; flex-direction: column; border-left: 1px solid #f0dfe6; }
 
-/* Разделитель для изменения ширины */
 .resize-handle {
-  width: 6px;
-  background: #f0e2e8;
-  cursor: col-resize;
-  flex-shrink: 0;
-  transition: background 0.2s;
+  width: 6px; background: #f0e2e8; cursor: col-resize; flex-shrink: 0; transition: background 0.2s;
 }
 .resize-handle:hover { background: #cf8e9e; }
 
 .preview-header { 
-  background: #d9b7c2cc; 
-  backdrop-filter: blur(8px); 
-  padding: 10px; 
-  font-weight: 600; 
-  font-size: 0.9rem;
-  text-align: center; 
-  flex-shrink: 0; 
-  border-bottom: 1px solid #e9cfd8;
+  background: #d9b7c2cc; backdrop-filter: blur(8px); padding: 10px; 
+  font-weight: 600; font-size: 0.9rem; text-align: center; flex-shrink: 0; border-bottom: 1px solid #e9cfd8;
 }
 
 .zoom-pan-container {
@@ -115,7 +102,6 @@ body {
 .canvas-container { position: relative; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
 canvas { display: block; outline: none; max-width: 100%; max-height: 100%; object-fit: contain; touch-action: none; }
 
-/* PBR Grid (компактный) */
 .pbr-grid-container { padding: 12px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 .pbr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; align-content: start; }
 .pbr-item { text-align: center; }
@@ -141,24 +127,24 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
-/* === ИСПРАВЛЕНИЕ КНОПОК: по центру, но не растянуты === */
-.center-btn, .file-input-btn, select { 
+/* === ИСПРАВЛЕНИЕ КНОПОК: строгое закругление === */
+.center-btn, .file-input-btn, select, button { 
   background: white; 
   border: 1px solid #e2b7c4; 
-  border-radius: 40px; 
+  border-radius: 40px !important; /* ПРИНУДИТЕЛЬНОЕ ЗАКРУГЛЕНИЕ */
   padding: 8px 16px; 
   font-size: 0.85rem; 
   cursor: pointer; 
   font-weight: 500; 
-  width: fit-content !important; /* Запрет растягивания */
+  width: fit-content !important; 
   max-width: 100%;
-  display: block; /* Для работы margin: auto */
-  margin: 8px auto 0 auto; /* Центрирование */
+  display: block; 
+  margin: 8px auto 0 auto; 
   text-align: center;
   transition: all 0.2s;
   font-family: inherit;
 }
-.center-btn:hover, .file-input-btn:hover { background: #fff0f5; border-color: #cf8e9e; }
+.center-btn:hover, .file-input-btn:hover, button:hover { background: #fff0f5; border-color: #cf8e9e; }
 
 .model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
 .model-row select, .model-row .file-input-btn { margin: 0; height: 36px; padding: 0 16px; }
@@ -170,7 +156,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .layer-thumb { width: 40px; height: 40px; background: #eee; border-radius: 8px; object-fit: cover; }
 .layer-name { flex: 1; font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .layer-controls { display: flex; gap: 4px; }
-.layer-controls button { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; width: auto; height: auto; flex-shrink: 0; }
+.layer-controls button { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; width: auto; height: auto; flex-shrink: 0; margin: 0; border-radius: 50% !important; }
 
 #addColorBtn, #savePresetBtn, #clearOverlayBtn, #clearBgBtn { background: #cf8e9e; color: white; border: none; }
 #loadPresetBtn { background: #ffffff; color: #cf8e9e; border: 2px solid #cf8e9e; font-weight: 700; }
@@ -178,7 +164,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 #clearOverlayBtn { background: #b46e7e; }
 .hidden { display: none !important; }
 
-/* --- Футер (Подпись рядом с кнопками) --- */
+/* --- Футер --- */
 .global-footer {
   background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 16px 24px;
   flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
@@ -203,9 +189,18 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   color: #2e1e24; 
   font-size: 0.9rem; 
   white-space: nowrap; 
-  margin: 0; /* Убран отступ снизу */
+  margin: 0; 
 }
-.export-btn { background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white; padding: 10px 20px; margin: 0; width: auto; display: inline-flex; }
+.export-btn { 
+  background: linear-gradient(115deg, #cf8e9e, #b46e7e); 
+  border: none; 
+  color: white; 
+  padding: 10px 20px; 
+  margin: 0; 
+  width: auto; 
+  display: inline-flex; 
+  border-radius: 40px !important; /* ПРИНУДИТЕЛЬНОЕ ЗАКРУГЛЕНИЕ ЭКСПОРТА */
+}
 .export-btn:hover { opacity: 0.9; }
 
 
@@ -215,17 +210,43 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 @media (max-width: 860px) {
   .menu-toggle { display: block; }
   
+  /* Меню занимает ~10-15% экрана, но не менее 180px для читаемости */
   .pattern-bar {
-    position: fixed; left: -280px; top: 0; bottom: 0; width: 260px;
-    flex-direction: column; align-items: flex-start; padding: 65px 16px 20px;
+    position: fixed; left: -200px; top: 0; bottom: 0; 
+    width: 15%; 
+    min-width: 180px; /* Защита от нечитаемости на узких экранах */
+    flex-direction: column; 
+    align-items: flex-start; /* СТРОГО СЛЕВА */
+    padding: 65px 12px 20px;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999;
     box-shadow: 4px 0 20px rgba(0,0,0,0.2); overflow-y: auto; background: #fce9ef;
   }
   .pattern-bar.open { left: 0; }
   
-  .category-filters { flex-direction: column; width: 100%; gap: 15px; align-items: flex-start; }
-  .category-group { width: 100%; flex-direction: column; align-items: flex-start; gap: 6px; }
-  .category-select { width: 100%; min-width: unset; padding: 12px 16px; }
+  .category-filters { 
+    flex-direction: column; 
+    width: 100%; 
+    gap: 15px; 
+    align-items: flex-start !important; /* СТРОГО СЛЕВА */
+    text-align: left !important;
+  }
+  .category-group { 
+    width: 100%; 
+    flex-direction: column; 
+    align-items: flex-start !important; /* СТРОГО СЛЕВА */
+    gap: 6px;
+    text-align: left !important;
+  }
+  .category-label {
+    text-align: left !important;
+    width: 100%;
+  }
+  .category-select { 
+    width: 100%; 
+    min-width: unset; 
+    padding: 10px 12px; 
+    text-align: left !important;
+  }
 
   .main-layout { flex-direction: column; overflow: hidden; }
   
@@ -238,12 +259,12 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .preview-wrapper { 
     order: 2; 
     flex: 1; 
-    flex-direction: column; /* На мобильном друг под другом или через табы, если добавите */
+    flex-direction: column; 
     overflow-y: auto;
   }
   
   .texture-column, .view3d-column, .pbr-column { flex: 0 0 33.33%; min-height: 250px; border-left: none; border-bottom: 1px solid #f0dfe6; }
-  .resize-handle { display: none; } /* Отключаем ресайз на мобильном */
+  .resize-handle { display: none; }
 
   .setting-group { padding: 16px; border-radius: 16px; }
   .control-row { gap: 8px; }
@@ -251,7 +272,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .control-row input[type="range"] { height: 8px; }
   .color-circle-input { width: 48px; height: 48px; }
   
-  .center-btn, .file-input-btn, select { padding: 12px 16px; font-size: 0.9rem; }
+  .center-btn, .file-input-btn, select, button { padding: 12px 16px; font-size: 0.9rem; }
   .model-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .model-row select, .model-row .file-input-btn { width: 100%; height: 44px; justify-content: center; margin: 0 auto; }
 
@@ -271,8 +292,8 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     gap: 8px;
   }
   .footer-controls { gap: 6px; width: 100%; justify-content: center; }
-  .footer-item select { flex: 1; min-width: 0; padding: 8px; font-size: 0.8rem; border-radius: 8px; margin: 0; width: auto; display: inline-flex; }
-  .footer-item .export-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 0.8rem; border-radius: 8px; white-space: nowrap; margin: 0; width: auto; display: inline-flex; }
+  .footer-item select { flex: 1; min-width: 0; padding: 8px; font-size: 0.8rem; border-radius: 40px !important; margin: 0; width: auto; display: inline-flex; }
+  .footer-item .export-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 0.8rem; border-radius: 40px !important; white-space: nowrap; margin: 0; width: auto; display: inline-flex; }
   .footer-label { font-size: 0.85rem; }
 }
 
