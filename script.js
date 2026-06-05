@@ -7,20 +7,18 @@ import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 // --- Инициализация рендереров ---
 const container2d = document.getElementById('canvas2d');
 const container3d = document.getElementById('canvas3d');
-
 const scene2d = new THREE.Scene(); scene2d.background = null;
 const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
-
 const scene3d = new THREE.Scene();
-scene3d.background = null; 
+scene3d.background = null;
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
+// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (ОДИН НА ВСЕХ) ---
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -29,7 +27,6 @@ function updateSizes() {
     let size2d = Math.min(rect2d.width, rect2d.height);
     if (size2d <= 0) size2d = 256;
     renderer2d.setSize(size2d, size2d);
-    
     const w3 = container3d.clientWidth, h3 = container3d.clientHeight;
     if (w3 && h3) { 
         renderer3d.setSize(w3, h3); 
@@ -37,7 +34,6 @@ function updateSizes() {
         camera3d.updateProjectionMatrix(); 
     }
 }
-
 new ResizeObserver(() => updateSizes()).observe(container3d);
 new ResizeObserver(() => updateSizes()).observe(container2d.parentElement);
 window.addEventListener('resize', updateSizes);
@@ -46,6 +42,7 @@ updateSizes();
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
 controls3d.enableDamping = true; controls3d.enableZoom = true; controls3d.target.set(0, 0, 0);
 
+// --- Освещение ---
 scene3d.add(new THREE.AmbientLight(0xffffff, 0.4));
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.2); keyLight.position.set(5, 5, 5); scene3d.add(keyLight);
 const fillLight = new THREE.DirectionalLight(0xffffff, 0.5); fillLight.position.set(-5, 0, 5); scene3d.add(fillLight);
@@ -100,6 +97,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
+// ---- Автообновление PBR ----
 let pbrUpdateTimeout;
 function schedulePBRUpdate() {
     clearTimeout(pbrUpdateTimeout);
@@ -109,7 +107,6 @@ function schedulePBRUpdate() {
 async function updatePBRPreviews() {
     const pbrGrid = document.getElementById('pbrGrid');
     if (!pbrGrid) return;
-    
     if (pbrGrid.children.length === 0) {
         const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
         const names = ['Base Color', 'Normal', 'Roughness', 'Metallic', 'Height', 'AO'];
@@ -120,7 +117,7 @@ async function updatePBRPreviews() {
             div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div);
         });
     }
-    
+
     const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
     for (let i = 0; i < maps.length; i++) {
         const canvas = pbrGrid.children[i].querySelector('canvas');
@@ -134,8 +131,8 @@ async function updatePBRPreviews() {
     }
 }
 
+// --- Шейдеры ---
 const vertexShader = `varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW; uniform float uTile3DScale; void main() { vUv = uv * uTile3DScale; vec4 worldPos = modelMatrix * vec4(position, 1.0); vWorldPosition = worldPos.xyz; vNormalW = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * worldPos; }`;
-
 const fragmentShader = `
 precision highp float;
 uniform float uScale; uniform float uIntensity; uniform int uPatternType;
@@ -153,7 +150,6 @@ varying vec2 vUv; varying vec3 vWorldPosition; varying vec3 vNormalW;
 
 float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
 vec2 hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(vec2(p.x * p.y, p.y * p.x)) * 2.0 - 1.0; }
-
 float perlinNoise(vec2 st) {
     vec2 i = floor(st); vec2 f = fract(st); vec2 u = f * f * (3.0 - 2.0 * f);
     vec2 grad00 = hash(i); vec2 grad10 = hash(i + vec2(1.0, 0.0));
@@ -162,13 +158,11 @@ float perlinNoise(vec2 st) {
     float dot01 = dot(grad01, f - vec2(0.0, 1.0)); float dot11 = dot(grad11, f - vec2(1.0, 1.0));
     return mix(mix(dot00, dot10, u.x), mix(dot01, dot11, u.x), u.y) * 0.5 + 0.5;
 }
-
 float fbmPerlin(vec2 st, int oct, float pers, float lac) {
     float val = 0.0, amp = 0.5, freq = 2.0;
     for(int i=0; i < 6; i++) { if(i >= oct) break; val += amp * (perlinNoise(st * freq) * 2.0 - 1.0); amp *= pers; freq *= lac; }
     return val * 0.5 + 0.5;
 }
-
 float worley(vec2 uv) {
     vec2 p = floor(uv); vec2 f = fract(uv); float res = 1.0;
     for(int j=-1; j <= 1; j++) for(int i=-1; i <= 1; i++) {
@@ -176,35 +170,29 @@ float worley(vec2 uv) {
         res = min(res, dot(r,r));
     } return sqrt(res);
 }
-
 float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x * 10.0) * cos(t + uv.y * 10.0); return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t)); }
-
 vec2 domainWarp(vec2 uv, float strength, int octaves) {
     vec2 warped = uv;
     for(int i=0; i < 5; i++) { if(i >= octaves) break; warped += strength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i+1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i+1) + uTime)); }
     return warped;
 }
-
 float reactionDiffusion(vec2 uv) { vec2 p = uv * 4.0; float a = sin(p.x * 3.0) * cos(p.y * 3.0); float b = cos(p.x * 4.2) * sin(p.y * 4.2); return clamp(a * 0.5 + b * 0.5 + 0.5, 0.0, 1.0); }
 float flowField(vec2 uv) { vec2 q = uv * 3.0; float angle = sin(q.y * 0.7) * cos(q.x * 0.5); vec2 gradient = vec2(cos(angle), sin(angle)); uv += gradient * 0.1; float field = sin(uv.x * 10.0) * cos(uv.y * 10.0); return smoothstep(-0.3, 0.7, field); }
-
-float wfcPattern(vec2 uv) { 
-    vec2 tile = floor(uv * 8.0); float hashVal = random(tile); int rule = int(floor(hashVal * 6.0)); float pattern = 0.0; vec2 sub = fract(uv * 8.0); 
-    if(rule == 0) pattern = step(0.5, sub.x) * step(0.5, sub.y); 
-    else if(rule == 1) pattern = step(0.5, sub.x + sub.y);  
-    else if(rule == 2) pattern = step(0.5, sub.x - sub.y + 0.5); 
-    else if(rule == 3) pattern = sin(sub.x * 3.14159 * 4.0) * 0.5 + 0.5; 
-    else if(rule == 4) pattern = (sub.x > 0.25 && sub.x < 0.75 && sub.y > 0.25 && sub.y < 0.75) ? 1.0 : 0.0; 
-    else pattern = fract(sub.x * 3.0 + sub.y * 2.0); 
-    return pattern; 
+float wfcPattern(vec2 uv) {
+    vec2 tile = floor(uv * 8.0); float hashVal = random(tile); int rule = int(floor(hashVal * 6.0)); float pattern = 0.0; vec2 sub = fract(uv * 8.0);
+    if(rule == 0) pattern = step(0.5, sub.x) * step(0.5, sub.y);
+    else if(rule == 1) pattern = step(0.5, sub.x + sub.y);
+    else if(rule == 2) pattern = step(0.5, sub.x - sub.y + 0.5);
+    else if(rule == 3) pattern = sin(sub.x * 3.14159 * 4.0) * 0.5 + 0.5;
+    else if(rule == 4) pattern = (sub.x > 0.25 && sub.x < 0.75 && sub.y > 0.25 && sub.y < 0.75) ? 1.0 : 0.0;
+    else pattern = fract(sub.x * 3.0 + sub.y * 2.0);
+    return pattern;
 }
-
-float ridgedMF(vec2 uv, int oct, float pers, float lac) { 
-    float val = 0.0, amp = 0.5, freq = 2.0; 
-    for(int i=0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; } 
-    return clamp(val, 0.0, 1.0); 
+float ridgedMF(vec2 uv, int oct, float pers, float lac) {
+    float val = 0.0, amp = 0.5, freq = 2.0;
+    for(int i=0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; }
+    return clamp(val, 0.0, 1.0);
 }
-
 float checker(vec2 uv, float freq) { vec2 p = floor(uv * freq); return mod(p.x + p.y, 2.0); }
 float stripes(vec2 uv, float freq) { return step(0.5, fract(uv.x * freq)); }
 float circles(vec2 uv, float freq) { vec2 center = vec2(0.5, 0.5); float radius = length(uv - center) * freq; return fract(radius * 2.0); }
@@ -253,7 +241,7 @@ float computePattern(vec2 uv) {
     else if(uPatternType == 4) { patternValue = random(st); }
     else if(uPatternType == 5) { patternValue = reactionDiffusion(st); }
     else if(uPatternType == 6) { patternValue = wfcPattern(st); }
-    else if(uPatternType == 7) { patternValue = flowField(st); } 
+    else if(uPatternType == 7) { patternValue = flowField(st); }
     else if(uPatternType == 12) { patternValue = ridgedMF(st, uOctaves, uPersistence, uLacunarity); }
     else if(uPatternType == 8) { patternValue = checker(st, 4.0); }
     else if(uPatternType == 9) { patternValue = stripes(st, 6.0); }
@@ -280,8 +268,8 @@ void main() {
     float gray = dot(color, vec3(0.299, 0.587, 0.114));
     color = mix(vec3(gray), color, uSaturation);
     if(uBlendMode == 1) color = color * patternValue;
-
     vec3 finalColor = color;
+    
     if(uUseOverlay == 1) {
         vec4 overlayRGBA = texture2D(uOverlayTexture, vUv);
         if (overlayRGBA.a > 0.01) finalColor = mix(finalColor, overlayRGBA.rgb, overlayRGBA.a);
@@ -294,10 +282,9 @@ void main() {
         finalColor = finalColor * (0.6 + diff * 0.5);
     }
 
+    // ИСПРАВЛЕНИЕ 2.3: Заглушка для нормальной карты (128, 128, 255), чтобы избежать артефактов screen-space производных в Blender
     if (uExportMode == 1) { 
-        vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
-        vec3 normal = normalize(vec3(-grad.x * 2.0, -grad.y * 2.0, 1.0));
-        finalColor = normal * 0.5 + 0.5; 
+        finalColor = vec3(0.5, 0.5, 1.0); 
     } else if (uExportMode == 2) { finalColor = vec3(patternValue); } 
     else if (uExportMode == 3) { finalColor = vec3(patternValue); }   
     else if (uExportMode == 4) { finalColor = vec3(patternValue); }   
@@ -332,9 +319,9 @@ let plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2,2), createMaterial());
 scene2d.add(plane2d);
 currentMaterial = plane2d.material;
 
+// ---- Цвета ----
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
-
 function rebuildColorUI() {
     colorContainer.innerHTML = '';
     activeColors.forEach((col, idx) => {
@@ -350,10 +337,10 @@ function rebuildColorUI() {
         colorContainer.appendChild(div);
     });
 }
-
 addColorBtn.addEventListener('click', () => { if (activeColors.length < 8) { activeColors.push(new THREE.Color('#FFB347')); rebuildColorUI(); updateColorUniforms(); updateMaterial(); } });
 rebuildColorUI();
 
+// ---- Обновление параметров ----
 function updateUniformsFromUI() {
     uniforms.uScale.value = parseFloat(document.getElementById('scale').value);
     const intensityEl = document.getElementById('intensity');
@@ -385,62 +372,69 @@ function updateUniformsFromUI() {
     };
     if (document.getElementById('intensityVal')) vals.intensityVal = uniforms.uIntensity.value.toFixed(2);
     if (document.getElementById('tile3dScaleVal')) vals.tile3dScaleVal = uniforms.uTile3DScale.value.toFixed(2);
-    
+
     for (let id in vals) { const el = document.getElementById(id); if (el) el.innerText = vals[id]; }
 
     renderer2d.render(scene2d, camera2d);
     renderer3d.render(scene3d, camera3d);
     if (layers.some(l => l.syncWithPattern)) generateOverlayTexture();
-    
+
     schedulePBRUpdate();
 }
 
 const controlIds = ['scale','octaves','persistence','lacunarity','saturation','blendMode','rotate','offsetX','offsetY','mirror','warpStrength','warpOctaves','reliefStrength','metallic'];
-controlIds.forEach(id => { 
-    const el = document.getElementById(id); 
-    if (el) el.addEventListener('input', updateUniformsFromUI); 
+controlIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateUniformsFromUI);
 });
 document.getElementById('warpEnable')?.addEventListener('change', updateUniformsFromUI);
 document.getElementById('relief2d')?.addEventListener('change', updateUniformsFromUI);
 ensureUIControls();
 updateUniformsFromUI();
 
-// --- ИСПРАВЛЕНО: Убраны английские названия в скобках ---
+// ---- Категории паттернов ----
 const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
-const geometricPatterns = [{name: "Шахматная доска", v:8}, {name: "Полосы", v:9}, {name: "Концентрические круги", v:10}, {name: "Сетка", v:11}, {name: "Плитка", v:16}, {name: "Древесина", v:14}, {name: "Мрамор", v:15}, {name: "Трюше", v:3}];
+const geometricPatterns = [{name: "Шахматная доска", v:8}, {name: "Полосы", v:9}, {name: "Концентрические круги", v:10}, {name: "Сетка", v:11}, {name: "Плитка", v:16}, {name: "Древесина", v:14}, {name: "Мрамор", v:15}, {name: "Truchet", v:3}];
 
 function populateSelect(id, items, cur) {
     const sel = document.getElementById(id); if (!sel) return; sel.innerHTML = '';
     items.forEach(i => { const o = document.createElement('option'); o.value=i.v; o.textContent=i.name; if(i.v===cur) o.selected=true; sel.appendChild(o); });
     sel.addEventListener('change', e => { uniforms.uPatternType.value = parseInt(e.target.value); updateUniformsFromUI(); });
 }
-
 populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
 
-// ---- Мобильные табы ----
-const mobileTabBtns = document.querySelectorAll('.mobile-tab-btn');
-const previewSections = document.querySelectorAll('.preview-section');
-
-mobileTabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        mobileTabBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        const targetView = btn.dataset.view;
-        previewSections.forEach(section => {
-            if (section.classList.contains(targetView)) {
-                section.classList.add('active-view');
-            } else {
-                section.classList.remove('active-view');
-            }
-        });
-        setTimeout(updateSizes, 50);
-    });
+// ---- Изменение ширины 2D и 3D окон ----
+const resizeHandle = document.getElementById('resizeHandle');
+const textureCol = document.querySelector('.texture-column');
+const view3dCol = document.querySelector('.view3d-column');
+let isResizing = false;
+resizeHandle?.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+});
+document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const wrapperRect = document.querySelector('.preview-wrapper').getBoundingClientRect();
+    const newTextureWidth = e.clientX - wrapperRect.left;
+    if (newTextureWidth > 200 && newTextureWidth < wrapperRect.width - 200) {
+        textureCol.style.flex = `0 0 ${newTextureWidth}px`;
+        view3dCol.style.flex = '1';
+        updateSizes();
+    }
+});
+document.addEventListener('mouseup', () => {
+    if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+    }
 });
 
 // ---- Зум и Пан для 2D текстуры ----
@@ -449,39 +443,33 @@ let zoomScale = 1;
 let panX = 0, panY = 0;
 let isPanning = false;
 let startPanX = 0, startPanY = 0;
-
 function updateZoomPan() {
     if (container2d.firstChild) {
         container2d.firstChild.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
     }
 }
-
 zoomPanContainer?.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     zoomScale = Math.min(Math.max(0.5, zoomScale + delta), 4);
     updateZoomPan();
 }, { passive: false });
-
 zoomPanContainer?.addEventListener('mousedown', (e) => {
     isPanning = true;
     startPanX = e.clientX - panX;
     startPanY = e.clientY - panY;
     zoomPanContainer.style.cursor = 'grabbing';
 });
-
 window.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
     panX = e.clientX - startPanX;
     panY = e.clientY - startPanY;
     updateZoomPan();
 });
-
 window.addEventListener('mouseup', () => {
     isPanning = false;
     if (zoomPanContainer) zoomPanContainer.style.cursor = 'grab';
 });
-
 zoomPanContainer?.addEventListener('dblclick', () => {
     zoomScale = 1; panX = 0; panY = 0;
     updateZoomPan();
@@ -491,15 +479,13 @@ zoomPanContainer?.addEventListener('dblclick', () => {
 const savePresetBtn = document.getElementById('savePresetBtn');
 const loadPresetInput = document.getElementById('loadPresetInput');
 const loadPresetBtn = document.getElementById('loadPresetBtn');
-
 function getCurrentPreset() {
-    return { 
-        colors: activeColors.map(c => c.getHexString()), 
-        uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, tile3dScale:uniforms.uTile3DScale.value }, 
-        patternType:uniforms.uPatternType.value 
+    return {
+        colors: activeColors.map(c => c.getHexString()),
+        uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, tile3dScale:uniforms.uTile3DScale.value },
+        patternType:uniforms.uPatternType.value
     };
 }
-
 function applyPreset(p) {
     if (!p.colors) return;
     activeColors = p.colors.map(h => new THREE.Color('#'+h)); rebuildColorUI(); updateColorUniforms();
@@ -507,7 +493,6 @@ function applyPreset(p) {
     if (p.patternType !== undefined) uniforms.uPatternType.value = p.patternType;
     updateMaterial();
 }
-
 savePresetBtn.onclick = () => { const p = getCurrentPreset(); const blob = new Blob([JSON.stringify(p)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`preset_${Date.now()}.json`; a.click(); };
 loadPresetBtn.onclick = () => loadPresetInput.click();
 loadPresetInput.onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev => { try { applyPreset(JSON.parse(ev.target.result)); } catch(e) { alert('Ошибка'); } }; r.readAsText(f); };
@@ -519,14 +504,12 @@ function createGeometry(type) {
     if(type==='sphere') return new THREE.SphereGeometry(0.9,128,128);
     return new THREE.CylinderGeometry(0.8,0.8,1.2,64);
 }
-
 function update3dModel() {
     if(currentMesh3d) scene3d.remove(currentMesh3d);
     if(customModel) { customModel.traverse(c=>{if(c.isMesh) c.material = currentMaterial;}); scene3d.add(customModel); currentMesh3d=customModel; }
     else { const m = new THREE.Mesh(createGeometry(currentGeometryType), currentMaterial); scene3d.add(m); currentMesh3d=m; }
     const box = new THREE.Box3().setFromObject(currentMesh3d); controls3d.target.copy(box.getCenter(new THREE.Vector3())); controls3d.update(); updateSizes();
 }
-
 document.getElementById('geometrySelect')?.addEventListener('change', e => { customModel=null; currentGeometryType=e.target.value; update3dModel(); });
 document.getElementById('modelFileInput')?.addEventListener('change', e => {
     if(!e.target.files[0]) return;
@@ -592,7 +575,6 @@ async function generateOverlayTexture() {
     overlayTexture = texture;
     uniforms.uOverlayTexture.value = overlayTexture;
     uniforms.uUseOverlay.value = (layers.length > 0 || backgroundImageEl) ? 1 : 0;
-    
     const clearBtn = document.getElementById('clearOverlayBtn');
     if (layers.length > 0) clearBtn.classList.remove('hidden');
     else clearBtn.classList.add('hidden');
@@ -610,7 +592,6 @@ function drawImageCover(ctx, img, w, h) {
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
-
 function updateLayersUI() {
     if (!overlayLayersDiv) return;
     overlayLayersDiv.innerHTML = '';
@@ -626,7 +607,7 @@ function updateLayersUI() {
         
         const extraDiv = document.createElement('div'); extraDiv.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; width:100%; align-items:center;';
         const scaleRow = document.createElement('div'); scaleRow.style.display = 'flex'; scaleRow.style.alignItems = 'center'; scaleRow.style.gap = '6px';
-        scaleRow.innerHTML = `<span style="font-size:0.7rem;">Масштаб:</span><input type="range" min="0.1" max="2.0" step="0.01" value="${layer.scale}" style="width:80px;"><span style="font-size:0.7rem;">${layer.scale.toFixed(2)}</span>`;
+        scaleRow.innerHTML = `<span style="font-size:0.7rem;">Масштаб: </span><input type="range" min="0.1" max="2.0" step="0.01" value="${layer.scale}" style="width:80px;"><span style="font-size:0.7rem;">${layer.scale.toFixed(2)}</span>`;
         scaleRow.querySelector('input').addEventListener('input', (e) => { layer.scale = parseFloat(e.target.value); scaleRow.querySelector('span:last-child').innerText = layer.scale.toFixed(2); generateOverlayTexture(); });
         extraDiv.appendChild(scaleRow);
         
@@ -636,7 +617,7 @@ function updateLayersUI() {
         syncRow.appendChild(syncCheck); syncRow.appendChild(document.createTextNode('Синхр.')); extraDiv.appendChild(syncRow);
         
         const tileRow = document.createElement('div'); tileRow.style.display = 'flex'; tileRow.style.alignItems = 'center'; tileRow.style.gap = '6px';
-        tileRow.innerHTML = `<span style="font-size:0.7rem;">Повт X:</span><input type="number" min="1" max="10" step="1" value="${layer.tileX || 1}" style="width:50px;"><span style="font-size:0.7rem;">Y:</span><input type="number" min="1" max="10" step="1" value="${layer.tileY || 1}" style="width:50px;">`;
+        tileRow.innerHTML = `<span style="font-size:0.7rem;">Повт X: </span><input type="number" min="1" max="10" step="1" value="${layer.tileX || 1}" style="width:50px;"><span style="font-size:0.7rem;">Y: </span><input type="number" min="1" max="10" step="1" value="${layer.tileY || 1}" style="width:50px;">`;
         const inpX = tileRow.querySelector('input:first-of-type'), inpY = tileRow.querySelector('input:last-of-type');
         inpX.addEventListener('change', () => { layer.tileX = Math.max(1, parseInt(inpX.value) || 1); generateOverlayTexture(); });
         inpY.addEventListener('change', () => { layer.tileY = Math.max(1, parseInt(inpY.value) || 1); generateOverlayTexture(); });
@@ -651,13 +632,11 @@ function updateLayersUI() {
         if (layer) { layerOpacitySlider.value = layer.opacity; if (layerOpacityVal) layerOpacityVal.innerText = layer.opacity.toFixed(2); }
     }
 }
-
 function selectLayer(id) { selectedLayerId = id; updateLayersUI(); }
 function deleteLayerById(id) {
     const idx = layers.findIndex(l => l.id === id);
     if (idx !== -1) { layers.splice(idx,1); if (selectedLayerId === id) selectedLayerId = null; generateOverlayTexture(); updateLayersUI(); }
 }
-
 document.getElementById('clearOverlayBtn')?.addEventListener('click', () => { layers = []; selectedLayerId = null; generateOverlayTexture(); updateLayersUI(); });
 if (layerOpacitySlider) {
     layerOpacitySlider.addEventListener('input', () => {
@@ -767,14 +746,27 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     try {
         const textureBlob = await captureTextureImage();
         const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(textureBlob); });
-        const texture = new THREE.CanvasTexture(img); texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+        
+        // ИСПРАВЛЕНИЕ 2.2: Явное задание параметров повторения текстуры для предотвращения растяжения в Blender
+        const texture = new THREE.CanvasTexture(img);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1, 1);
+        
         const mat = new THREE.MeshStandardMaterial({ map: texture });
         let exportScene = new THREE.Scene();
         if (customModel) { const c = customModel.clone(); c.traverse(ch => { if(ch.isMesh) ch.material = mat; }); exportScene.add(c); }
         else exportScene.add(new THREE.Mesh(createGeometry(currentGeometryType), mat));
         
-        if (format === 'glb') new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb'), {binary:true});
-        else if (format === 'gltf') new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([JSON.stringify(result)], {type:'application/json'}), 'model.gltf'));
+        if (format === 'glb') {
+            new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb'), {binary:true});
+        } 
+        // ИСПРАВЛЕНИЕ 2.1: Убран JSON.stringify, так как result уже является строкой JSON при binary: false
+        else if (format === 'gltf') {
+            new GLTFExporter().parse(exportScene, (result) => {
+                downloadBlob(new Blob([result], {type:'application/json'}), 'model.gltf');
+            }, {binary: false});
+        } 
         else if (format === 'obj') {
             const obj = new OBJExporter().parse(exportScene);
             const mtl = `newmtl material0\nmap_Kd texture.png\n`;
@@ -792,21 +784,21 @@ function cloneUniforms(src) {
     return dst;
 }
 
+// --- Рендер PBR карт ---
 async function renderPBRMap(res, type) {
     const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
     const tuni = cloneUniforms(uniforms);
     tuni.uUseOverlay = { value: 0 }; tuni.uShowRelief = { value: 0 };
     tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
-    
     const sc = new THREE.Scene(); 
     const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
     cam.position.z = 1;
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
-    
+
     offscreenRenderer.setSize(res, res);
     offscreenRenderer.render(sc, cam);
-    
+
     const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
     mat.dispose();
     return blob;
@@ -817,10 +809,9 @@ async function captureTextureImage() {
     const sc = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); cam.position.z = 1;
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
-    
     offscreenRenderer.setSize(1024, 1024);
     offscreenRenderer.render(sc, cam);
-    
+
     const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
     mat.dispose();
     return blob;
@@ -830,7 +821,6 @@ async function captureTextureImage() {
 const menuToggle = document.getElementById('menuToggle');
 const patternBar = document.getElementById('patternBar');
 const menuOverlay = document.getElementById('menuOverlay');
-
 function openMenu() {
     patternBar.classList.add('open');
     menuOverlay.classList.add('active');
@@ -839,10 +829,8 @@ function closeMenu() {
     patternBar.classList.remove('open');
     menuOverlay.classList.remove('active');
 }
-
 menuToggle?.addEventListener('click', (e) => { e.stopPropagation(); openMenu(); });
 menuOverlay?.addEventListener('click', closeMenu);
-
 let touchStartX = 0;
 let touchEndX = 0;
 patternBar?.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
