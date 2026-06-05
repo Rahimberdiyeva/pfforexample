@@ -47,11 +47,11 @@ body {
 /* --- Категории --- */
 .pattern-bar {
   background: #fce9ef; padding: 10px 20px; border-bottom: 1px solid #e9cfd8;
-  display: flex; justify-content: center; align-items: center; flex-shrink: 0; overflow-x: auto;
+  display: flex; justify-content: flex-start; align-items: center; flex-shrink: 0; overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  z-index: 1010; /* FIX: Поверх основного контента */
+  z-index: 1010;
 }
-.category-filters { display: flex; flex-wrap: nowrap; gap: 20px; justify-content: flex-start; align-items: center; } /* FIX: Выравнивание слева */
+.category-filters { display: flex; flex-wrap: nowrap; gap: 20px; justify-content: flex-start; align-items: center; }
 .category-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .category-label { font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .category-select { padding: 8px 16px; border-radius: 40px; background: white; border: 1px solid #dcb7c2; font-weight: 500; font-size: 0.85rem; min-width: 130px; cursor: pointer; }
@@ -107,7 +107,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
-/* FIX: Убрано принудительное центрирование всех кнопок. Теперь выравнивание контролируется контейнерами. */
 .center-btn, .file-input-btn, select, button {
   background: white;
   border: 1px solid #e2b7c4;
@@ -126,12 +125,11 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 }
 .center-btn:hover, .file-input-btn:hover, button:hover { background: #fff0f5; border-color: #cf8e9e; }
 
-/* FIX: Класс для строгого выравнивания кнопок слева в настройках */
 .btn-left { margin-left: 0 !important; margin-right: auto !important; display: inline-flex !important; }
 
 .model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
 .model-row select, .model-row .file-input-btn { margin: 0; height: 36px; padding: 0 16px; }
-.bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; justify-content: flex-start; } /* FIX: Выравнивание слева */
+.bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; justify-content: flex-start; }
 .layers-list { max-height: 250px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
 .layer-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; }
 .layer-item.selected { background: #ffd9e2; border-left: 4px solid #cf8e9e; }
@@ -148,15 +146,15 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 
 /* --- Футер --- */
 .global-footer {
-  background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 16px 24px;
-  flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 12px 20px;
+  flex-shrink: 0; display: flex; flex-direction: row; justify-content: space-between; gap: 24px;
 }
-.footer-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.footer-item { display: flex; flex-direction: row; align-items: center; gap: 16px; flex: 1; justify-content: center; }
 .footer-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .footer-label { font-weight: 700; color: #2e1e24; font-size: 0.9rem; white-space: nowrap; margin: 0; }
 .export-btn {
   background: linear-gradient(115deg, #cf8e9e, #b46e7e);
-  border: none; color: white; padding: 10px 20px; margin: 0; width: auto;
+  border: none; color: white; padding: 8px 18px; margin: 0; width: auto;
   display: inline-flex; border-radius: 40px !important;
 }
 .export-btn:hover { opacity: 0.9; }
@@ -165,54 +163,103 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px)
 ========================================================================== */
 @media (max-width: 860px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
   .menu-toggle { display: block; }
   
-  /* FIX: Ширина 10%, но не менее 160px. Открытие по left: 0 */
   .pattern-bar {
-    position: fixed; left: -10vw; top: 0; bottom: 0;
-    width: 10vw; min-width: 160px;
+    position: fixed; left: -100%; top: 0; bottom: 0;
+    width: 260px;
     flex-direction: column; align-items: flex-start;
-    padding: 65px 12px 20px;
+    padding: 70px 16px 20px;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1010; box-shadow: 4px 0 20px rgba(0,0,0,0.2); overflow-y: auto; background: #fce9ef;
   }
   .pattern-bar.open { left: 0; }
   
-  /* FIX: Все элементы внутри меню строго слева */
   .category-filters, .category-group, .category-label, .category-select {
     justify-content: flex-start; align-items: flex-start; text-align: left; width: 100%; margin: 0;
   }
-  .category-group { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .category-group { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 16px; }
   .category-label { text-align: left; }
-  .category-select { padding: 10px 12px; min-width: unset; }
+  .category-select { padding: 10px 12px; min-width: unset; width: 100%; }
 
-  .main-layout { flex-direction: column; overflow: hidden; }
-  .settings-column { flex: 0 0 45vh; order: 1; border-bottom: 1px solid #f0dfe6; }
-  .preview-wrapper { order: 2; flex: 1; flex-direction: column; overflow-y: auto; }
-  .texture-column, .view3d-column, .pbr-column { flex: 0 0 33.33%; min-height: 250px; border-left: none; border-bottom: 1px solid #f0dfe6; }
+  .main-layout {
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+    gap: 0;
+  }
+  .settings-column {
+    flex: 0 0 auto;
+    max-height: 45vh;
+    overflow-y: auto;
+    border-bottom: 2px solid #f0dfe6;
+  }
+  .preview-wrapper {
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+    border-left: none;
+  }
+  .texture-column, .view3d-column, .pbr-column {
+    flex: 0 0 auto;
+    min-height: 320px;
+    border-left: none;
+    border-bottom: 1px solid #f0dfe6;
+  }
   .resize-handle { display: none; }
-  .setting-group { padding: 16px; border-radius: 16px; }
-  .control-row { gap: 8px; }
-  .control-row label { width: 90px; font-size: 0.8rem; }
-  .control-row input[type="range"] { height: 8px; }
-  .color-circle-input { width: 48px; height: 48px; }
-  .center-btn, .file-input-btn, select, button { padding: 10px 14px; font-size: 0.9rem; }
-  .model-row { flex-direction: column; align-items: stretch; gap: 8px; }
-  .model-row select, .model-row .file-input-btn { width: 100%; height: 44px; justify-content: center; margin: 0 auto; }
   
-  /* Футер на мобильном */
-  .global-footer { grid-template-columns: 1fr; gap: 12px; padding: 12px; }
-  .footer-item { padding: 12px 8px; background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); flex-direction: column; align-items: center; gap: 8px; }
-  .footer-controls { gap: 6px; width: 100%; justify-content: center; }
-  .footer-item select { flex: 1; min-width: 0; padding: 8px; font-size: 0.8rem; border-radius: 40px !important; margin: 0; width: auto; display: inline-flex; }
-  .footer-item .export-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 0.8rem; border-radius: 40px !important; white-space: nowrap; margin: 0; width: auto; display: inline-flex; }
-  .footer-label { font-size: 0.85rem; }
+  .setting-group { padding: 14px; border-radius: 16px; }
+  .control-row { gap: 8px; flex-wrap: wrap; }
+  .control-row label { width: 100px; font-size: 0.8rem; }
+  .color-circle-input { width: 48px; height: 48px; }
+  
+  /* Футер — компактный, подпись слева от контролов */
+  .global-footer {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .footer-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: white;
+    border-radius: 20px;
+    padding: 8px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .footer-label {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  .footer-controls {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .footer-item select, .footer-item .export-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+  .export-btn { padding: 6px 14px; }
+  
+  /* Убираем лишние отступы у слоёв */
+  .layers-list { max-height: 180px; }
+  .pbr-column { min-height: 280px; }
 }
 
 @media (max-width: 480px) {
-  .settings-column { flex: 0 0 40vh; }
+  .settings-column { max-height: 40vh; }
   .logo { font-size: 1.4rem; }
-  .category-label { font-size: 0.75rem; }
-  .footer-controls { flex-direction: column; }
-  .footer-item select, .footer-item .export-btn { width: 100%; justify-content: center; }
+  .footer-item { flex-direction: column; align-items: stretch; gap: 8px; }
+  .footer-controls { justify-content: stretch; }
+  .footer-controls select, .footer-controls button { flex: 1; }
+  .footer-label { text-align: left; }
 }
