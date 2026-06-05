@@ -124,7 +124,7 @@ body {
   min-height: 0;
 }
 
-/* Блок генерации — исправлено для полной видимости и скролла */
+/* Блок генерации — с возможностью скролла */
 .settings-column {
   flex: 0 0 420px;
   background: #fffafc;
@@ -273,7 +273,7 @@ canvas {
   color: #3b2a30;
 }
 
-/* Аккордеон */
+/* Аккордеон — единое поведение для всех экранов (кликабельно, сворачивается) */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
@@ -625,29 +625,12 @@ button:hover,
 }
 
 /* ==========================================================================
-   ЖЁСТКИЕ ПРАВКИ ДЛЯ ДЕСКТОПА (ширина > 860px)
+   ДЕСКТОП (ширина > 860px) — только позиционирование, аккордеоны работают как обычно
    ========================================================================== */
 @media (min-width: 861px) {
-  /* Принудительно открываем все аккордеоны и убираем ограничения высоты */
-  .accordion-content {
-    max-height: none !important;
-    overflow: visible !important;
-    padding: 0 18px 18px 18px !important;
-  }
-
-  .accordion-header::after {
-    display: none !important;
-  }
-
-  .accordion-header {
-    cursor: default;
-  }
-
   /* Гарантируем скролл в панели настроек */
   .settings-panel {
-    overflow-y: auto !important;
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
+    overflow-y: auto;
   }
 
   /* Убедимся, что родительская колонка имеет корректную высоту */
@@ -657,12 +640,10 @@ button:hover,
     flex: 0 0 420px;
   }
 
-  /* Фикс для очень высоких экранов — ничего не обрезается */
   .main-layout {
     overflow: hidden;
   }
 
-  /* Дополнительный фикс для body и html */
   html, body {
     height: 100%;
     overflow: hidden;
@@ -828,14 +809,7 @@ button:hover,
     display: none;
   }
 
-  .accordion-header {
-    cursor: pointer;
-  }
-
-  .accordion-header::after {
-    display: inline-block;
-  }
-
+  /* На мобильных аккордеоны уже работают, оставляем как есть */
   .control-row {
     flex-wrap: wrap;
     gap: 8px;
