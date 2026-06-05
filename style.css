@@ -10,7 +10,7 @@ body {
   color: #1f1a1c;
 }
 
-/* --- Хедер (логотип по центру, кнопка слева) --- */
+/* --- Хедер --- */
 .logo-block {
   background: #3b2a30;
   padding: 12px 24px;
@@ -59,7 +59,7 @@ body {
   font-weight: 500; font-size: 0.85rem; min-width: 130px; cursor: pointer;
   text-align: center;
 }
-.category-select option { text-align: left; }  /* подтипы слева */
+.category-select option { text-align: left; }
 
 .menu-overlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1005;
@@ -73,8 +73,19 @@ body {
   flex: 0 0 420px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; z-index: 50;
 }
 .generation-header {
-  background: #3b2a30; color: white; text-align: center; padding: 12px; font-weight: 700;
-  font-size: 1rem; letter-spacing: 1px;
+  background: #d9b7c2cc; backdrop-filter: blur(8px); padding: 10px;
+  font-weight: 600; font-size: 0.9rem; text-align: center; flex-shrink: 0; border-bottom: 1px solid #e9cfd8;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.settings-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .preview-wrapper {
   flex: 1; background: #fffafc; display: flex; flex-direction: row; align-items: stretch; overflow: hidden; border-left: 1px solid #f0dfe6;
@@ -101,16 +112,63 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
 .pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
 
-/* --- Настройки --- */
-.settings-panel { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 20px; }
-.setting-group { background: #ffeef3; border-radius: 20px; padding: 18px 20px; border: 1px solid #fad3df; box-shadow: 0 4px 12px rgba(100, 60, 70, 0.06); }
-.setting-group h3 { font-size: 1rem; margin-bottom: 14px; color: #2e1e24; font-weight: 700; }
+/* --- Аккордеон (для мобильных и десктоп) --- */
+.accordion-group {
+  background: #ffeef3;
+  border-radius: 20px;
+  border: 1px solid #fad3df;
+  overflow: hidden;
+  transition: 0.2s;
+}
+.accordion-header {
+  padding: 14px 18px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #2e1e24;
+  background: #ffeef3;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+.accordion-header::after {
+  content: "▼";
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+}
+.accordion-group.open .accordion-header::after {
+  transform: rotate(180deg);
+}
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  padding: 0 18px;
+}
+.accordion-group.open .accordion-content {
+  max-height: 800px; /* достаточно для любого содержимого */
+  padding: 0 18px 18px 18px;
+}
+/* На десктопе аккордеон всегда открыт */
+@media (min-width: 861px) {
+  .accordion-content {
+    max-height: none;
+    padding: 0 18px 18px 18px;
+  }
+  .accordion-header::after {
+    display: none;
+  }
+  .accordion-header {
+    cursor: default;
+  }
+}
+
 .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
 .control-row label { width: 110px; flex-shrink: 0; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .control-row input[type="range"] { flex: 1; min-width: 0; height: 6px; background: #f0cdd8; border-radius: 6px; accent-color: #cf8e9e; cursor: pointer; }
 .value-display { width: 45px; text-align: right; flex-shrink: 0; font-family: 'Space Grotesk', monospace; font-weight: 500; font-size: 0.85rem; }
 .compact-select { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 40px; background: white; border: 1px solid #e2b7c4; font-size: 0.85rem; font-family: inherit; }
-/* Цвета */
 .color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-bottom: 8px; }
 .color-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
 .color-circle-input { width: 56px; height: 56px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; padding: 0; background: none; overflow: hidden; }
@@ -135,9 +193,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   line-height: 1.4;
 }
 .center-btn:hover, .file-input-btn:hover, button:hover, .integration-btn:hover { background: #fff0f5; border-color: #cf8e9e; }
-
 .btn-left { margin-left: 0 !important; margin-right: auto !important; display: inline-flex !important; }
-
 .model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
 .model-row select, .model-row .file-input-btn { margin: 0; height: 36px; padding: 0 16px; }
 .bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; justify-content: flex-start; }
@@ -155,7 +211,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 #clearOverlayBtn { background: #b46e7e; }
 .hidden { display: none !important; }
 
-/* --- Футер (десктоп: по центру, три секции) --- */
+/* --- Футер (десктоп) --- */
 .global-footer {
   background: #fcf0f5;
   border-top: 1px solid #f0d9e2;
@@ -188,14 +244,14 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   white-space: nowrap;
   margin: 0;
 }
-.export-btn, .integration-btn {
+.export-btn {
   background: linear-gradient(115deg, #cf8e9e, #b46e7e);
   border: none; color: white; padding: 8px 18px; margin: 0; width: auto;
   display: inline-flex; border-radius: 40px !important;
 }
-.export-btn:hover, .integration-btn:hover { opacity: 0.9; background: linear-gradient(115deg, #b46e7e, #9a5a6a); }
+.export-btn:hover { opacity: 0.9; }
 
-/* Табы для мобильных (скрыты на десктопе) */
+/* Мобильные табы (скрыты на десктопе) */
 .mobile-tabs { display: none; }
 
 /* ==========================================================================
@@ -209,7 +265,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .menu-toggle { display: block; }
   
-  /* Боковое меню */
   .pattern-bar {
     position: fixed; left: -100%; top: 0; bottom: 0;
     width: 280px;
@@ -254,7 +309,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .category-select option { text-align: left; }
 
-  /* Основная сетка: столбцы */
   .main-layout {
     flex-direction: column;
     overflow-y: visible;
@@ -266,7 +320,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
     max-width: 100%;
     border-bottom: 2px solid #f0dfe6;
-    margin: 0 auto;
   }
   .settings-panel {
     max-width: 600px;
@@ -274,8 +327,11 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
   }
   .generation-header {
-    max-width: 600px;
-    margin: 0 auto;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #d9b7c2cc;
+    backdrop-filter: blur(8px);
   }
   .preview-wrapper {
     flex-direction: column;
@@ -290,6 +346,9 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     border-bottom: 1px solid #e9cfd8;
     justify-content: space-around;
     padding: 8px 0;
+    position: sticky;
+    top: 0;
+    z-index: 15;
   }
   .tab-btn {
     background: none;
@@ -308,11 +367,11 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .tab-content {
     display: none !important;
+    flex-direction: column;
+    width: 100%;
   }
   .tab-content.active {
     display: flex !important;
-    flex-direction: column;
-    width: 100%;
   }
   .texture-column, .view3d-column, .pbr-column {
     min-height: 400px;
@@ -320,11 +379,15 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .resize-handle { display: none; }
 
-  /* Настройки: не растягиваются, имеют максимальную ширину */
-  .setting-group {
-    padding: 16px;
-    border-radius: 16px;
+  /* Аккордеон на мобильных работает, на десктопе открыт всегда */
+  .accordion-header {
+    cursor: pointer;
   }
+  .accordion-header::after {
+    display: inline-block;
+  }
+
+  /* Настройки */
   .control-row {
     flex-wrap: wrap;
     gap: 8px;
@@ -334,7 +397,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     margin-bottom: 4px;
   }
   .control-row input[type="range"] {
-    flex: 1 1 auto;
     width: 100%;
   }
   .value-display {
@@ -342,7 +404,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     min-width: 45px;
     text-align: right;
   }
-  .compact-select, .center-btn, .file-input-btn, button, .export-btn, .integration-btn {
+  .compact-select, .center-btn, .file-input-btn, button, .export-btn {
     width: 100%;
     justify-content: center;
   }
@@ -355,21 +417,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
     margin: 0;
   }
-  /* На мобильных убираем белый фон при наведении */
-  .center-btn:hover, .file-input-btn:hover, button:hover, .export-btn:hover, .integration-btn:hover {
-    background: #cf8e9e;
-    border-color: #cf8e9e;
-    color: white;
-  }
-  #loadPresetBtn:hover {
-    background: #fce9ef;
-    color: #cf8e9e;
-  }
-  .color-circle-input {
-    width: 56px;
-    height: 56px;
-  }
-  /* Футер на мобильных: вертикально, текст селектов слева */
+  /* Футер на мобильных: три строки, каждая строка с select и кнопкой */
   .global-footer {
     flex-direction: column;
     gap: 16px;
@@ -393,12 +441,10 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     flex-direction: column;
     gap: 8px;
   }
-  .footer-controls select, .footer-controls .export-btn, .footer-controls .integration-btn {
+  .footer-controls select, .footer-controls .export-btn {
     width: 100%;
-    text-align: left;
-    justify-content: flex-start;
   }
-  .integration-buttons {
+  .integration-controls {
     flex-direction: column;
   }
   .layers-list {
@@ -409,9 +455,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 @media (max-width: 480px) {
   .logo {
     font-size: 1.4rem;
-  }
-  .setting-group {
-    padding: 12px;
   }
   .color-circle-input {
     width: 48px;
