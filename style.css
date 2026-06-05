@@ -208,8 +208,13 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .category-select {
     width: 100%;
     min-width: unset;
-    padding: 8px 12px;          /* уменьшен padding */
+    padding: 8px 12px;
     font-size: 0.85rem;
+    text-align: left;      /* выравнивание текста влево */
+    direction: ltr;
+  }
+  .category-select option {
+    text-align: left;
   }
 
   /* Основной лейаут: вертикальная прокрутка всей страницы */
@@ -221,7 +226,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .settings-column {
     flex: 0 0 auto;
-    max-height: none;           /* убираем ограничение высоты */
+    max-height: none;
     overflow-y: visible;
     border-bottom: 2px solid #f0dfe6;
   }
@@ -249,7 +254,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     gap: 8px;
   }
   .control-row label {
-    width: 100%;               /* подпись сверху на всю ширину */
+    width: 100%;
     margin-bottom: 4px;
   }
   .control-row input[type="range"] {
@@ -265,7 +270,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
     justify-content: center;
   }
-  /* Группы кнопок внутри строк */
   .model-row, .bg-upload-row {
     flex-direction: column;
     align-items: stretch;
@@ -275,23 +279,20 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
     margin: 0;
   }
-  /* Убираем белый фон при наведении на мобильных (или делаем прозрачным) */
+  /* Убираем белый фон при наведении на мобильных */
   .center-btn:hover, .file-input-btn:hover, button:hover, .export-btn:hover {
     background: #cf8e9e;
     border-color: #cf8e9e;
     color: white;
   }
-  /* Для кнопок, которые были с белым фоном, сохраняем контраст */
   #loadPresetBtn:hover {
     background: #fce9ef;
     color: #cf8e9e;
   }
-  /* Цветные кружки */
   .color-circle-input {
     width: 56px;
     height: 56px;
   }
-  /* Футер */
   .global-footer {
     flex-direction: column;
     gap: 12px;
@@ -322,7 +323,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
 }
 
-/* Дополнительные правки для очень маленьких экранов (<=480px) */
 @media (max-width: 480px) {
   .logo {
     font-size: 1.4rem;
