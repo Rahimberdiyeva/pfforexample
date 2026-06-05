@@ -44,7 +44,7 @@ body {
   color: transparent;
 }
 
-/* --- Категории --- */
+/* --- Категории (десктоп) --- */
 .pattern-bar {
   background: #fce9ef; padding: 10px 20px; border-bottom: 1px solid #e9cfd8;
   display: flex; justify-content: flex-start; align-items: center; flex-shrink: 0; overflow-x: auto;
@@ -160,7 +160,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .export-btn:hover { opacity: 0.9; }
 
 /* ==========================================================================
-МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px)
+МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px) — ВЕРТИКАЛЬНОЕ МЕНЮ
 ========================================================================== */
 @media (max-width: 860px) {
   body {
@@ -170,23 +170,50 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .menu-toggle { display: block; }
   
+  /* Боковое меню */
   .pattern-bar {
     position: fixed; left: -100%; top: 0; bottom: 0;
-    width: 260px;
-    flex-direction: column; align-items: flex-start;
+    width: 280px;
+    flex-direction: column;
+    align-items: stretch;
     padding: 70px 16px 20px;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1010; box-shadow: 4px 0 20px rgba(0,0,0,0.2); overflow-y: auto; background: #fce9ef;
+    z-index: 1010;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+    overflow-y: auto;
+    background: #fce9ef;
+    justify-content: flex-start;
   }
   .pattern-bar.open { left: 0; }
   
-  .category-filters, .category-group, .category-label, .category-select {
-    justify-content: flex-start; align-items: flex-start; text-align: left; width: 100%; margin: 0;
+  /* Все элементы внутри меню — вертикально, на всю ширину */
+  .category-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
   }
-  .category-group { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 16px; }
-  .category-label { text-align: left; }
-  .category-select { padding: 10px 12px; min-width: unset; width: 100%; }
+  .category-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+  .category-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: left;
+    width: 100%;
+  }
+  .category-select {
+    width: 100%;
+    min-width: unset;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
 
+  /* Остальные адаптивные стили (сетка, футер и т.д.) */
   .main-layout {
     flex-direction: column;
     overflow-y: visible;
