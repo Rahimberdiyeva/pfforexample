@@ -129,7 +129,6 @@ async function updatePBRPreviews() {
   }
 }
 
-// --- Шейдеры (полные, с поддержкой PBR-экспорта) ---
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -399,8 +398,7 @@ void main() {
   float patZ = computePattern(uvZ);
   float patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
   
-  // Для PBR-экспорта:
-  // 0 - basecolor, 1 - normal, 2 - roughness, 3 - metallic, 4 - height, 5 - ao
+  // PBR export modes
   if (uExportMode == 0) {
     vec3 color = getColor(patternValue);
     float gray = dot(color, vec3(0.299, 0.587, 0.114));
@@ -420,24 +418,23 @@ void main() {
     }
     gl_FragColor = vec4(finalColor, 1.0);
   } else if (uExportMode == 1) {
-    // Normal map: из градиента высоты
+    // Normal map (tangent space)
     vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
-    vec3 normal = normalize(vec3(-grad.x * 2.0, -grad.y * 2.0, 1.0));
-    gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
+    vec3 normalTS = normalize(vec3(-grad.x, -grad.y, 1.0));
+    gl_FragColor = vec4(normalTS * 0.5 + 0.5, 1.0);
   } else if (uExportMode == 2) {
-    // Roughness
-    float roughness = clamp(patternValue * 0.8 + 0.2, 0.0, 1.0);
+    float roughness = 0.2 + 0.8 * (1.0 - patternValue);
+    roughness = clamp(roughness, 0.0, 1.0);
     gl_FragColor = vec4(roughness, roughness, roughness, 1.0);
   } else if (uExportMode == 3) {
-    // Metallic
-    float metallic = clamp(patternValue * 0.9, 0.0, 1.0);
+    float metallic = smoothstep(0.3, 0.7, patternValue);
     gl_FragColor = vec4(metallic, metallic, metallic, 1.0);
   } else if (uExportMode == 4) {
-    // Height (дислейсмент)
     gl_FragColor = vec4(patternValue, patternValue, patternValue, 1.0);
   } else if (uExportMode == 5) {
-    // Ambient Occlusion
-    float ao = clamp(patternValue * 0.7 + 0.3, 0.0, 1.0);
+    vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
+    float intensity = length(grad);
+    float ao = clamp(0.5 + patternValue * 0.5 - intensity * 0.8, 0.2, 1.0);
     gl_FragColor = vec4(ao, ao, ao, 1.0);
   } else {
     gl_FragColor = vec4(0.5, 0.5, 1.0, 1.0);
@@ -536,7 +533,6 @@ document.getElementById('bgOpacity')?.addEventListener('input', (e) => {
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов ----
 const noisePatterns = [{name:"Волны", v:0},{name:"Перлин", v:2},{name:"Симплекс", v:4},{name:"Вороного", v:1}];
 const fractalPatterns = [{name:"Реакция-диффузия", v:5},{name:"Потоковое поле", v:7},{name:"WFC", v:6},{name:"Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name:"Линейный градиент", v:17},{name:"Радиальный градиент", v:18},{name:"Угловой градиент", v:19}];
@@ -729,7 +725,7 @@ function drawImageCover(ctx, img, w, h) {
   ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
 }
 
-// ---- UI слоёв ----
+
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
@@ -869,10 +865,11 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
     exportCanvas.toBlob(blob => downloadBlob(blob, `texture.${format}`), mime, 0.95);
   }
 });
+
+// Исправленный экспорт 3D модели
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Генерируем текстуру из текущего шейдера (без оверлея, только паттерн)
     const textureBlob = await captureTextureImage();
     const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(textureBlob); });
     const texture = new THREE.CanvasTexture(img);
@@ -892,17 +889,15 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       meshToExport = new THREE.Mesh(geom, mat);
       exportScene.add(meshToExport);
     }
-    // Обновляем UV-повтор для текстуры
-    if (meshToExport) {
-      meshToExport.traverse(ch => {
-        if (ch.isMesh && ch.material) {
-          ch.material.map = texture;
-          ch.material.map.wrapS = THREE.RepeatWrapping;
-          ch.material.map.wrapT = THREE.RepeatWrapping;
-          ch.material.map.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
-        }
-      });
-    }
+    meshToExport.traverse(ch => {
+      if (ch.isMesh && ch.material) {
+        ch.material.map = texture;
+        ch.material.map.wrapS = THREE.RepeatWrapping;
+        ch.material.map.wrapT = THREE.RepeatWrapping;
+        ch.material.map.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
+        ch.material.needsUpdate = true;
+      }
+    });
     if (format === 'glb') {
       new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb'), {binary:true});
     } else if (format === 'gltf') {
@@ -915,6 +910,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     }
   } catch(e) { alert("Ошибка экспорта: "+e.message); }
 });
+
 function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
 function cloneUniforms(src) { const dst = {}; for (const key in src) dst[key] = { value: src[key].value }; return dst; }
 
@@ -966,29 +962,18 @@ patternBar?.addEventListener('touchend', e => {
   if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
-// --- Аккордеон (работает на всех экранах) ---
+// --- Аккордеон (исправлен) ---
 function initAccordion() {
   const headers = document.querySelectorAll('.accordion-header');
   headers.forEach(header => {
-    // Убираем старые обработчики, чтобы не дублировать
-    header.removeEventListener('click', header._clickHandler);
+    if (header._clickHandler) header.removeEventListener('click', header._clickHandler);
     const handler = () => {
       const group = header.closest('.accordion-group');
-      if (group) {
-        group.classList.toggle('open');
-      }
+      if (group) group.classList.toggle('open');
     };
     header.addEventListener('click', handler);
     header._clickHandler = handler;
   });
-  // На десктопе оставляем все открытыми по умолчанию? Нет, пусть пользователь сам решает.
-  // Если хотите, чтобы некоторые были открыты по умолчанию — добавьте класс open в HTML.
-}
-// Вызываем после загрузки DOM
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAccordion);
-} else {
-  initAccordion();
 }
 
 // --- Табы для мобильных ---
@@ -1002,7 +987,8 @@ function initMobileTabs() {
   if (!tabs.length) return;
   const activateTab = (target) => {
     tabs.forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`.tab-btn[data-tab="${target}"]`).classList.add('active');
+    const activeBtn = document.querySelector(`.tab-btn[data-tab="${target}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
     Object.values(contents).forEach(content => content?.classList.remove('active'));
     if (target === 'texture') contents.texture?.classList.add('active');
     if (target === 'view3d') contents.view3d?.classList.add('active');
@@ -1015,9 +1001,7 @@ function initMobileTabs() {
       activateTab(target);
     });
   });
-  if (!document.querySelector('.tab-content.active')) {
-    activateTab('texture');
-  }
+  if (!document.querySelector('.tab-content.active')) activateTab('texture');
   window.addEventListener('resize', () => {
     if (window.innerWidth <= 860) {
       const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
@@ -1026,7 +1010,7 @@ function initMobileTabs() {
   });
 }
 
-// --- Интеграция: кнопка скачивания аддонов ---
+// --- Интеграция (скачивание аддонов) ---
 function initIntegration() {
   const btn = document.getElementById('integrationDownloadBtn');
   const select = document.getElementById('integrationSelect');
@@ -1050,6 +1034,7 @@ function initIntegration() {
   }
 }
 
+// --- Анимация ---
 function animate() {
   requestAnimationFrame(animate);
   uniforms.uTime.value += 0.01;
@@ -1058,7 +1043,10 @@ function animate() {
   renderer3d.render(scene3d, camera3d);
 }
 animate();
+
+// --- Запуск всех инициализаций ---
 update3dModel();
 generateOverlayTexture();
+initAccordion();
 initMobileTabs();
 initIntegration();
