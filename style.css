@@ -160,7 +160,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .export-btn:hover { opacity: 0.9; }
 
 /* ==========================================================================
-МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px) — ВЕРТИКАЛЬНОЕ МЕНЮ
+МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px)
 ========================================================================== */
 @media (max-width: 860px) {
   body {
@@ -170,7 +170,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .menu-toggle { display: block; }
   
-  /* Боковое меню */
+  /* Боковое меню - вертикальное */
   .pattern-bar {
     position: fixed; left: -100%; top: 0; bottom: 0;
     width: 280px;
@@ -186,7 +186,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .pattern-bar.open { left: 0; }
   
-  /* Все элементы внутри меню — вертикально, на всю ширину */
   .category-filters {
     display: flex;
     flex-direction: column;
@@ -209,11 +208,11 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .category-select {
     width: 100%;
     min-width: unset;
-    padding: 10px 12px;
-    font-size: 0.9rem;
+    padding: 8px 12px;          /* уменьшен padding */
+    font-size: 0.85rem;
   }
 
-  /* Остальные адаптивные стили (сетка, футер и т.д.) */
+  /* Основной лейаут: вертикальная прокрутка всей страницы */
   .main-layout {
     flex-direction: column;
     overflow-y: visible;
@@ -222,8 +221,8 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .settings-column {
     flex: 0 0 auto;
-    max-height: 45vh;
-    overflow-y: auto;
+    max-height: none;           /* убираем ограничение высоты */
+    overflow-y: visible;
     border-bottom: 2px solid #f0dfe6;
   }
   .preview-wrapper {
@@ -239,52 +238,108 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     border-bottom: 1px solid #f0dfe6;
   }
   .resize-handle { display: none; }
-  
-  .setting-group { padding: 14px; border-radius: 16px; }
-  .control-row { gap: 8px; flex-wrap: wrap; }
-  .control-row label { width: 100px; font-size: 0.8rem; }
-  .color-circle-input { width: 48px; height: 48px; }
-  
+
+  /* Настройки: растягиваем кнопки и ползунки на всю ширину */
+  .setting-group {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .control-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .control-row label {
+    width: 100%;               /* подпись сверху на всю ширину */
+    margin-bottom: 4px;
+  }
+  .control-row input[type="range"] {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .value-display {
+    width: auto;
+    min-width: 45px;
+    text-align: right;
+  }
+  .compact-select, .center-btn, .file-input-btn, button, .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Группы кнопок внутри строк */
+  .model-row, .bg-upload-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .model-row select, .model-row .file-input-btn {
+    width: 100%;
+    margin: 0;
+  }
+  /* Убираем белый фон при наведении на мобильных (или делаем прозрачным) */
+  .center-btn:hover, .file-input-btn:hover, button:hover, .export-btn:hover {
+    background: #cf8e9e;
+    border-color: #cf8e9e;
+    color: white;
+  }
+  /* Для кнопок, которые были с белым фоном, сохраняем контраст */
+  #loadPresetBtn:hover {
+    background: #fce9ef;
+    color: #cf8e9e;
+  }
+  /* Цветные кружки */
+  .color-circle-input {
+    width: 56px;
+    height: 56px;
+  }
+  /* Футер */
   .global-footer {
     flex-direction: column;
     gap: 12px;
     padding: 12px 16px;
   }
   .footer-item {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
     background: white;
     border-radius: 20px;
-    padding: 8px 12px;
+    padding: 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
   .footer-label {
-    font-size: 0.85rem;
-    margin: 0;
+    text-align: center;
+    width: 100%;
   }
   .footer-controls {
-    flex: 1;
-    justify-content: flex-end;
-    gap: 6px;
+    flex-direction: column;
+    gap: 8px;
   }
-  .footer-item select, .footer-item .export-btn {
-    padding: 6px 12px;
-    font-size: 0.75rem;
+  .footer-controls select, .footer-controls .export-btn {
+    width: 100%;
   }
-  .export-btn { padding: 6px 14px; }
-  
-  .layers-list { max-height: 180px; }
-  .pbr-column { min-height: 280px; }
+  .layers-list {
+    max-height: 200px;
+  }
 }
 
+/* Дополнительные правки для очень маленьких экранов (<=480px) */
 @media (max-width: 480px) {
-  .settings-column { max-height: 40vh; }
-  .logo { font-size: 1.4rem; }
-  .footer-item { flex-direction: column; align-items: stretch; gap: 8px; }
-  .footer-controls { justify-content: stretch; }
-  .footer-controls select, .footer-controls button { flex: 1; }
-  .footer-label { text-align: left; }
+  .logo {
+    font-size: 1.4rem;
+  }
+  .setting-group {
+    padding: 12px;
+  }
+  .color-circle-input {
+    width: 48px;
+    height: 48px;
+  }
+  .layer-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .layer-thumb {
+    width: 60px;
+    height: 60px;
+  }
 }
