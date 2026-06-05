@@ -112,7 +112,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
 .pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
 
-/* --- Аккордеон (для мобильных и десктоп) --- */
+/* --- Аккордеон (для мобильных) --- */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
@@ -147,7 +147,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   padding: 0 18px;
 }
 .accordion-group.open .accordion-content {
-  max-height: 800px; /* достаточно для любого содержимого */
+  max-height: 800px;
   padding: 0 18px 18px 18px;
 }
 /* На десктопе аккордеон всегда открыт */
@@ -265,6 +265,13 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .menu-toggle { display: block; }
   
+  /* Исправление: уменьшаем логотип, чтобы не наезжал на иконку */
+  .logo {
+    font-size: 1.3rem;
+    max-width: 70%;
+    text-align: center;
+  }
+  
   .pattern-bar {
     position: fixed; left: -100%; top: 0; bottom: 0;
     width: 280px;
@@ -379,7 +386,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .resize-handle { display: none; }
 
-  /* Аккордеон на мобильных работает, на десктопе открыт всегда */
+  /* Аккордеон на мобильных */
   .accordion-header {
     cursor: pointer;
   }
@@ -417,36 +424,47 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
     margin: 0;
   }
-  /* Футер на мобильных: три строки, каждая строка с select и кнопкой */
+  
+  /* --- Футер на мобильных: каждая секция в одну строку --- */
   .global-footer {
     flex-direction: column;
-    gap: 16px;
-    padding: 16px;
-    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
   }
   .footer-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    flex-direction: row;           /* подпись и контролы в строку */
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     background: white;
     border-radius: 20px;
-    padding: 12px;
+    padding: 8px 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
   .footer-label {
-    text-align: left;
-    width: 100%;
+    width: auto;
+    flex-shrink: 0;
+    font-size: 0.85rem;
   }
   .footer-controls {
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
   }
   .footer-controls select, .footer-controls .export-btn {
-    width: 100%;
+    width: auto;
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 0.75rem;
   }
   .integration-controls {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
+  /* Если не влезает в одну строку, контролы переносятся, но подпись остаётся на первой строке */
+  
   .layers-list {
     max-height: 200px;
   }
@@ -454,7 +472,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 
 @media (max-width: 480px) {
   .logo {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
   }
   .color-circle-input {
     width: 48px;
@@ -467,5 +485,15 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .layer-thumb {
     width: 60px;
     height: 60px;
+  }
+  .footer-item {
+    flex-direction: column; /* на очень маленьких экранах всё же вертикально, чтобы не было тесно */
+    align-items: stretch;
+  }
+  .footer-controls {
+    justify-content: center;
+  }
+  .footer-controls select, .footer-controls .export-btn {
+    width: 100%;
   }
 }
