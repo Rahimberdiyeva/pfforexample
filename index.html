@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>PatternForge — Генератор текстур и 3D</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -53,7 +53,6 @@
         <div class="setting-group">
           <h3>Цветовая палитра</h3>
           <div id="colorListContainer" class="color-list"></div>
-          <!-- FIX: Добавлен класс btn-left для выравнивания строго слева -->
           <button id="addColorBtn" class="center-btn btn-left">Добавить цвет</button>
         </div>
 
@@ -78,7 +77,6 @@
           <h3>Фоновое изображение</h3>
           <div class="bg-upload-row">
             <input type="file" id="bgImageInput" accept="image/*" class="hidden">
-            <!-- FIX: Кнопки фона и слоёв выровнены слева -->
             <button id="uploadBgBtn" class="center-btn btn-left" onclick="document.getElementById('bgImageInput').click()">Выбрать фон</button>
             <button id="clearBgBtn" class="center-btn btn-left hidden">Удалить фон</button>
             <input type="range" id="bgOpacity" min="0" max="1" step="0.01" value="1" style="width:100px;">
