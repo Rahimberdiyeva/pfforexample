@@ -33,7 +33,7 @@ body {
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 1015; /* повышен, чтобы быть поверх меню */
+  z-index: 1015;
 }
 .logo {
   font-size: 1.7rem;
@@ -274,7 +274,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     text-align: center;
   }
   
-  /* Боковое меню */
   .pattern-bar {
     position: fixed; left: -100%; top: 0; bottom: 0;
     width: 280px;
@@ -319,7 +318,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .category-select option { text-align: left; }
 
-  /* Основная сетка */
   .main-layout {
     flex-direction: column;
     overflow-y: visible;
@@ -350,7 +348,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     height: auto;
     border-left: none;
   }
-  /* Табы */
   .mobile-tabs {
     display: flex;
     background: #fce9ef;
@@ -390,7 +387,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .resize-handle { display: none; }
 
-  /* Аккордеон */
   .accordion-header {
     cursor: pointer;
   }
@@ -398,7 +394,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     display: inline-block;
   }
 
-  /* Настройки */
   .control-row {
     flex-wrap: wrap;
     gap: 8px;
@@ -429,7 +424,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     margin: 0;
   }
   
-  /* --- Футер на мобильных: табличная сетка --- */
+  /* --- Футер на мобильных: сетка, без обводки/заливки, уменьшенные контролы --- */
   .global-footer {
     display: grid;
     grid-template-rows: auto auto auto;
@@ -441,34 +436,40 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     display: grid;
     align-items: center;
     gap: 8px;
-    background: white;
-    border-radius: 20px;
-    padding: 8px 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    background: none;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
   }
-  /* Первая строка: 4 столбца (подпись, селект формата, селект разрешения, кнопка) */
+  /* Первая строка: 4 столбца */
   .footer-item:first-child {
     grid-template-columns: auto 1fr auto auto;
   }
-  /* Вторая строка: 3 столбца (подпись, селект формата, кнопка) */
-  .footer-item:nth-child(2) {
-    grid-template-columns: auto 1fr auto;
-  }
-  /* Третья строка: 3 столбца (подпись, селект движка, кнопка) */
+  /* Вторая и третья строки: 3 столбца */
+  .footer-item:nth-child(2),
   .footer-item:last-child {
     grid-template-columns: auto 1fr auto;
   }
   .footer-label {
     white-space: nowrap;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
   .footer-controls {
-    display: contents; /* дети становятся прямыми потомками .footer-item */
+    display: contents;
   }
-  .compact-select, .export-btn {
-    width: auto;
-    padding: 6px 12px;
-    font-size: 0.75rem;
+  /* Уменьшаем размеры select и кнопок в футере */
+  .footer-item select,
+  .footer-item .export-btn {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    min-height: 28px;
+    height: auto;
+    line-height: 1.3;
+  }
+  /* Для кнопки "Скачать" в футере тоже */
+  .footer-item .export-btn {
+    padding: 4px 12px;
   }
   
   .layers-list {
@@ -492,11 +493,18 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 60px;
     height: 60px;
   }
-  /* На очень узких экранах футер может стать вертикальным, но мы оставляем сетку, она сама подстроится */
+  /* Сохраняем ту же сетку на узких экранах */
   .footer-item:first-child {
     grid-template-columns: auto 1fr auto auto;
   }
-  .footer-item:nth-child(2), .footer-item:last-child {
+  .footer-item:nth-child(2),
+  .footer-item:last-child {
     grid-template-columns: auto 1fr auto;
+  }
+  /* Ещё немного уменьшаем отступы */
+  .footer-item select,
+  .footer-item .export-btn {
+    padding: 3px 8px;
+    font-size: 0.65rem;
   }
 }
