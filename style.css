@@ -131,7 +131,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .model-row select, .model-row .file-input-btn { margin: 0; height: 36px; padding: 0 16px; }
 .bg-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; justify-content: flex-start; }
 .layers-list { max-height: 250px; overflow-y: auto; background: #fff9fb; border-radius: 20px; padding: 8px; margin: 10px 0; border: 1px solid #fad3df; }
-.layer-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; }
+.layer-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff0f5; border-radius: 30px; cursor: pointer; flex-wrap: wrap; }
 .layer-item.selected { background: #ffd9e2; border-left: 4px solid #cf8e9e; }
 .layer-thumb { width: 40px; height: 40px; background: #eee; border-radius: 8px; object-fit: cover; }
 .layer-name { flex: 1; font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -218,7 +218,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .control-row label { width: 100px; font-size: 0.8rem; }
   .color-circle-input { width: 48px; height: 48px; }
   
-  /* Футер — компактный, подпись слева от контролов */
   .global-footer {
     flex-direction: column;
     gap: 12px;
@@ -250,7 +249,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .export-btn { padding: 6px 14px; }
   
-  /* Убираем лишние отступы у слоёв */
   .layers-list { max-height: 180px; }
   .pbr-column { min-height: 280px; }
 }
