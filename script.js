@@ -57,18 +57,20 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 
 function ensureUIControls() {
-  const genGroup = document.querySelector('.setting-group');
+  const genGroup = document.querySelector('.accordion-content');
   if (!genGroup) return;
   if (!document.getElementById('intensity')) {
     const row = document.createElement('div'); row.className = 'control-row';
     row.innerHTML = `<label>Интенсивность</label><input type="range" id="intensity" min="0" max="2" step="0.01" value="1.0"><span class="value-display" id="intensityVal">1.00</span>`;
-    genGroup.appendChild(row);
+    const paramsGroup = document.querySelector('.accordion-group:first-child .accordion-content');
+    if (paramsGroup) paramsGroup.appendChild(row);
     document.getElementById('intensity').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
   }
   if (!document.getElementById('tile3dScale')) {
     const row = document.createElement('div'); row.className = 'control-row';
     row.innerHTML = `<label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0"><span class="value-display" id="tile3dScaleVal">1.00</span>`;
-    genGroup.appendChild(row);
+    const paramsGroup = document.querySelector('.accordion-group:first-child .accordion-content');
+    if (paramsGroup) paramsGroup.appendChild(row);
     document.getElementById('tile3dScale').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
   }
 }
@@ -128,7 +130,7 @@ async function updatePBRPreviews() {
   }
 }
 
-// --- Шейдеры (полные, идентичны предыдущей версии) ---
+// --- Шейдеры (полные, без изменений) ---
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -913,6 +915,26 @@ patternBar?.addEventListener('touchend', e => {
   if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
+// --- Аккордеон (мобильные) ---
+function initAccordion() {
+  const headers = document.querySelectorAll('.accordion-header');
+  headers.forEach(header => {
+    header.addEventListener('click', () => {
+      if (window.innerWidth <= 860) {
+        const group = header.closest('.accordion-group');
+        group.classList.toggle('open');
+      }
+    });
+  });
+  // На мобильных по умолчанию все блоки закрыты, кроме первого? (оставим открытыми все, но можно настроить)
+  if (window.innerWidth <= 860) {
+    document.querySelectorAll('.accordion-group').forEach(g => g.classList.remove('open'));
+    // Можно открыть первый: document.querySelector('.accordion-group')?.classList.add('open');
+  } else {
+    document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
+  }
+}
+
 // --- Табы для мобильных ---
 function initMobileTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
@@ -922,31 +944,42 @@ function initMobileTabs() {
     pbr: document.getElementById('tab-pbr')
   };
   if (!tabs.length) return;
+  const activateTab = (target) => {
+    tabs.forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${target}"]`).classList.add('active');
+    Object.values(contents).forEach(content => content?.classList.remove('active'));
+    if (target === 'texture') contents.texture?.classList.add('active');
+    if (target === 'view3d') contents.view3d?.classList.add('active');
+    if (target === 'pbr') contents.pbr?.classList.add('active');
+    setTimeout(() => { updateSizes(); renderer2d.render(scene2d, camera2d); renderer3d.render(scene3d, camera3d); }, 50);
+  };
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.tab;
-      tabs.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      Object.values(contents).forEach(content => content?.classList.remove('active'));
-      if (target === 'texture') contents.texture?.classList.add('active');
-      if (target === 'view3d') contents.view3d?.classList.add('active');
-      if (target === 'pbr') contents.pbr?.classList.add('active');
-      // Принудительно обновляем размеры canvas после переключения
-      setTimeout(() => { updateSizes(); renderer2d.render(scene2d, camera2d); renderer3d.render(scene3d, camera3d); }, 50);
+      activateTab(target);
     });
   });
-  // Активируем первую вкладку по умолчанию, если не активна
+  // Активируем первую вкладку, если ни одна не активна
   if (!document.querySelector('.tab-content.active')) {
-    document.querySelector('.tab-btn.active')?.click();
+    activateTab('texture');
   }
+  // При изменении ориентации или размера окна обновляем
+  window.addEventListener('resize', () => {
+    if (window.innerWidth <= 860) {
+      // убедимся, что активная вкладка видна
+      const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+      if (activeTab) activateTab(activeTab);
+    }
+  });
 }
 
-// --- Кнопки интеграции (скачивание аддонов) ---
-function initIntegrationButtons() {
-  const btns = document.querySelectorAll('.integration-btn');
-  btns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const engine = btn.dataset.engine;
+// --- Интеграция: кнопка скачивания аддонов ---
+function initIntegration() {
+  const btn = document.getElementById('integrationDownloadBtn');
+  const select = document.getElementById('integrationSelect');
+  if (btn && select) {
+    btn.addEventListener('click', () => {
+      const engine = select.value;
       let url = '';
       if (engine === 'blender') url = 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip';
       else if (engine === 'unity') url = 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
@@ -958,10 +991,10 @@ function initIntegrationButtons() {
         a.target = '_blank';
         a.click();
       } else {
-        alert(`Скачивание аддона для ${btn.textContent} временно недоступно.`);
+        alert(`Скачивание аддона для ${select.options[select.selectedIndex]?.text} временно недоступно.`);
       }
     });
-  });
+  }
 }
 
 function animate() {
@@ -974,5 +1007,6 @@ function animate() {
 animate();
 update3dModel();
 generateOverlayTexture();
+initAccordion();
 initMobileTabs();
-initIntegrationButtons();
+initIntegration();
