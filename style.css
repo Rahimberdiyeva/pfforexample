@@ -424,36 +424,43 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     margin: 0;
   }
   
-  /* --- Футер на мобильных: гарантированно убираем заливку, тени, границы --- */
+  /* --- Футер на мобильных: строки выровнены по левому краю, без заливки, компактные контролы --- */
+  .global-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    background: #fcf0f5;
+    align-items: flex-start; /* выравниваем весь футер по левому краю */
+  }
   .global-footer .footer-item {
-    display: grid !important;
+    display: flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: flex-start; /* содержимое строки по левому краю */
     gap: 8px;
+    flex-wrap: wrap;
     background: transparent !important;
-    background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: auto;
   }
-  /* Первая строка: 4 столбца */
-  .global-footer .footer-item:first-child {
-    grid-template-columns: auto 1fr auto auto;
-  }
-  /* Вторая и третья строки: 3 столбца */
-  .global-footer .footer-item:nth-child(2),
-  .global-footer .footer-item:last-child {
-    grid-template-columns: auto 1fr auto;
-  }
-  .footer-label {
+  .global-footer .footer-item .footer-label {
     white-space: nowrap;
     font-size: 0.8rem;
+    margin: 0;
   }
-  .footer-controls {
-    display: contents;
+  .global-footer .footer-item .footer-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
   }
-  /* Уменьшаем размеры select и кнопок в футере */
+  /* Уменьшаем размеры select и кнопок */
   .global-footer .footer-item select,
   .global-footer .footer-item .export-btn {
     padding: 4px 10px;
@@ -461,6 +468,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     min-height: 28px;
     height: auto;
     line-height: 1.3;
+    width: auto;
   }
   .global-footer .footer-item .export-btn {
     padding: 4px 12px;
@@ -487,15 +495,10 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 60px;
     height: 60px;
   }
-  /* Сохраняем ту же сетку на узких экранах */
-  .global-footer .footer-item:first-child {
-    grid-template-columns: auto 1fr auto auto;
+  /* На очень узких экранах строки футера могут переноситься, но остаются выровненными влево */
+  .global-footer .footer-item {
+    flex-wrap: wrap;
   }
-  .global-footer .footer-item:nth-child(2),
-  .global-footer .footer-item:last-child {
-    grid-template-columns: auto 1fr auto;
-  }
-  /* Ещё немного уменьшаем отступы */
   .global-footer .footer-item select,
   .global-footer .footer-item .export-btn {
     padding: 3px 8px;
