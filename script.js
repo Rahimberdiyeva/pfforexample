@@ -18,7 +18,6 @@ const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
-// --- Оффскрин рендерер для PBR/экспорта ---
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -129,7 +128,7 @@ async function updatePBRPreviews() {
   }
 }
 
-// --- Шейдеры (полные, без ошибок) ---
+// --- Шейдеры (полные, идентичны предыдущей версии) ---
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -914,6 +913,57 @@ patternBar?.addEventListener('touchend', e => {
   if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
+// --- Табы для мобильных ---
+function initMobileTabs() {
+  const tabs = document.querySelectorAll('.tab-btn');
+  const contents = {
+    texture: document.getElementById('tab-texture'),
+    view3d: document.getElementById('tab-view3d'),
+    pbr: document.getElementById('tab-pbr')
+  };
+  if (!tabs.length) return;
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(contents).forEach(content => content?.classList.remove('active'));
+      if (target === 'texture') contents.texture?.classList.add('active');
+      if (target === 'view3d') contents.view3d?.classList.add('active');
+      if (target === 'pbr') contents.pbr?.classList.add('active');
+      // Принудительно обновляем размеры canvas после переключения
+      setTimeout(() => { updateSizes(); renderer2d.render(scene2d, camera2d); renderer3d.render(scene3d, camera3d); }, 50);
+    });
+  });
+  // Активируем первую вкладку по умолчанию, если не активна
+  if (!document.querySelector('.tab-content.active')) {
+    document.querySelector('.tab-btn.active')?.click();
+  }
+}
+
+// --- Кнопки интеграции (скачивание аддонов) ---
+function initIntegrationButtons() {
+  const btns = document.querySelectorAll('.integration-btn');
+  btns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const engine = btn.dataset.engine;
+      let url = '';
+      if (engine === 'blender') url = 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip';
+      else if (engine === 'unity') url = 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
+      else if (engine === 'godot') url = 'https://github.com/PatternForge/godot-plugin/releases/latest/download/patternforge_godot.zip';
+      if (url) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.target = '_blank';
+        a.click();
+      } else {
+        alert(`Скачивание аддона для ${btn.textContent} временно недоступно.`);
+      }
+    });
+  });
+}
+
 function animate() {
   requestAnimationFrame(animate);
   uniforms.uTime.value += 0.01;
@@ -924,3 +974,5 @@ function animate() {
 animate();
 update3dModel();
 generateOverlayTexture();
+initMobileTabs();
+initIntegrationButtons();
