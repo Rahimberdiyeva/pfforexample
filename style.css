@@ -68,27 +68,54 @@ body {
 .menu-overlay.active { display: block; }
 
 /* --- Основная сетка --- */
-.main-layout { flex: 1; display: flex; flex-direction: row; gap: 1px; background: #f0e2e8; overflow: hidden; min-height: 0; }
+.main-layout { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: row; 
+  gap: 1px; 
+  background: #f0e2e8; 
+  overflow: hidden; 
+  min-height: 0; 
+}
 .settings-column { 
-  flex: 0 0 420px; background: #fffafc; display: flex; flex-direction: column; overflow: hidden; z-index: 50;
+  flex: 0 0 420px; 
+  background: #fffafc; 
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden; 
+  z-index: 50;
+  height: 100%;        /* важно для корректной работы flex */
 }
 .generation-header {
-  background: #d9b7c2cc; backdrop-filter: blur(8px); padding: 10px;
-  font-weight: 600; font-size: 0.9rem; text-align: center; flex-shrink: 0; border-bottom: 1px solid #e9cfd8;
+  background: #d9b7c2cc; 
+  backdrop-filter: blur(8px); 
+  padding: 10px;
+  font-weight: 600; 
+  font-size: 0.9rem; 
+  text-align: center; 
+  flex-shrink: 0; 
+  border-bottom: 1px solid #e9cfd8;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 .settings-panel {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto;   /* скролл внутри панели */
   padding: 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;      /* важно для Firefox */
 }
 .preview-wrapper {
-  flex: 1; background: #fffafc; display: flex; flex-direction: row; align-items: stretch; overflow: hidden; border-left: 1px solid #f0dfe6;
+  flex: 1; 
+  background: #fffafc; 
+  display: flex; 
+  flex-direction: row; 
+  align-items: stretch; 
+  overflow: hidden; 
+  border-left: 1px solid #f0dfe6;
 }
 .texture-column, .view3d-column, .pbr-column {
   display: flex;
@@ -172,6 +199,7 @@ canvas {
   max-height: 800px;
   padding: 0 18px 18px 18px;
 }
+/* На десктопе аккордеон всегда открыт */
 @media (min-width: 861px) {
   .accordion-content {
     max-height: none;
@@ -351,11 +379,13 @@ canvas {
     width: 100%;
     max-width: 100%;
     border-bottom: 2px solid #f0dfe6;
+    height: auto;
   }
   .settings-panel {
     max-width: 600px;
     margin: 0 auto;
     width: 100%;
+    overflow-y: visible;
   }
   .generation-header {
     position: sticky;
