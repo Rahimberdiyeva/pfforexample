@@ -58,20 +58,18 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 
 function ensureUIControls() {
-  const genGroup = document.querySelector('.accordion-group');
-  if (!genGroup) return;
+  const paramsGroup = document.querySelector('.accordion-group:first-child .accordion-content');
+  if (!paramsGroup) return;
   if (!document.getElementById('intensity')) {
     const row = document.createElement('div'); row.className = 'control-row';
     row.innerHTML = `<label>Интенсивность</label><input type="range" id="intensity" min="0" max="2" step="0.01" value="1.0"><span class="value-display" id="intensityVal">1.00</span>`;
-    const paramsGroup = document.querySelector('.accordion-group:first-child .accordion-content');
-    if (paramsGroup) paramsGroup.appendChild(row);
+    paramsGroup.appendChild(row);
     document.getElementById('intensity').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
   }
   if (!document.getElementById('tile3dScale')) {
     const row = document.createElement('div'); row.className = 'control-row';
     row.innerHTML = `<label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0"><span class="value-display" id="tile3dScaleVal">1.00</span>`;
-    const paramsGroup = document.querySelector('.accordion-group:first-child .accordion-content');
-    if (paramsGroup) paramsGroup.appendChild(row);
+    paramsGroup.appendChild(row);
     document.getElementById('tile3dScale').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
   }
 }
@@ -131,7 +129,7 @@ async function updatePBRPreviews() {
   }
 }
 
-// --- Шейдеры (полные, без ошибок) ---
+// --- Шейдеры (полные, с поддержкой PBR-экспорта) ---
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -400,28 +398,50 @@ void main() {
   float patY = computePattern(uvY);
   float patZ = computePattern(uvZ);
   float patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
-  vec3 color = getColor(patternValue);
-  float gray = dot(color, vec3(0.299, 0.587, 0.114));
-  color = mix(vec3(gray), color, uSaturation);
-  if(uBlendMode == 1) color = color * patternValue;
-  vec3 finalColor = color;
-  if(uUseOverlay == 1) {
-    vec4 overlayRGBA = texture2D(uOverlayTexture, vUv);
-    if (overlayRGBA.a > 0.01) finalColor = mix(finalColor, overlayRGBA.rgb, overlayRGBA.a);
-  }
-  if (uShowRelief == 1) {
+  
+  // Для PBR-экспорта:
+  // 0 - basecolor, 1 - normal, 2 - roughness, 3 - metallic, 4 - height, 5 - ao
+  if (uExportMode == 0) {
+    vec3 color = getColor(patternValue);
+    float gray = dot(color, vec3(0.299, 0.587, 0.114));
+    color = mix(vec3(gray), color, uSaturation);
+    if(uBlendMode == 1) color = color * patternValue;
+    vec3 finalColor = color;
+    if(uUseOverlay == 1) {
+      vec4 overlayRGBA = texture2D(uOverlayTexture, vUv);
+      if (overlayRGBA.a > 0.01) finalColor = mix(finalColor, overlayRGBA.rgb, overlayRGBA.a);
+    }
+    if (uShowRelief == 1) {
+      vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
+      vec3 normal = normalize(vec3(-grad.x * uReliefStrength, -grad.y * uReliefStrength, 1.0));
+      vec3 lightDir = normalize(vec3(0.8, 1.0, 0.3));
+      float diff = max(0.3, dot(normal, lightDir));
+      finalColor = finalColor * (0.6 + diff * 0.5);
+    }
+    gl_FragColor = vec4(finalColor, 1.0);
+  } else if (uExportMode == 1) {
+    // Normal map: из градиента высоты
     vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
-    vec3 normal = normalize(vec3(-grad.x * uReliefStrength, -grad.y * uReliefStrength, 1.0));
-    vec3 lightDir = normalize(vec3(0.8, 1.0, 0.3));
-    float diff = max(0.3, dot(normal, lightDir));
-    finalColor = finalColor * (0.6 + diff * 0.5);
+    vec3 normal = normalize(vec3(-grad.x * 2.0, -grad.y * 2.0, 1.0));
+    gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
+  } else if (uExportMode == 2) {
+    // Roughness
+    float roughness = clamp(patternValue * 0.8 + 0.2, 0.0, 1.0);
+    gl_FragColor = vec4(roughness, roughness, roughness, 1.0);
+  } else if (uExportMode == 3) {
+    // Metallic
+    float metallic = clamp(patternValue * 0.9, 0.0, 1.0);
+    gl_FragColor = vec4(metallic, metallic, metallic, 1.0);
+  } else if (uExportMode == 4) {
+    // Height (дислейсмент)
+    gl_FragColor = vec4(patternValue, patternValue, patternValue, 1.0);
+  } else if (uExportMode == 5) {
+    // Ambient Occlusion
+    float ao = clamp(patternValue * 0.7 + 0.3, 0.0, 1.0);
+    gl_FragColor = vec4(ao, ao, ao, 1.0);
+  } else {
+    gl_FragColor = vec4(0.5, 0.5, 1.0, 1.0);
   }
-  if (uExportMode == 1) finalColor = vec3(0.5, 0.5, 1.0); 
-  else if (uExportMode == 2) finalColor = vec3(patternValue); 
-  else if (uExportMode == 3) finalColor = vec3(patternValue);   
-  else if (uExportMode == 4) finalColor = vec3(patternValue);   
-  else if (uExportMode == 5) finalColor = vec3(1.0 - patternValue); 
-  gl_FragColor = vec4(finalColor, 1.0);
 }
 `;
 
@@ -447,6 +467,7 @@ function updateMaterial() {
 let plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2,2), createMaterial());
 scene2d.add(plane2d);
 currentMaterial = plane2d.material;
+
 // ---- Цвета ----
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
@@ -851,16 +872,42 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
+    // Генерируем текстуру из текущего шейдера (без оверлея, только паттерн)
     const textureBlob = await captureTextureImage();
     const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(textureBlob); });
-    const texture = new THREE.CanvasTexture(img); texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(1, 1);
+    const texture = new THREE.CanvasTexture(img);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
     const mat = new THREE.MeshStandardMaterial({ map: texture });
     let exportScene = new THREE.Scene();
-    if (customModel) { const c = customModel.clone(); c.traverse(ch => { if(ch.isMesh) ch.material = mat; }); exportScene.add(c); }
-    else exportScene.add(new THREE.Mesh(createGeometry(currentGeometryType), mat));
-    if (format === 'glb') new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb'), {binary:true});
-    else if (format === 'gltf') new GLTFExporter().parse(exportScene, (result) => { const jsonStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2); downloadBlob(new Blob([jsonStr], {type:'application/json'}), 'model.gltf'); }, {binary: false});
-    else if (format === 'obj') {
+    let meshToExport;
+    if (customModel) {
+      const cloned = customModel.clone();
+      cloned.traverse(ch => { if(ch.isMesh) { ch.material = mat; ch.material.map = texture; } });
+      exportScene.add(cloned);
+      meshToExport = cloned;
+    } else {
+      const geom = createGeometry(currentGeometryType);
+      meshToExport = new THREE.Mesh(geom, mat);
+      exportScene.add(meshToExport);
+    }
+    // Обновляем UV-повтор для текстуры
+    if (meshToExport) {
+      meshToExport.traverse(ch => {
+        if (ch.isMesh && ch.material) {
+          ch.material.map = texture;
+          ch.material.map.wrapS = THREE.RepeatWrapping;
+          ch.material.map.wrapT = THREE.RepeatWrapping;
+          ch.material.map.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
+        }
+      });
+    }
+    if (format === 'glb') {
+      new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb'), {binary:true});
+    } else if (format === 'gltf') {
+      new GLTFExporter().parse(exportScene, (result) => { const jsonStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2); downloadBlob(new Blob([jsonStr], {type:'application/json'}), 'model.gltf'); }, {binary: false});
+    } else if (format === 'obj') {
       const obj = new OBJExporter().parse(exportScene);
       const mtl = `newmtl material0\nmap_Kd texture.png\n`;
       const zip = new JSZip(); zip.file("model.obj", obj); zip.file("model.mtl", mtl); zip.file("texture.png", textureBlob);
@@ -875,7 +922,8 @@ function cloneUniforms(src) { const dst = {}; for (const key in src) dst[key] = 
 async function renderPBRMap(res, type) {
   const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
   const tuni = cloneUniforms(uniforms);
-  tuni.uUseOverlay = { value: 0 }; tuni.uShowRelief = { value: 0 };
+  tuni.uUseOverlay = { value: 0 };
+  tuni.uShowRelief = { value: 0 };
   tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
   const sc = new THREE.Scene(); 
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
@@ -889,7 +937,10 @@ async function renderPBRMap(res, type) {
   return blob;
 }
 async function captureTextureImage() {
-  const tuni = cloneUniforms(uniforms); tuni.uShowRelief = { value: 0 }; tuni.uUseOverlay = { value: 0 };
+  const tuni = cloneUniforms(uniforms);
+  tuni.uShowRelief = { value: 0 };
+  tuni.uUseOverlay = { value: 0 };
+  tuni.uExportMode = { value: 0 };
   const sc = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); cam.position.z = 1;
   const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
   sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
@@ -915,22 +966,29 @@ patternBar?.addEventListener('touchend', e => {
   if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
-// --- Аккордеон (мобильные) ---
+// --- Аккордеон (работает на всех экранах) ---
 function initAccordion() {
   const headers = document.querySelectorAll('.accordion-header');
   headers.forEach(header => {
-    header.addEventListener('click', () => {
-      if (window.innerWidth <= 860) {
-        const group = header.closest('.accordion-group');
+    // Убираем старые обработчики, чтобы не дублировать
+    header.removeEventListener('click', header._clickHandler);
+    const handler = () => {
+      const group = header.closest('.accordion-group');
+      if (group) {
         group.classList.toggle('open');
       }
-    });
+    };
+    header.addEventListener('click', handler);
+    header._clickHandler = handler;
   });
-  if (window.innerWidth <= 860) {
-    document.querySelectorAll('.accordion-group').forEach(g => g.classList.remove('open'));
-  } else {
-    document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
-  }
+  // На десктопе оставляем все открытыми по умолчанию? Нет, пусть пользователь сам решает.
+  // Если хотите, чтобы некоторые были открыты по умолчанию — добавьте класс open в HTML.
+}
+// Вызываем после загрузки DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAccordion);
+} else {
+  initAccordion();
 }
 
 // --- Табы для мобильных ---
@@ -1002,6 +1060,5 @@ function animate() {
 animate();
 update3dModel();
 generateOverlayTexture();
-initAccordion();
 initMobileTabs();
 initIntegration();
