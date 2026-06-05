@@ -21,7 +21,7 @@ const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
-// --- ОФФСКРИН РЕНДЕРЕР ДЛЯ PBR/ЭКСПОРТА (ОДИН НА ВСЕХ) ---
+// Оффскрин-рендерер для экспорта (ОДИН на все операции, чтобы избежать утечки контекстов WebGL)
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -298,14 +298,16 @@ void main() {
         finalColor = finalColor * (0.6 + diff * 0.5);
     }
 
-    if (uExportMode == 1) { 
+    // --- ЛОГИКА ЭКСПОРТА PBR КАРТ ---
+    if (uExportMode == 1) { // NORMAL MAP
         vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
+        // Three.js и Blender (OpenGL) ожидают, что Y направлен вверх
         vec3 normal = normalize(vec3(-grad.x * 2.0, -grad.y * 2.0, 1.0));
         finalColor = normal * 0.5 + 0.5; 
-    } else if (uExportMode == 2) { finalColor = vec3(patternValue); } 
-    else if (uExportMode == 3) { finalColor = vec3(patternValue); }   
-    else if (uExportMode == 4) { finalColor = vec3(patternValue); }   
-    else if (uExportMode == 5) { finalColor = vec3(1.0 - patternValue); } 
+    } else if (uExportMode == 2) { finalColor = vec3(patternValue); } // ROUGHNESS
+    else if (uExportMode == 3) { finalColor = vec3(patternValue); }   // METALLIC
+    else if (uExportMode == 4) { finalColor = vec3(patternValue); }   // HEIGHT
+    else if (uExportMode == 5) { finalColor = vec3(1.0 - patternValue); } // AO
 
     gl_FragColor = vec4(finalColor, 1.0);
 }
@@ -415,7 +417,7 @@ updateUniformsFromUI();
 const noisePatterns = [{name: "Волны", v:0}, {name: "Перлин", v:2}, {name: "Симплекс", v:4}, {name: "Вороного", v:1}];
 const fractalPatterns = [{name: "Реакция-диффузия", v:5}, {name: "Потоковое поле", v:7}, {name: "WFC", v:6}, {name: "Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name: "Линейный градиент", v:17}, {name: "Радиальный градиент", v:18}, {name: "Угловой градиент", v:19}];
-const geometricPatterns = [{name: "Шахматная доска", v:8}, {name: "Полосы", v:9}, {name: "Концентрические круги", v:10}, {name: "Сетка", v:11}, {name: "Плитка", v:16}, {name: "Древесина", v:14}, {name: "Мрамор", v:15}, {name: "Truchet", v:3}];
+const geometricPatterns = [{name: "Шахматная доска", v:8}, {name: "Полосы", v:9}, {name: "Концентрические круги", v:10}, {name: "Сетка", v:11}, {name: "Плитка", v:16}, {name: "Древесина", v:14}, {name: "Мрамор", v:15}, {name: "Трюше", v:3}];
 
 function populateSelect(id, items, cur) {
     const sel = document.getElementById(id); if (!sel) return; sel.innerHTML = '';
@@ -427,39 +429,6 @@ populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
 populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
 populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
 populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
-
-// ---- Изменение ширины 2D и 3D окон ----
-const resizeHandle = document.getElementById('resizeHandle');
-const textureCol = document.querySelector('.texture-column');
-const view3dCol = document.querySelector('.view3d-column');
-let isResizing = false;
-
-resizeHandle?.addEventListener('mousedown', (e) => {
-    isResizing = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    e.preventDefault();
-});
-
-document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    const wrapperRect = document.querySelector('.preview-wrapper').getBoundingClientRect();
-    const newTextureWidth = e.clientX - wrapperRect.left;
-    
-    if (newTextureWidth > 200 && newTextureWidth < wrapperRect.width - 200) {
-        textureCol.style.flex = `0 0 ${newTextureWidth}px`;
-        view3dCol.style.flex = '1';
-        updateSizes();
-    }
-});
-
-document.addEventListener('mouseup', () => {
-    if (isResizing) {
-        isResizing = false;
-        document.body.style.cursor = 'default';
-        document.body.style.userSelect = 'auto';
-    }
-});
 
 // ---- Зум и Пан для 2D текстуры ----
 const zoomPanContainer = document.getElementById('zoomPanContainer');
@@ -754,55 +723,136 @@ canvas2dElem.addEventListener('wheel', (e) => {
     generateOverlayTexture(); updateLayersUI();
 });
 
-// ---- Экспорт ----
+// ==========================================================================
+// ИСПРАВЛЕННЫЙ ЭКСПОРТ
+// ==========================================================================
+
 document.getElementById('export2DBtn')?.addEventListener('click', async () => {
     const format = document.getElementById('export2DFormat').value;
     const res = parseInt(document.getElementById('exportResolution').value);
-    if (format === 'pbr') {
-        const zip = new JSZip();
-        zip.file("basecolor.png", await renderPBRMap(res, 'basecolor'));
-        zip.file("normal.png", await renderPBRMap(res, 'normal'));
-        zip.file("roughness.png", await renderPBRMap(res, 'roughness'));
-        zip.file("height.png", await renderPBRMap(res, 'height'));
-        zip.file("ao.png", await renderPBRMap(res, 'ao'));
-        zip.file("metallic.png", await renderPBRMap(res, 'metallic'));
-        const content = await zip.generateAsync({type: "blob"});
-        downloadBlob(content, `pbr_${res}.zip`);
-    } else if (format === 'svg') {
-        const imgData = renderer2d.domElement.toDataURL('image/png');
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${res}" height="${res}" viewBox="0 0 ${res} ${res}"><image width="${res}" height="${res}" href="${imgData}"/></svg>`;
-        downloadBlob(new Blob([svg], {type:'image/svg+xml'}), `texture.svg`);
-    } else {
-        const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
-        const exportCanvas = document.createElement('canvas'); exportCanvas.width = res; exportCanvas.height = res;
-        exportCanvas.getContext('2d').drawImage(renderer2d.domElement, 0, 0, res, res);
-        exportCanvas.toBlob(blob => downloadBlob(blob, `texture.${format}`), mime, 0.95);
+    try {
+        if (format === 'pbr') {
+            const zip = new JSZip();
+            // Двойные имена файлов для 100% совместимости с аддонами Blender (Node Wrangler, Auto PBR и др.)
+            const basecolorBlob = await renderPBRMap(res, 'basecolor');
+            zip.file("basecolor.png", basecolorBlob);
+            zip.file("color.png", basecolorBlob); 
+            
+            const normalBlob = await renderPBRMap(res, 'normal');
+            zip.file("normal.png", normalBlob);
+            
+            const roughnessBlob = await renderPBRMap(res, 'roughness');
+            zip.file("roughness.png", roughnessBlob);
+            
+            const metallicBlob = await renderPBRMap(res, 'metallic');
+            zip.file("metallic.png", metallicBlob);
+            
+            const heightBlob = await renderPBRMap(res, 'height');
+            zip.file("height.png", heightBlob);
+            zip.file("displacement.png", heightBlob);
+            
+            const aoBlob = await renderPBRMap(res, 'ao');
+            zip.file("ao.png", aoBlob);
+
+            const content = await zip.generateAsync({ type: "blob" });
+            downloadBlob(content, `pbr_maps_${res}.zip`);
+        } else if (format === 'svg') {
+            const imgData = renderer2d.domElement.toDataURL('image/png');
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${res}" height="${res}" viewBox="0 0 ${res} ${res}"><image width="${res}" height="${res}" href="${imgData}"/></svg>`;
+            downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `texture.svg`);
+        } else {
+            const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
+            const exportCanvas = document.createElement('canvas'); 
+            exportCanvas.width = res; 
+            exportCanvas.height = res;
+            exportCanvas.getContext('2d').drawImage(renderer2d.domElement, 0, 0, res, res);
+            exportCanvas.toBlob(blob => downloadBlob(blob, `texture.${format}`), mime, 0.95);
+        }
+    } catch (e) {
+        alert("Ошибка экспорта 2D: " + e.message);
+        console.error(e);
     }
 });
 
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
     const format = document.getElementById('exportModelFormat').value;
     try {
+        // Запекаем текстуру с текущими настройками (включая uTile3DScale)
         const textureBlob = await captureTextureImage();
-        const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(textureBlob); });
-        const texture = new THREE.CanvasTexture(img); texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
-        const mat = new THREE.MeshStandardMaterial({ map: texture });
-        let exportScene = new THREE.Scene();
-        if (customModel) { const c = customModel.clone(); c.traverse(ch => { if(ch.isMesh) ch.material = mat; }); exportScene.add(c); }
-        else exportScene.add(new THREE.Mesh(createGeometry(currentGeometryType), mat));
+        const img = await new Promise(res => { 
+            const i = new Image(); 
+            i.onload = () => res(i); 
+            i.src = URL.createObjectURL(textureBlob); 
+        });
         
-        if (format === 'glb') new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb'), {binary:true});
-        else if (format === 'gltf') new GLTFExporter().parse(exportScene, result => downloadBlob(new Blob([JSON.stringify(result)], {type:'application/json'}), 'model.gltf'));
-        else if (format === 'obj') {
-            const obj = new OBJExporter().parse(exportScene);
-            const mtl = `newmtl material0\nmap_Kd texture.png\n`;
-            const zip = new JSZip(); zip.file("model.obj", obj); zip.file("model.mtl", mtl); zip.file("texture.png", textureBlob);
-            downloadBlob(await zip.generateAsync({type: "blob"}), 'model_obj.zip');
+        const texture = new THREE.CanvasTexture(img);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        
+        // Используем стандартный материал, так как тайлинг уже "запечен" в саму картинку
+        const mat = new THREE.MeshStandardMaterial({ 
+            map: texture,
+            roughness: 1.0,
+            metalness: 0.0
+        });
+        
+        let exportScene = new THREE.Scene();
+        if (customModel) { 
+            const c = customModel.clone(); 
+            c.traverse(ch => { if(ch.isMesh) ch.material = mat; }); 
+            exportScene.add(c); 
+        } else { 
+            exportScene.add(new THREE.Mesh(createGeometry(currentGeometryType), mat)); 
         }
-    } catch(e) { alert("Ошибка экспорта: "+e.message); }
+
+        const exporter = new GLTFExporter();
+        const options = { 
+            binary: format === 'glb',
+            trs: false,
+            onlyVisible: true,
+            truncate: true
+        };
+
+        exporter.parse(
+            exportScene,
+            (result) => {
+                if (format === 'glb') {
+                    // result это ArrayBuffer
+                    downloadBlob(new Blob([result], { type: 'application/octet-stream' }), 'model.glb');
+                } else {
+                    // result должен быть JSON объектом. Проверка на случай сбоя экспортера
+                    if (result instanceof ArrayBuffer) {
+                        console.error("GLTFExporter вернул ArrayBuffer вместо JSON");
+                        alert("Ошибка: экспортер вернул бинарные данные вместо JSON. Пожалуйста, выберите формат GLB.");
+                        return;
+                    }
+                    const jsonStr = JSON.stringify(result, null, 2);
+                    downloadBlob(new Blob([jsonStr], { type: 'application/json' }), 'model.gltf');
+                }
+                // Очистка памяти
+                texture.dispose();
+                mat.dispose();
+            },
+            (error) => {
+                console.error('GLTF Export Error:', error);
+                alert('Ошибка экспорта GLTF: ' + error.message);
+            },
+            options
+        );
+    } catch(e) { 
+        alert("Ошибка экспорта 3D: " + e.message); 
+        console.error(e); 
+    }
 });
 
-function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+function downloadBlob(blob, filename) { 
+    const url = URL.createObjectURL(blob); 
+    const a = document.createElement('a'); 
+    a.href = url; 
+    a.download = filename; 
+    a.click(); 
+    URL.revokeObjectURL(url); 
+}
 
 function cloneUniforms(src) {
     const dst = {};
@@ -814,7 +864,8 @@ function cloneUniforms(src) {
 async function renderPBRMap(res, type) {
     const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
     const tuni = cloneUniforms(uniforms);
-    tuni.uUseOverlay = { value: 0 }; tuni.uShowRelief = { value: 0 };
+    tuni.uUseOverlay = { value: 0 }; 
+    tuni.uShowRelief = { value: 0 };
     tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
     
     const sc = new THREE.Scene(); 
@@ -832,8 +883,13 @@ async function renderPBRMap(res, type) {
 }
 
 async function captureTextureImage() {
-    const tuni = cloneUniforms(uniforms); tuni.uShowRelief = { value: 0 }; tuni.uUseOverlay = { value: 0 };
-    const sc = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); cam.position.z = 1;
+    const tuni = cloneUniforms(uniforms); 
+    tuni.uShowRelief = { value: 0 }; 
+    tuni.uUseOverlay = { value: 0 };
+    
+    const sc = new THREE.Scene(); 
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); 
+    cam.position.z = 1;
     const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
     
