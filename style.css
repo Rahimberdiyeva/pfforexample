@@ -33,7 +33,7 @@ body {
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 1002;
+  z-index: 1015; /* повышен, чтобы быть поверх меню */
 }
 .logo {
   font-size: 1.7rem;
@@ -112,7 +112,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
 .pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
 
-/* --- Аккордеон (для мобильных) --- */
+/* --- Аккордеон --- */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
@@ -150,7 +150,6 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   max-height: 800px;
   padding: 0 18px 18px 18px;
 }
-/* На десктопе аккордеон всегда открыт */
 @media (min-width: 861px) {
   .accordion-content {
     max-height: none;
@@ -164,11 +163,14 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
 }
 
+/* --- Настройки --- */
 .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
 .control-row label { width: 110px; flex-shrink: 0; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .control-row input[type="range"] { flex: 1; min-width: 0; height: 6px; background: #f0cdd8; border-radius: 6px; accent-color: #cf8e9e; cursor: pointer; }
 .value-display { width: 45px; text-align: right; flex-shrink: 0; font-family: 'Space Grotesk', monospace; font-weight: 500; font-size: 0.85rem; }
 .compact-select { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 40px; background: white; border: 1px solid #e2b7c4; font-size: 0.85rem; font-family: inherit; }
+
+/* --- Цвета --- */
 .color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-bottom: 8px; }
 .color-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
 .color-circle-input { width: 56px; height: 56px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; padding: 0; background: none; overflow: hidden; }
@@ -176,6 +178,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
+/* --- Кнопки --- */
 .center-btn, .file-input-btn, select, button, .integration-btn {
   background: white;
   border: 1px solid #e2b7c4;
@@ -265,13 +268,13 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .menu-toggle { display: block; }
   
-  /* Исправление: уменьшаем логотип, чтобы не наезжал на иконку */
   .logo {
     font-size: 1.3rem;
     max-width: 70%;
     text-align: center;
   }
   
+  /* Боковое меню */
   .pattern-bar {
     position: fixed; left: -100%; top: 0; bottom: 0;
     width: 280px;
@@ -316,6 +319,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .category-select option { text-align: left; }
 
+  /* Основная сетка */
   .main-layout {
     flex-direction: column;
     overflow-y: visible;
@@ -386,7 +390,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   }
   .resize-handle { display: none; }
 
-  /* Аккордеон на мобильных */
+  /* Аккордеон */
   .accordion-header {
     cursor: pointer;
   }
@@ -425,45 +429,47 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     margin: 0;
   }
   
-  /* --- Футер на мобильных: каждая секция в одну строку --- */
+  /* --- Футер на мобильных: табличная сетка --- */
   .global-footer {
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto auto auto;
     gap: 12px;
     padding: 12px;
+    background: #fcf0f5;
   }
   .footer-item {
-    flex-direction: row;           /* подпись и контролы в строку */
+    display: grid;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
     gap: 8px;
     background: white;
     border-radius: 20px;
     padding: 8px 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
+  /* Первая строка: 4 столбца (подпись, селект формата, селект разрешения, кнопка) */
+  .footer-item:first-child {
+    grid-template-columns: auto 1fr auto auto;
+  }
+  /* Вторая строка: 3 столбца (подпись, селект формата, кнопка) */
+  .footer-item:nth-child(2) {
+    grid-template-columns: auto 1fr auto;
+  }
+  /* Третья строка: 3 столбца (подпись, селект движка, кнопка) */
+  .footer-item:last-child {
+    grid-template-columns: auto 1fr auto;
+  }
   .footer-label {
-    width: auto;
-    flex-shrink: 0;
+    white-space: nowrap;
     font-size: 0.85rem;
   }
   .footer-controls {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: flex-end;
+    display: contents; /* дети становятся прямыми потомками .footer-item */
   }
-  .footer-controls select, .footer-controls .export-btn {
+  .compact-select, .export-btn {
     width: auto;
-    flex: 0 0 auto;
     padding: 6px 12px;
     font-size: 0.75rem;
   }
-  .integration-controls {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  /* Если не влезает в одну строку, контролы переносятся, но подпись остаётся на первой строке */
   
   .layers-list {
     max-height: 200px;
@@ -486,14 +492,11 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 60px;
     height: 60px;
   }
-  .footer-item {
-    flex-direction: column; /* на очень маленьких экранах всё же вертикально, чтобы не было тесно */
-    align-items: stretch;
+  /* На очень узких экранах футер может стать вертикальным, но мы оставляем сетку, она сама подстроится */
+  .footer-item:first-child {
+    grid-template-columns: auto 1fr auto auto;
   }
-  .footer-controls {
-    justify-content: center;
-  }
-  .footer-controls select, .footer-controls .export-btn {
-    width: 100%;
+  .footer-item:nth-child(2), .footer-item:last-child {
+    grid-template-columns: auto 1fr auto;
   }
 }
