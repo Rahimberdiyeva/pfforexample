@@ -18,6 +18,7 @@ const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
+// --- Оффскрин рендерер для PBR/экспорта ---
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -57,7 +58,7 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 
 function ensureUIControls() {
-  const genGroup = document.querySelector('.accordion-content');
+  const genGroup = document.querySelector('.accordion-group');
   if (!genGroup) return;
   if (!document.getElementById('intensity')) {
     const row = document.createElement('div'); row.className = 'control-row';
@@ -130,7 +131,7 @@ async function updatePBRPreviews() {
   }
 }
 
-// --- Шейдеры (полные, без изменений) ---
+// --- Шейдеры (полные, без ошибок) ---
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -446,7 +447,6 @@ function updateMaterial() {
 let plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2,2), createMaterial());
 scene2d.add(plane2d);
 currentMaterial = plane2d.material;
-
 // ---- Цвета ----
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
@@ -926,10 +926,8 @@ function initAccordion() {
       }
     });
   });
-  // На мобильных по умолчанию все блоки закрыты, кроме первого? (оставим открытыми все, но можно настроить)
   if (window.innerWidth <= 860) {
     document.querySelectorAll('.accordion-group').forEach(g => g.classList.remove('open'));
-    // Можно открыть первый: document.querySelector('.accordion-group')?.classList.add('open');
   } else {
     document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
   }
@@ -959,14 +957,11 @@ function initMobileTabs() {
       activateTab(target);
     });
   });
-  // Активируем первую вкладку, если ни одна не активна
   if (!document.querySelector('.tab-content.active')) {
     activateTab('texture');
   }
-  // При изменении ориентации или размера окна обновляем
   window.addEventListener('resize', () => {
     if (window.innerWidth <= 860) {
-      // убедимся, что активная вкладка видна
       const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
       if (activeTab) activateTab(activeTab);
     }
