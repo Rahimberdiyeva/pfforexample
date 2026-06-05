@@ -18,6 +18,7 @@ const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
+// --- Оффскрин рендерер для PBR/экспорта ---
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 offscreenRenderer.setSize(1024, 1024);
 
@@ -128,6 +129,7 @@ async function updatePBRPreviews() {
   }
 }
 
+// --- Шейдеры (полные, без ошибок) ---
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -512,7 +514,7 @@ document.getElementById('bgOpacity')?.addEventListener('input', (e) => {
 ensureUIControls();
 updateUniformsFromUI();
 
-// ---- Категории паттернов (текст выровнен влево через CSS, но код JS тот же) ----
+// ---- Категории паттернов ----
 const noisePatterns = [{name:"Волны", v:0},{name:"Перлин", v:2},{name:"Симплекс", v:4},{name:"Вороного", v:1}];
 const fractalPatterns = [{name:"Реакция-диффузия", v:5},{name:"Потоковое поле", v:7},{name:"WFC", v:6},{name:"Гребневый мультифрактал", v:12}];
 const gradientPatterns = [{name:"Линейный градиент", v:17},{name:"Радиальный градиент", v:18},{name:"Угловой градиент", v:19}];
@@ -868,6 +870,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
 function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
 function cloneUniforms(src) { const dst = {}; for (const key in src) dst[key] = { value: src[key].value }; return dst; }
 
+// --- Рендер PBR карт ---
 async function renderPBRMap(res, type) {
   const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
   const tuni = cloneUniforms(uniforms);
