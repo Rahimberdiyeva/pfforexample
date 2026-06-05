@@ -144,7 +144,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 #clearOverlayBtn { background: #b46e7e; }
 .hidden { display: none !important; }
 
-/* --- Футер (строго по центру) --- */
+/* --- Футер (строго по центру, кнопки одинаковой ширины) --- */
 .global-footer {
   background: #fcf0f5;
   border-top: 1px solid #f0d9e2;
@@ -178,13 +178,19 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
 }
 .export-btn {
   background: linear-gradient(115deg, #cf8e9e, #b46e7e);
-  border: none; color: white; padding: 8px 18px; margin: 0; width: auto;
-  display: inline-flex; border-radius: 40px !important;
+  border: none;
+  color: white;
+  padding: 8px 18px;
+  margin: 0;
+  width: 110px;            /* фиксированная ширина, чтобы кнопки были равны */
+  display: inline-flex;
+  justify-content: center;
+  border-radius: 40px !important;
 }
 .export-btn:hover { opacity: 0.9; }
 
 /* ==========================================================================
-МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px) — ВСЁ ВЫРОВНЕНО СЛЕВА
+МОБИЛЬНАЯ АДАПТАЦИЯ (<= 860px) — ВСЁ СЛЕВА, ФУТЕР ВЕРТИКАЛЬНЫЙ
 ========================================================================== */
 @media (max-width: 860px) {
   body {
@@ -218,14 +224,14 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
   .category-group {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;   /* прижато влево */
+    align-items: flex-start;
     gap: 8px;
     width: 100%;
   }
   .category-label {
     font-size: 0.9rem;
     font-weight: 600;
-    text-align: left;          /* строго слева */
+    text-align: left;
     width: 100%;
   }
   .category-select {
@@ -233,7 +239,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     min-width: unset;
     padding: 8px 12px;
     font-size: 0.85rem;
-    text-align: left;          /* текст внутри селекта слева */
+    text-align: left;
     direction: ltr;
   }
   .category-select option {
@@ -300,7 +306,7 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     width: 100%;
     margin: 0;
   }
-  /* Убираем белый фон при наведении на мобильных */
+  /* На мобильных убираем белый фон при наведении */
   .center-btn:hover, .file-input-btn:hover, button:hover, .export-btn:hover {
     background: #cf8e9e;
     border-color: #cf8e9e;
@@ -337,6 +343,10 @@ canvas { display: block; outline: none; max-width: 100%; max-height: 100%; objec
     gap: 8px;
   }
   .footer-controls select, .footer-controls .export-btn {
+    width: 100%;
+  }
+  /* Кнопки скачать на мобильных тоже растягиваются, но сохраняют пропорции */
+  .export-btn {
     width: 100%;
   }
   .layers-list {
