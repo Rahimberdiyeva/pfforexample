@@ -27,7 +27,6 @@
     <aside class="settings-column">
       <div class="generation-header">Генерация</div>
       <div class="settings-panel">
-        <!-- Аккордеон: каждая группа настроек -->
         <div class="accordion-group">
           <div class="accordion-header">Параметры</div>
           <div class="accordion-content">
@@ -37,6 +36,8 @@
             <div class="control-row"><label>Лакунарность</label><input type="range" id="lacunarity" min="1" max="4" step="0.01" value="2"><span class="value-display" id="lacunarityVal">2.00</span></div>
             <div class="control-row"><label>Насыщенность</label><input type="range" id="saturation" min="0" max="3" step="0.01" value="1.5"><span class="value-display" id="saturationVal">1.50</span></div>
             <div class="control-row"><label>Смешивание</label><select id="blendMode" class="compact-select"><option value="0">Линейное</option><option value="1">Мультипликативное</option></select></div>
+            <div class="control-row"><label>Интенсивность</label><input type="range" id="intensity" min="0" max="2" step="0.01" value="1.0"><span class="value-display" id="intensityVal">1.00</span></div>
+            <div class="control-row"><label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0"><span class="value-display" id="tile3dScaleVal">1.00</span></div>
           </div>
         </div>
 
@@ -156,26 +157,26 @@
       <div class="footer-controls">
         <select id="export2DFormat" class="compact-select"><option value="png">PNG</option><option value="jpg">JPG</option><option value="svg">SVG</option><option value="pbr">PBR (ZIP)</option></select>
         <select id="exportResolution" class="compact-select"><option value="1024">1K</option><option value="2048">2K</option><option value="4096">4K</option><option value="8192">8K</option></select>
-        <button id="export2DBtn" class="export-btn">Скачать</button>
       </div>
+      <button id="export2DBtn" class="export-btn">Скачать</button>
     </div>
     <div class="footer-item">
       <span class="footer-label">Экспорт 3D</span>
       <div class="footer-controls">
         <select id="exportModelFormat" class="compact-select"><option value="glb">GLB</option><option value="gltf">glTF</option><option value="obj">OBJ + MTL</option></select>
-        <button id="exportModelBtn" class="export-btn">Скачать</button>
       </div>
+      <button id="exportModelBtn" class="export-btn">Скачать</button>
     </div>
     <div class="footer-item">
       <span class="footer-label">Интеграция</span>
-      <div class="footer-controls integration-controls">
+      <div class="footer-controls">
         <select id="integrationSelect" class="compact-select">
           <option value="blender">Blender</option>
           <option value="unity">Unity</option>
           <option value="godot">Godot</option>
         </select>
-        <button id="integrationDownloadBtn" class="export-btn">Скачать</button>
       </div>
+      <button id="integrationDownloadBtn" class="export-btn">Скачать</button>
     </div>
   </footer>
 
