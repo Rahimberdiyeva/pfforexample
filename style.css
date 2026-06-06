@@ -11,7 +11,6 @@ body {
     color: #1f1a1c;
 }
 
-/* --- Хедер --- */
 .logo-block {
     background: #3b2a30;
     padding: 12px 24px;
@@ -47,7 +46,6 @@ body {
     color: transparent;
 }
 
-/* --- Категории --- */
 .pattern-bar {
     background: #fce9ef; 
     padding: 10px 20px; 
@@ -88,7 +86,6 @@ body {
 }
 .menu-overlay.active { display: block; }
 
-/* --- Основная сетка --- */
 .main-layout {
     flex: 1;
     display: flex;
@@ -221,7 +218,6 @@ canvas {
     color: #3b2a30;
 }
 
-/* --- Аккордеон --- */
 .accordion-group {
     background: #ffeef3;
     border-radius: 20px;
@@ -274,14 +270,12 @@ canvas {
     .accordion-header { cursor: default; }
 }
 
-/* --- Настройки --- */
 .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: nowrap; }
 .control-row label { width: 110px; flex-shrink: 0; font-size: 0.85rem; font-weight: 600; color: #3b2a30; }
 .control-row input[type="range"] { flex: 1; min-width: 0; height: 6px; background: #f0cdd8; border-radius: 6px; accent-color: #cf8e9e; cursor: pointer; }
 .value-display { width: 45px; text-align: right; flex-shrink: 0; font-family: 'Space Grotesk', monospace; font-weight: 500; font-size: 0.85rem; }
 .compact-select { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 40px; background: white; border: 1px solid #e2b7c4; font-size: 0.85rem; font-family: inherit; }
 
-/* --- Цвета --- */
 .color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-bottom: 8px; }
 .color-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
 .color-circle-input { width: 56px; height: 56px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; padding: 0; background: none; overflow: hidden; }
@@ -289,7 +283,6 @@ canvas {
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
-/* --- Кнопки --- */
 .center-btn, .file-input-btn, select, button, .integration-btn {
     background: white;
     border: 1px solid #e2b7c4;
@@ -327,7 +320,6 @@ canvas {
 #clearOverlayBtn { background: #b46e7e; }
 .hidden { display: none !important; }
 
-/* --- Футер --- */
 .global-footer {
     background: #fcf0f5;
     border-top: 1px solid #f0d9e2;
@@ -357,10 +349,7 @@ canvas {
 .export-btn:hover { opacity: 0.9; }
 .mobile-tabs { display: none; }
 
-/* ==========================================================================
-   МОБИЛЬНАЯ АДАПТАЦИЯ (<= 1200px)
-========================================================================== */
-@media (max-width: 1200px) {
+@media (max-width: 860px) {
     body { height: auto; min-height: 100vh; overflow-y: auto; }
     .menu-toggle { display: block; }
     .logo { font-size: 1.3rem; max-width: 70%; text-align: center; }
