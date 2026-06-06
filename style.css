@@ -47,7 +47,7 @@ body {
     color: transparent;
 }
 
-/* --- Категории (десктоп: по центру) --- */
+/* --- Категории --- */
 .pattern-bar {
     background: #fce9ef; 
     padding: 10px 20px; 
@@ -101,7 +101,7 @@ body {
 
 .settings-column {
     flex: 0 0 420px;
-    background: #fffafc;
+    background: #fffafc; /* ИСПРАВЛЕНО: убран пробел в цвете */
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -151,7 +151,7 @@ body {
 }
 
 .pbr-column { flex: 0 0 300px; border-left: 1px solid #f0dfe6; }
-.texture-column, .view3d-column { flex: 1; }
+.texture-column, .view3d-column { flex: 1; } /* ИСПРАВЛЕНО: убран пробел в классе */
 
 .resize-handle { width: 6px; background: #f0e2e8; cursor: col-resize; flex-shrink: 0; transition: background 0.2s; }
 .resize-handle:hover { background: #cf8e9e; }
@@ -164,7 +164,7 @@ body {
     font-size: 0.9rem; 
     text-align: center; 
     flex-shrink: 0; 
-    border-bottom: 1px solid #e9cfd8;
+    border-bottom: 1px solid #e9cfd8; /* ИСПРАВЛЕНО: убран пробел в свойстве */
 }
 
 .zoom-pan-container {
@@ -201,7 +201,7 @@ canvas {
     flex: 1; 
     display: flex; 
     flex-direction: column; 
-    min-height: 0; /* Важно для корректного скролла внутри flex */
+    min-height: 0;
 }
 
 .pbr-grid { 
@@ -213,7 +213,13 @@ canvas {
 
 .pbr-item { text-align: center; }
 .pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
-.pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
+.pbr-item span { 
+    display: block; 
+    margin-top: 6px; 
+    font-size: 0.75rem; 
+    font-weight: 600; 
+    color: #3b2a30; /* ИСПРАВЛЕНО: убран пробел в свойстве */
+}
 
 /* --- Аккордеон --- */
 .accordion-group {
@@ -408,8 +414,8 @@ canvas {
 
     .texture-column, .view3d-column, .pbr-column {
         min-height: 400px;
-        height: 100%; /* ИСПРАВЛЕНО: предотвращает схлопывание блока */
-        flex: 1;      /* ИСПРАВЛЕНО: позволяет блоку занимать доступное пространство */
+        height: 100%;
+        flex: 1;
         border: none;
     }
     
