@@ -671,7 +671,7 @@ button:hover,
   .logo {
     font-size: 1.3rem;
     max-width: 70%;
-    text-align: center;
+    text-align: left;
     margin: 0 auto;
   }
 
