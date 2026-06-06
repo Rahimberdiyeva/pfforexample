@@ -962,20 +962,6 @@ patternBar?.addEventListener('touchend', e => {
   if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
-// --- Аккордеон (исправлен) ---
-function initAccordion() {
-  const headers = document.querySelectorAll('.accordion-header');
-  headers.forEach(header => {
-    if (header._clickHandler) header.removeEventListener('click', header._clickHandler);
-    const handler = () => {
-      const group = header.closest('.accordion-group');
-      if (group) group.classList.toggle('open');
-    };
-    header.addEventListener('click', handler);
-    header._clickHandler = handler;
-  });
-}
-
 // --- Табы для мобильных ---
 function initMobileTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
@@ -1047,6 +1033,7 @@ animate();
 // --- Запуск всех инициализаций ---
 update3dModel();
 generateOverlayTexture();
-initAccordion();
+// Аккордеон удалён – блоки всегда открыты, скролл внутри контейнера
+document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
 initMobileTabs();
 initIntegration();
