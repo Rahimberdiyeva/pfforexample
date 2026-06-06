@@ -11,13 +11,14 @@ body {
     color: #1f1a1c;
 }
 
-/* --- Хедер (ИСПРАВЛЕНО: CSS Grid для предотвращения наложения) --- */
+/* --- Хедер --- */
 .logo-block {
     background: #3b2a30;
-    padding: 12px 16px;
-    display: grid;
-    grid-template-columns: 48px 1fr 48px;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: center;
     align-items: center;
+    position: relative;
     flex-shrink: 0;
 }
 
@@ -30,21 +31,20 @@ body {
     cursor: pointer;
     line-height: 1;
     padding: 8px;
-    justify-self: start;
-    position: static; /* Убрано абсолютное позиционирование */
-    transform: none;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1015;
 }
 
 .logo {
-    font-size: 1.5rem;
+    font-size: 1.7rem;
     font-weight: 700;
     background: linear-gradient(135deg, #ffdce8, #ffb7ca);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    justify-self: center;
-    text-align: center;
-    max-width: 100%;
 }
 
 /* --- Категории --- */
@@ -79,12 +79,16 @@ body {
 .category-select option { text-align: left; }
 
 .menu-overlay {
-    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1005;
-    display: none; backdrop-filter: blur(2px);
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0, 0, 0, 0.5); 
+    z-index: 1005;
+    display: none; 
+    backdrop-filter: blur(2px);
 }
 .menu-overlay.active { display: block; }
 
-/* --- Основная сетка (Десктоп без изменений) --- */
+/* --- Основная сетка --- */
 .main-layout {
     flex: 1;
     display: flex;
@@ -97,7 +101,7 @@ body {
 
 .settings-column {
     flex: 0 0 420px;
-    background: #fffafc; /* Исправлена опечатка */
+    background: #fffafc;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -147,7 +151,7 @@ body {
 }
 
 .pbr-column { flex: 0 0 300px; border-left: 1px solid #f0dfe6; }
-.texture-column, .view3d-column { flex: 1; } /* Исправлена опечатка */
+.texture-column, .view3d-column { flex: 1; }
 
 .resize-handle { width: 6px; background: #f0e2e8; cursor: col-resize; flex-shrink: 0; transition: background 0.2s; }
 .resize-handle:hover { background: #cf8e9e; }
@@ -160,7 +164,7 @@ body {
     font-size: 0.9rem; 
     text-align: center; 
     flex-shrink: 0; 
-    border-bottom: 1px solid #e9cfd8; /* Исправлена опечатка */
+    border-bottom: 1px solid #e9cfd8;
 }
 
 .zoom-pan-container {
@@ -214,7 +218,7 @@ canvas {
     margin-top: 6px; 
     font-size: 0.75rem; 
     font-weight: 600; 
-    color: #3b2a30; /* Исправлена опечатка */
+    color: #3b2a30;
 }
 
 /* --- Аккордеон --- */
@@ -257,11 +261,11 @@ canvas {
 }
 
 .accordion-group.open .accordion-content {
-    max-height: 5000px; /* Увеличено для предотвращения обрезки */
+    max-height: 5000px;
     padding: 0 18px 18px 18px;
 }
 
-@media (min-width: 1201px) {
+@media (min-width: 861px) {
     .accordion-content {
         max-height: none;
         padding: 0 18px 18px 18px;
@@ -277,7 +281,7 @@ canvas {
 .value-display { width: 45px; text-align: right; flex-shrink: 0; font-family: 'Space Grotesk', monospace; font-weight: 500; font-size: 0.85rem; }
 .compact-select { flex: 1; min-width: 0; padding: 8px 12px; border-radius: 40px; background: white; border: 1px solid #e2b7c4; font-size: 0.85rem; font-family: inherit; }
 
-/* --- Цвета и Кнопки --- */
+/* --- Цвета --- */
 .color-list { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-bottom: 8px; }
 .color-item { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
 .color-circle-input { width: 56px; height: 56px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; padding: 0; background: none; overflow: hidden; }
@@ -285,13 +289,25 @@ canvas {
 .color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn { width: 24px; height: 24px; font-size: 12px; font-weight: bold; color: white; background: #ef7e8a; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
 
+/* --- Кнопки --- */
 .center-btn, .file-input-btn, select, button, .integration-btn {
-    background: white; border: 1px solid #e2b7c4; border-radius: 40px !important;
-    padding: 8px 16px; font-size: 0.85rem; cursor: pointer; font-weight: 500;
-    display: inline-flex; align-items: center; justify-content: center; text-align: center;
-    transition: all 0.2s; font-family: inherit; line-height: 1.4;
+    background: white;
+    border: 1px solid #e2b7c4;
+    border-radius: 40px !important;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.2s;
+    font-family: inherit;
+    line-height: 1.4;
 }
 .center-btn:hover, .file-input-btn:hover, button:hover, .integration-btn:hover { background: #fff0f5; border-color: #cf8e9e; }
+.btn-left { margin-left: 0 !important; margin-right: auto !important; display: inline-flex !important; }
 
 .model-row { display: flex; gap: 10px; align-items: center; flex-wrap: nowrap; margin-bottom: 8px; }
 .model-row select, .model-row .file-input-btn { margin: 0; height: 36px; padding: 0 16px; }
@@ -313,66 +329,70 @@ canvas {
 
 /* --- Футер --- */
 .global-footer {
-    background: #fcf0f5; border-top: 1px solid #f0d9e2; padding: 12px 20px;
-    flex-shrink: 0; display: flex; flex-direction: row; justify-content: center;
-    gap: 32px; align-items: center; flex-wrap: wrap;
+    background: #fcf0f5;
+    border-top: 1px solid #f0d9e2;
+    padding: 12px 20px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 .footer-item { display: flex; flex-direction: row; align-items: center; gap: 16px; }
 .footer-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .footer-label { font-weight: 700; color: #2e1e24; font-size: 0.9rem; white-space: nowrap; margin: 0; }
+
 .export-btn {
-    background: linear-gradient(115deg, #cf8e9e, #b46e7e); border: none; color: white;
-    padding: 8px 18px; margin: 0; width: auto; display: inline-flex; border-radius: 40px !important;
+    background: linear-gradient(115deg, #cf8e9e, #b46e7e);
+    border: none; 
+    color: white; 
+    padding: 8px 18px; 
+    margin: 0; 
+    width: auto;
+    display: inline-flex; 
+    border-radius: 40px !important;
 }
 .export-btn:hover { opacity: 0.9; }
 .mobile-tabs { display: none; }
 
 /* ==========================================================================
-   АДАПТИВНОСТЬ: ПЛАНШЕТЫ И МОБИЛЬНЫЕ (<= 1200px)
-   Вертикальный стек, вкладки скрыты, настройки сворачиваются
+   МОБИЛЬНАЯ АДАПТАЦИЯ (<= 1200px)
 ========================================================================== */
 @media (max-width: 1200px) {
     body { height: auto; min-height: 100vh; overflow-y: auto; }
-    
     .menu-toggle { display: block; }
-    
-    .main-layout {
+    .logo { font-size: 1.3rem; max-width: 70%; text-align: center; }
+
+    .pattern-bar {
+        position: fixed; left: -100%; top: 0; bottom: 0;
+        width: 280px;
         flex-direction: column;
-        overflow-y: visible;
-        height: auto;
-        gap: 0;
+        align-items: stretch;
+        padding: 70px 16px 20px;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1010;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+        overflow-y: auto;
+        background: #fce9ef;
+        justify-content: flex-start;
     }
+    .pattern-bar.open { left: 0; }
+
+    .category-filters { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+    .category-group { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
+    .category-label { font-size: 0.9rem; font-weight: 600; text-align: left; width: 100%; }
+    .category-select { width: 100%; min-width: unset; padding: 8px 12px; font-size: 0.85rem; text-align: left; direction: ltr; }
+    .category-select option { text-align: left; }
+
+    .main-layout { flex-direction: column; overflow-y: visible; height: auto; gap: 0; }
     
-    .settings-column {
-        flex: 0 0 auto;
-        width: 100%;
-        max-width: 100%;
-        border-bottom: 2px solid #f0dfe6;
-        height: auto;
-    }
-    
-    .settings-panel {
-        max-width: 800px;
-        margin: 0 auto;
-        width: 100%;
-        overflow-y: visible;
-        padding-bottom: 20px;
-    }
-    
-    .generation-header {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #d9b7c2cc;
-        backdrop-filter: blur(8px);
-    }
-    
-    .preview-wrapper {
-        flex-direction: column;
-        overflow-y: visible;
-        height: auto;
-        border-left: none;
-    }
+    .settings-column { flex: 0 0 auto; width: 100%; max-width: 100%; border-bottom: 2px solid #f0dfe6; height: auto; }
+    .settings-panel { max-width: 800px; margin: 0 auto; width: 100%; overflow-y: visible; padding-bottom: 20px; }
+    .generation-header { position: sticky; top: 0; z-index: 20; background: #d9b7c2cc; backdrop-filter: blur(8px); }
+
+    .preview-wrapper { flex-direction: column; overflow-y: visible; height: auto; border-left: none; }
     
     .texture-column, .view3d-column, .pbr-column {
         width: 100%;
@@ -383,32 +403,24 @@ canvas {
     }
     
     .resize-handle { display: none; }
-    .mobile-tabs { display: none !important; } /* Убираем вкладки, оставляем стек */
+    .mobile-tabs { display: none !important; }
     
     .control-row { flex-wrap: wrap; gap: 8px; }
     .control-row label { width: 100%; margin-bottom: 4px; }
     .control-row input[type="range"] { width: 100%; }
     .value-display { width: auto; min-width: 45px; text-align: right; }
-    
-    .compact-select, .center-btn, .file-input-btn, button, .export-btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
+
+    .compact-select, .center-btn, .file-input-btn, button, .export-btn { width: 100%; justify-content: center; }
     .model-row, .bg-upload-row { flex-direction: column; align-items: stretch; gap: 10px; }
     .model-row select, .model-row .file-input-btn { width: 100%; margin: 0; }
 
-    /* Футер на мобильных */
-    .global-footer { flex-direction: column; gap: 12px; padding: 12px; align-items: stretch; }
-    .footer-item {
-        display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
-        background: transparent !important; box-shadow: none !important; border: none !important;
-        border-radius: 0 !important; padding: 0 !important; margin: 0 !important;
-    }
+    .global-footer { display: flex; flex-direction: column; gap: 12px; padding: 12px; background: #fcf0f5; align-items: stretch; }
+    .footer-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; background: transparent !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important; }
     .footer-label { white-space: nowrap; font-size: 0.8rem; font-weight: 700; }
-    .footer-controls { flex-direction: row; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
+    .footer-controls { display: flex; flex-direction: row; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
     .footer-item select { padding: 4px 10px; font-size: 0.7rem; min-height: 28px; height: auto; width: auto; min-width: 80px; }
     .footer-item .export-btn { padding: 4px 12px; font-size: 0.7rem; min-height: 28px; width: 85px; text-align: center; white-space: nowrap; }
+    .layers-list { max-height: 200px; }
 }
 
 @media (max-width: 480px) {
