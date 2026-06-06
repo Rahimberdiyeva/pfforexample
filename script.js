@@ -1033,6 +1033,5 @@ animate();
 // --- Запуск всех инициализаций ---
 update3dModel();
 generateOverlayTexture();
-// Аккордеон удалён, все блоки открыты по умолчанию (класс open в HTML)
 initMobileTabs();
 initIntegration();
