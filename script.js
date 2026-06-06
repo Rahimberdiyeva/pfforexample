@@ -18,7 +18,7 @@ container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-offscreenRenderer.setSize(512, 512); // Увеличено до 512 для качества PBR
+offscreenRenderer.setSize(512, 512);
 
 function updateSizes() {
     const rect2d = container2d.parentElement.getBoundingClientRect();
@@ -67,7 +67,6 @@ function ensureUIControls() {
         paramsGroup.appendChild(row);
         document.getElementById('tile3dScale').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
     }
-    // Добавляем Normal Strength
     if (!document.getElementById('normalStrength')) {
         const row = document.createElement('div'); row.className = 'control-row';
         row.innerHTML = `<label>Сила нормалей</label><input type="range" id="normalStrength" min="0.1" max="5.0" step="0.1" value="1.0"><span class="value-display" id="normalStrengthVal">1.0</span>`;
@@ -87,8 +86,7 @@ const uniforms = {
     uWarpEnable: { value: 0 }, uWarpStrength: { value: 0.3 }, uWarpOctaves: { value: 2 },
     uShowRelief: { value: 0 }, uReliefStrength: { value: 1.0 }, uTile3DScale: { value: 1.0 },
     uTime: { value: 0 }, uOverlayScale: { value: 1.0 }, uExportMode: { value: 0 },
-    uNormalStrength: { value: 1.0 }, uNormalFormat: { value: 0 }, // 0=OpenGL, 1=DirectX
-    uExportPreset: { value: 0 } // 0=Generic, 1=Blender, 2=Unreal, 3=Unity
+    uNormalStrength: { value: 1.0 }, uNormalFormat: { value: 0 }, uExportPreset: { value: 0 }
 };
 
 function updateColorUniforms() {
@@ -123,7 +121,7 @@ async function updatePBRPreviews() {
     const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
     for (let i = 0; i < maps.length; i++) {
         const canvas = pbrGrid.children[i].querySelector('canvas');
-        const blob = await renderPBRMap(256, maps[i]); // Увеличено до 256 для качества
+        const blob = await renderPBRMap(256, maps[i]);
         const img = new Image();
         img.onload = () => {
             const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, 256, 256);
@@ -165,10 +163,11 @@ float worley(vec2 uv) {
     }
     return sqrt(res);
 }
-float ridgedMF(vec2 uv, int oct, float pers, float lac) {
-    float val = 0.0, amp = 0.5, freq = 2.0;
-    for(int i=0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; }
-    return clamp(val, 0.0, 1.0);
+float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x * 10.0) * cos(t + uv.y * 10.0); return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t)); }
+vec2 domainWarp(vec2 uv, float strength, int octaves) {
+    vec2 warped = uv;
+    for(int i=0; i < 5; i++) { if(i >= octaves) break; warped += strength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i+1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i+1) + uTime)); }
+    return warped;
 }
 float reactionDiffusion(vec2 uv) { vec2 p = uv * 4.0; float a = sin(p.x * 3.0) * cos(p.y * 3.0); float b = cos(p.x * 4.2) * sin(p.y * 4.2); return clamp(a * 0.5 + b * 0.5 + 0.5, 0.0, 1.0); }
 float flowField(vec2 uv) { vec2 q = uv * 3.0; float angle = sin(q.y * 0.7) * cos(q.x * 0.5); vec2 gradient = vec2(cos(angle), sin(angle)); uv += gradient * 0.1; return smoothstep(-0.3, 0.7, sin(uv.x * 10.0) * cos(uv.y * 10.0)); }
@@ -182,6 +181,11 @@ float wfcPattern(vec2 uv) {
     else pattern = fract(sub.x * 3.0 + sub.y * 2.0);
     return pattern;
 }
+float ridgedMF(vec2 uv, int oct, float pers, float lac) {
+    float val = 0.0, amp = 0.5, freq = 2.0;
+    for(int i=0; i < 6; i++) { if(i >= oct) break; float n = perlinNoise(uv * freq) * 2.0 - 1.0; n = 1.0 - abs(n); val += amp * n; amp *= pers; freq *= lac; }
+    return clamp(val, 0.0, 1.0);
+}
 float checker(vec2 uv, float freq) { vec2 p = floor(uv * freq); return mod(p.x + p.y, 2.0); }
 float stripes(vec2 uv, float freq) { return step(0.5, fract(uv.x * freq)); }
 float circles(vec2 uv, float freq) { vec2 center = vec2(0.5, 0.5); float radius = length(uv - center) * freq; return fract(radius * 2.0); }
@@ -192,12 +196,6 @@ float marble(vec2 uv, float freq) { float noise = fbmPerlin(uv * freq * 3.0, 4, 
 float linearGradient(vec2 uv) { return uv.x; }
 float radialGradient(vec2 uv) { return length(uv - 0.5) * 1.414; }
 float angularGradient(vec2 uv) { return atan(uv.y - 0.5, uv.x - 0.5) / (2.0 * 3.14159) + 0.5; }
-float truchetPattern(vec2 uv, float t) { uv = fract(uv * 3.0) - 0.5; float angle = sin(t + uv.x * 10.0) * cos(t + uv.y * 10.0); return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t)); }
-vec2 domainWarp(vec2 uv, float strength, int octaves) {
-    vec2 warped = uv;
-    for(int i=0; i < 5; i++) { if(i >= octaves) break; warped += strength * vec2(sin(warped.y * 3.14159 * 2.0 * float(i+1) + uTime), cos(warped.x * 3.14159 * 2.0 * float(i+1) + uTime)); }
-    return warped;
-}
 
 vec3 getColor(float t) {
     if (uColorsCount <= 1) return uColor0;
@@ -264,7 +262,7 @@ void main() {
     float patX = computePattern(uvX); float patY = computePattern(uvY); float patZ = computePattern(uvZ);
     float patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
 
-    if (uExportMode == 0) { // Base Color
+    if (uExportMode == 0) {
         vec3 color = getColor(patternValue); float gray = dot(color, vec3(0.299, 0.587, 0.114));
         color = mix(vec3(gray), color, uSaturation); if(uBlendMode == 1) color = color * patternValue;
         vec3 finalColor = color;
@@ -279,39 +277,32 @@ void main() {
             finalColor = finalColor * (0.6 + diff * 0.5);
         }
         gl_FragColor = vec4(finalColor, 1.0);
-    } 
-    else if (uExportMode == 1) { // Normal Map
+    } else if (uExportMode == 1) {
         vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
         vec3 normal = normalize(vec3(grad.x, grad.y, uNormalStrength));
-        if (uNormalFormat == 1) normal.g = -normal.g; // DirectX инверсия
+        if (uNormalFormat == 1) normal.g = -normal.g;
         gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
-    } 
-    else if (uExportMode == 2) { // Roughness (логично на основе высоты)
+    } else if (uExportMode == 2) {
         float roughness = clamp(1.0 - patternValue, 0.0, 1.0);
         gl_FragColor = vec4(roughness, roughness, roughness, 1.0);
-    } 
-    else if (uExportMode == 3) { // Metallic
+    } else if (uExportMode == 3) {
         float metallic = smoothstep(0.3, 0.7, patternValue);
         gl_FragColor = vec4(metallic, metallic, metallic, 1.0);
-    } 
-    else if (uExportMode == 4) { // Height
+    } else if (uExportMode == 4) {
         gl_FragColor = vec4(patternValue, patternValue, patternValue, 1.0);
-    } 
-    else if (uExportMode == 5) { // AO (на основе кривизны/градиента)
+    } else if (uExportMode == 5) {
         vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
         float cavity = clamp(length(grad) * 2.0, 0.0, 1.0);
         float ao = smoothstep(0.2, 0.8, 1.0 - cavity);
         gl_FragColor = vec4(ao, ao, ao, 1.0);
-    } 
-    else if (uExportMode == 6) { // Unreal ORM Pack (R=AO, G=Roughness, B=Metallic)
+    } else if (uExportMode == 6) {
         vec3 grad = vec3(dFdx(patternValue), dFdy(patternValue), 0.0);
         float cavity = clamp(length(grad) * 2.0, 0.0, 1.0);
         float ao = smoothstep(0.2, 0.8, 1.0 - cavity);
         float roughness = clamp(1.0 - patternValue, 0.0, 1.0);
         float metallic = smoothstep(0.3, 0.7, patternValue);
         gl_FragColor = vec4(ao, roughness, metallic, 1.0);
-    } 
-    else { gl_FragColor = vec4(0.5, 0.5, 1.0, 1.0); }
+    } else { gl_FragColor = vec4(0.5, 0.5, 1.0, 1.0); }
 }
 `;
 
@@ -381,15 +372,8 @@ function updateUniformsFromUI() {
     uniforms.uReliefStrength.value = parseFloat(document.getElementById('reliefStrength').value);
     const tile3dEl = document.getElementById('tile3dScale');
     if (tile3dEl) uniforms.uTile3DScale.value = parseFloat(tile3dEl.value);
-    
     const normalStrEl = document.getElementById('normalStrength');
     if (normalStrEl) uniforms.uNormalStrength.value = parseFloat(normalStrEl.value);
-
-    const presetSelect = document.getElementById('exportPresetSelect');
-    if (presetSelect) uniforms.uExportPreset.value = parseInt(presetSelect.value);
-    
-    const normalFormatSelect = document.getElementById('normalFormatSelect');
-    if (normalFormatSelect) uniforms.uNormalFormat.value = parseInt(normalFormatSelect.value);
     
     const vals = {
         scaleVal: uniforms.uScale.value.toFixed(2), octavesVal: uniforms.uOctaves.value,
@@ -716,7 +700,7 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
         zip.file("BaseColor.png", await renderPBRMap(res, 'basecolor'));
         zip.file(`Normal${fmtStr}.png`, await renderPBRMap(res, 'normal'));
         
-        if (preset === 2) { // Unreal Engine ORM Pack
+        if (preset === 2) {
             zip.file("ORM.png", await renderPBRMap(res, 'orm'));
         } else {
             zip.file("Roughness.png", await renderPBRMap(res, 'roughness'));
@@ -746,11 +730,8 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
         const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(textureBlob); });
         const texture = new THREE.CanvasTexture(img);
         texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
-        
-        // ColorSpace коррекция
         texture.colorSpace = THREE.SRGBColorSpace;
-        
+        texture.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
         const mat = new THREE.MeshStandardMaterial({ map: texture });
         let exportScene = new THREE.Scene();
         let meshToExport;
@@ -796,7 +777,6 @@ function cloneUniforms(src) {
     return dst;
 }
 
-// --- Рендер PBR карт ---
 async function renderPBRMap(res, type) {
     const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5, 'orm': 6 };
     const tuni = cloneUniforms(uniforms);
@@ -817,7 +797,6 @@ async function renderPBRMap(res, type) {
     sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
     offscreenRenderer.setSize(res, res);
     offscreenRenderer.render(sc, cam);
-    
     const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
     mat.dispose();
     return blob;
@@ -853,7 +832,7 @@ patternBar?.addEventListener('touchend', e => {
     if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
-// --- Аккордеон (ИСПРАВЛЕНО: пересчет размеров после анимации) ---
+// --- Аккордеон ---
 function initAccordion() {
     const headers = document.querySelectorAll('.accordion-header');
     headers.forEach(header => {
@@ -862,7 +841,6 @@ function initAccordion() {
             const group = header.closest('.accordion-group');
             if (group) {
                 group.classList.toggle('open');
-                // Пересчет размеров после завершения CSS-анимации (300ms)
                 setTimeout(() => {
                     updateSizes();
                     renderer2d.render(scene2d, camera2d);
@@ -895,7 +873,6 @@ function initIntegration() {
     }
 }
 
-// --- Анимация ---
 function animate() {
     requestAnimationFrame(animate);
     uniforms.uTime.value += 0.01;
@@ -905,7 +882,6 @@ function animate() {
 }
 animate();
 
-// --- Запуск ---
 update3dModel();
 generateOverlayTexture();
 initAccordion();
