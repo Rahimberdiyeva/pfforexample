@@ -44,7 +44,7 @@ body {
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 1002;
+  z-index: 1015;
 }
 
 .logo {
@@ -279,13 +279,12 @@ canvas {
   color: #3b2a30;
 }
 
-/* Аккордеон — универсальный */
+/* Аккордеон — НЕ сворачивается, контент всегда виден */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
   border: 1px solid #fad3df;
   overflow: hidden;
-  transition: 0.2s;
 }
 
 .accordion-header {
@@ -301,25 +300,14 @@ canvas {
   user-select: none;
 }
 
+/* Убираем стрелку, так как сворачивание отключено */
 .accordion-header::after {
-  content: "▼";
-  font-size: 0.8rem;
-  transition: transform 0.2s;
-}
-
-.accordion-group.open .accordion-header::after {
-  transform: rotate(180deg);
+  display: none;
 }
 
 .accordion-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  padding: 0 18px;
-}
-
-.accordion-group.open .accordion-content {
-  max-height: 3000px;
+  max-height: none;
+  overflow: visible;
   padding: 0 18px 18px 18px;
 }
 
@@ -631,7 +619,7 @@ button:hover,
 }
 
 /* ==========================================================================
-   ДЕСКТОП (усиление скролла)
+   ДЕСКТОП
    ========================================================================== */
 @media (min-width: 861px) {
   .settings-column {
@@ -671,7 +659,7 @@ button:hover,
   .logo {
     font-size: 1.3rem;
     max-width: 70%;
-    text-align: left;
+    text-align: center;
     margin: 0 auto;
   }
 
