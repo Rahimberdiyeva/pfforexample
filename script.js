@@ -1033,7 +1033,6 @@ animate();
 // --- Запуск всех инициализаций ---
 update3dModel();
 generateOverlayTexture();
-// Аккордеон удалён – блоки всегда открыты, скролл внутри контейнера
-document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
+// Аккордеон удалён, все блоки открыты по умолчанию (класс open в HTML)
 initMobileTabs();
 initIntegration();
