@@ -700,7 +700,6 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
     const format = document.getElementById('export2DFormat').value;
     const res = parseInt(document.getElementById('exportResolution').value);
     if (format === 'pbr') {
-        // Примечание: для работы JSZip убедитесь, что библиотека подключена в HTML
         const zip = new JSZip();
         zip.file("basecolor.png", await renderPBRMap(res, 'basecolor'));
         zip.file("normal.png", await renderPBRMap(res, 'normal'));
