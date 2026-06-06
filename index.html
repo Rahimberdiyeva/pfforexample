@@ -27,7 +27,7 @@
     <aside class="settings-column">
       <div class="generation-header">Генерация</div>
       <div class="settings-panel">
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Параметры</div>
           <div class="accordion-content">
             <div class="control-row"><label>Масштаб</label><input type="range" id="scale" min="0.1" max="2" step="0.01" value="0.8"><span class="value-display" id="scaleVal">0.80</span></div>
@@ -40,16 +40,14 @@
             <div class="control-row"><label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0"><span class="value-display" id="tile3dScaleVal">1.00</span></div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Рельеф (2D)</div>
           <div class="accordion-content">
             <div class="control-row"><label>Включить</label><input type="checkbox" id="relief2d"></div>
             <div class="control-row"><label>Высота рельефа</label><input type="range" id="reliefStrength" min="0" max="3" step="0.01" value="1"><span class="value-display" id="reliefStrengthVal">1.00</span></div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Трансформы</div>
           <div class="accordion-content">
             <div class="control-row"><label>Поворот</label><input type="range" id="rotate" min="0" max="360" step="1" value="0"><span class="value-display" id="rotateVal">0°</span></div>
@@ -58,16 +56,14 @@
             <div class="control-row"><label>Зеркало</label><select id="mirror" class="compact-select"><option value="0">Нет</option><option value="1">X</option><option value="2">Y</option><option value="3">X+Y</option></select></div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Цветовая палитра</div>
           <div class="accordion-content">
             <div id="colorListContainer" class="color-list"></div>
             <button id="addColorBtn" class="center-btn btn-left">Добавить цвет</button>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Domain Warping</div>
           <div class="accordion-content">
             <div class="control-row"><label>Активно</label><input type="checkbox" id="warpEnable"></div>
@@ -75,8 +71,7 @@
             <div class="control-row"><label>Октавы warp</label><input type="range" id="warpOctaves" min="1" max="5" step="1" value="2"><span class="value-display" id="warpOctavesVal">2</span></div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">3D модель</div>
           <div class="accordion-content">
             <div class="model-row">
@@ -87,8 +82,7 @@
             <div id="modelStatus" style="font-size:0.8rem; color:#cf8e9e; text-align:center; min-height:1.2em;"></div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Фоновое изображение</div>
           <div class="accordion-content">
             <div class="bg-upload-row">
@@ -100,8 +94,7 @@
             </div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Паттерны (Слои)</div>
           <div class="accordion-content">
             <div class="bg-upload-row">
@@ -113,8 +106,7 @@
             <div class="control-row"><label>Прозрачность</label><input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1"><span class="value-display" id="layerOpacityVal">1.00</span></div>
           </div>
         </div>
-
-        <div class="accordion-group">
+        <div class="accordion-group open">
           <div class="accordion-header">Пресет</div>
           <div class="accordion-content">
             <div class="bg-upload-row">
