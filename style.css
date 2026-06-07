@@ -279,7 +279,7 @@ canvas {
   color: #3b2a30;
 }
 
-/* ===== АККОРДЕОН: НА ДЕСКТОПЕ ПРОСТО БЛОКИ БЕЗ СВОРАЧИВАНИЯ ===== */
+/* ===== АККОРДЕОН ===== */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
@@ -298,9 +298,9 @@ canvas {
   justify-content: space-between;
   align-items: center;
   user-select: none;
+  border-radius: 20px;
 }
 
-/* На десктопе стрелку скрываем */
 .accordion-header::after {
   display: none;
 }
@@ -309,7 +309,7 @@ canvas {
   padding: 0 18px 18px 18px;
 }
 
-/* Мобильные: показываем стрелку и делаем аккордеон сворачиваемым */
+/* Мобильные: аккордеон сворачивается */
 @media (max-width: 860px) {
   .accordion-header {
     cursor: pointer;
@@ -668,6 +668,9 @@ button:hover,
    МОБИЛЬНАЯ АДАПТАЦИЯ (<=860px)
    ========================================================================== */
 @media (max-width: 860px) {
+  html {
+    overflow: auto;
+  }
   body {
     height: auto;
     min-height: 100vh;
@@ -743,14 +746,23 @@ button:hover,
     overflow-y: visible;
     height: auto;
     gap: 0;
+    display: flex;
   }
-
+  /* Меняем порядок: сначала превью, потом настройки */
   .settings-column {
+    order: 2;
     flex: 0 0 auto;
     width: 100%;
     max-width: 100%;
     border-bottom: 2px solid #f0dfe6;
     height: auto;
+  }
+  .preview-wrapper {
+    order: 1;
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+    border-left: none;
   }
 
   .settings-panel {
@@ -767,13 +779,6 @@ button:hover,
     z-index: 20;
     background: #d9b7c2cc;
     backdrop-filter: blur(8px);
-  }
-
-  .preview-wrapper {
-    flex-direction: column;
-    overflow-y: visible;
-    height: auto;
-    border-left: none;
   }
 
   .mobile-tabs {
