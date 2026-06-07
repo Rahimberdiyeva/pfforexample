@@ -279,13 +279,12 @@ canvas {
   color: #3b2a30;
 }
 
-/* ===== АККОРДЕОН: НА ДЕСКТОПЕ ВСЕГДА ОТКРЫТ ===== */
+/* ===== АККОРДЕОН: НА ДЕСКТОПЕ ПРОСТО БЛОКИ БЕЗ СВОРАЧИВАНИЯ ===== */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
   border: 1px solid #fad3df;
   margin-bottom: 12px;
-  overflow: hidden;
 }
 
 .accordion-header {
@@ -294,47 +293,45 @@ canvas {
   font-size: 1rem;
   color: #2e1e24;
   background: #ffeef3;
-  cursor: pointer;
+  cursor: default;
   display: flex;
   justify-content: space-between;
   align-items: center;
   user-select: none;
 }
 
+/* На десктопе стрелку скрываем */
 .accordion-header::after {
-  content: "▼";
-  font-size: 0.8rem;
-  transition: transform 0.2s;
-}
-
-.accordion-group.open .accordion-header::after {
-  transform: rotate(180deg);
+  display: none;
 }
 
 .accordion-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  padding: 0 18px;
-}
-
-.accordion-group.open .accordion-content {
-  max-height: 1200px;
   padding: 0 18px 18px 18px;
 }
 
-/* ДЕСКТОП: принудительно показываем всё содержимое, игнорируем класс open */
-@media (min-width: 861px) {
-  .accordion-content {
-    max-height: none !important;
-    overflow: visible !important;
-    padding: 0 18px 18px 18px !important;
+/* Мобильные: показываем стрелку и делаем аккордеон сворачиваемым */
+@media (max-width: 860px) {
+  .accordion-header {
+    cursor: pointer;
   }
   .accordion-header::after {
-    display: none;
+    content: "▼";
+    display: inline-block;
+    font-size: 0.8rem;
+    transition: transform 0.2s;
   }
-  .accordion-header {
-    cursor: default;
+  .accordion-group.open .accordion-header::after {
+    transform: rotate(180deg);
+  }
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    padding: 0 18px;
+  }
+  .accordion-group.open .accordion-content {
+    max-height: 1200px;
+    padding: 0 18px 18px 18px;
   }
 }
 
