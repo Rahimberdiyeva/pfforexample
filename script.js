@@ -91,13 +91,18 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (вершинный и фрагментный) ---
+// --- Шейдер (трипланар для 3D превью, UV для 2D) ---
 const vertexShader = `
 varying vec2 vUv;
+varying vec3 vWorldPosition;
+varying vec3 vNormalW;
+uniform float uScale;
 void main() {
   vUv = uv;
-  gl_PointSize = 1.0;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+  vWorldPosition = worldPos.xyz;
+  vNormalW = normalize(mat3(modelMatrix) * normal);
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
 `;
 
@@ -138,6 +143,8 @@ uniform float uRoughnessContrast;
 uniform float uMetalThreshold;
 uniform float uMetalScale;
 varying vec2 vUv;
+varying vec3 vWorldPosition;
+varying vec3 vNormalW;
 
 float random(vec2 st) {
   return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
@@ -299,10 +306,17 @@ vec3 getColor(float t) {
   return mix(c1, c2, localT);
 }
 
-float computePattern(vec2 uv) {
+// Трипланарная функция
+float triplanarPattern(vec3 pos, float scale) {
+  vec2 uvX = pos.yz * scale;
+  vec2 uvY = pos.xz * scale;
+  vec2 uvZ = pos.xy * scale;
   float angle = uRotation * 3.14159 / 180.0;
-  vec2 centered = uv - 0.5;
-  vec2 rotated = vec2(centered.x * cos(angle) - centered.y * sin(angle), centered.x * sin(angle) + centered.y * cos(angle));
+  vec2 centered, rotated, uv;
+  
+  uv = uvX;
+  centered = uv - 0.5;
+  rotated = vec2(centered.x * cos(angle) - centered.y * sin(angle), centered.x * sin(angle) + centered.y * cos(angle));
   uv = rotated + 0.5 + uOffset;
   if(uMirror == 1) uv.x = 1.0 - uv.x;
   else if(uMirror == 2) uv.y = 1.0 - uv.y;
@@ -310,39 +324,47 @@ float computePattern(vec2 uv) {
   if(uTileEnabled == 1) uv = fract(uv);
   vec2 st = uv * uScale;
   if(uWarpEnable == 1) st = domainWarp(st, uWarpStrength, uWarpOctaves);
-  float patternValue;
-  if(uPatternType == 0) {
-    float w1 = sin(st.x * 8.0) * cos(st.y * 8.0);
-    float w2 = sin(st.y * 12.0 + st.x * 5.0);
-    patternValue = (w1 + w2) * 0.6 + 0.5;
-  }
-  else if(uPatternType == 1) {
-    patternValue = worley(st * 3.5);
-    patternValue = pow(patternValue * 1.2, 0.8);
-  }
-  else if(uPatternType == 2) patternValue = fbmPerlin(st, uOctaves, uPersistence, uLacunarity);
-  else if(uPatternType == 4) patternValue = random(st);
-  else if(uPatternType == 5) patternValue = reactionDiffusion(st);
-  else if(uPatternType == 6) patternValue = wfcPattern(st);
-  else if(uPatternType == 7) patternValue = flowField(st);
-  else if(uPatternType == 12) patternValue = ridgedMF(st, uOctaves, uPersistence, uLacunarity);
-  else if(uPatternType == 8) patternValue = checker(st, 4.0);
-  else if(uPatternType == 9) patternValue = stripes(st, 6.0);
-  else if(uPatternType == 10) patternValue = circles(st, 3.0);
-  else if(uPatternType == 11) patternValue = grid(st, 6.0);
-  else if(uPatternType == 14) patternValue = wood(st, 0.8);
-  else if(uPatternType == 15) patternValue = marble(st, 1.2);
-  else if(uPatternType == 16) patternValue = tiles(st, 5.0);
-  else if(uPatternType == 17) patternValue = linearGradient(uv);
-  else if(uPatternType == 18) patternValue = radialGradient(uv);
-  else if(uPatternType == 19) patternValue = angularGradient(uv);
-  else if(uPatternType == 3) patternValue = truchetPattern(st * 3.0);
-  else patternValue = fbmPerlin(st, uOctaves, uPersistence, uLacunarity);
-  return clamp(patternValue * uIntensity, 0.0, 1.0);
+  float patX = fbmPerlin(st, uOctaves, uPersistence, uLacunarity);
+  
+  uv = uvY;
+  centered = uv - 0.5;
+  rotated = vec2(centered.x * cos(angle) - centered.y * sin(angle), centered.x * sin(angle) + centered.y * cos(angle));
+  uv = rotated + 0.5 + uOffset;
+  if(uMirror == 1) uv.x = 1.0 - uv.x;
+  else if(uMirror == 2) uv.y = 1.0 - uv.y;
+  else if(uMirror == 3) { uv.x = 1.0 - uv.x; uv.y = 1.0 - uv.y; }
+  if(uTileEnabled == 1) uv = fract(uv);
+  st = uv * uScale;
+  if(uWarpEnable == 1) st = domainWarp(st, uWarpStrength, uWarpOctaves);
+  float patY = fbmPerlin(st, uOctaves, uPersistence, uLacunarity);
+  
+  uv = uvZ;
+  centered = uv - 0.5;
+  rotated = vec2(centered.x * cos(angle) - centered.y * sin(angle), centered.x * sin(angle) + centered.y * cos(angle));
+  uv = rotated + 0.5 + uOffset;
+  if(uMirror == 1) uv.x = 1.0 - uv.x;
+  else if(uMirror == 2) uv.y = 1.0 - uv.y;
+  else if(uMirror == 3) { uv.x = 1.0 - uv.x; uv.y = 1.0 - uv.y; }
+  if(uTileEnabled == 1) uv = fract(uv);
+  st = uv * uScale;
+  if(uWarpEnable == 1) st = domainWarp(st, uWarpStrength, uWarpOctaves);
+  float patZ = fbmPerlin(st, uOctaves, uPersistence, uLacunarity);
+  
+  vec3 blend = abs(vNormalW);
+  blend = pow(blend, vec3(2.0));
+  blend /= (blend.x + blend.y + blend.z);
+  return patX * blend.x + patY * blend.y + patZ * blend.z;
 }
 
 void main() {
-  float patternValue = computePattern(vUv);
+  float patternValue;
+  if (uExportMode == 0) {
+    // 3D preview: triplanar
+    patternValue = triplanarPattern(vWorldPosition, 0.8);
+  } else {
+    // PBR export: 2D UV (чтобы не зависеть от нормалей)
+    patternValue = computePattern(vUv);
+  }
   float height = patternValue;
   
   vec2 texel = vec2(1.0) / vec2(512.0);
@@ -413,6 +435,7 @@ void main() {
 }
 `;
 
+// --- Создание материала ---
 let material = new THREE.ShaderMaterial({
   uniforms: uniforms,
   vertexShader: vertexShader,
@@ -427,6 +450,7 @@ let defaultMesh = new THREE.Mesh(defaultGeom, material);
 scene3d.add(defaultMesh);
 currentMesh3d = defaultMesh;
 
+// --- Обновление uniform'ов из UI ---
 function updateUniformsFromUI() {
   uniforms.uScale.value = parseFloat(document.getElementById('scale').value);
   uniforms.uIntensity.value = parseFloat(document.getElementById('intensity').value);
@@ -497,7 +521,7 @@ populateSelect('selectFractal', fractalPatterns, 5);
 populateSelect('selectGradient', gradientPatterns, 17);
 populateSelect('selectGeometric', geometricPatterns, 8);
 
-// --- Цвета ---
+// --- Цвета (круглые) ---
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
 function rebuildColorUI() {
@@ -575,7 +599,7 @@ document.getElementById('bgImageInput')?.addEventListener('change', e => {
 });
 document.getElementById('clearBgBtn')?.addEventListener('click', () => { backgroundImageEl = null; document.getElementById('clearBgBtn')?.classList.add('hidden'); generateOverlayTexture(); });
 
-// --- Генерация оверлея (упрощённая, для совместимости) ---
+// --- Генерация оверлея ---
 async function generateOverlayTexture() {
   const size = 1024;
   const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
@@ -629,7 +653,7 @@ async function generateOverlayTexture() {
   renderer2d.render(scene2d, camera2d);
 }
 
-// --- UI слоёв ---
+// --- UI слоёв (функции, аналогичные предыдущей версии, но без сокращений) ---
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
@@ -684,6 +708,7 @@ if (layerOpacitySlider) {
   });
 }
 
+// --- Загрузка слоёв ---
 async function loadFilesAsLayers(files) {
   for (const file of files) {
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
@@ -694,7 +719,7 @@ async function loadFilesAsLayers(files) {
 }
 document.getElementById('multiTextureInput')?.addEventListener('change', async (e) => { if (e.target.files.length) await loadFilesAsLayers(Array.from(e.target.files)); e.target.value = ''; });
 
-// --- Drag & Drop для слоёв ---
+// --- Drag & Drop ---
 const canvas2dElem = renderer2d.domElement;
 canvas2dElem.style.cursor = 'crosshair';
 canvas2dElem.addEventListener('dragover', (e) => { e.preventDefault(); canvas2dElem.style.border = '2px dashed #4CC9F0'; });
@@ -769,7 +794,7 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// ---- Экспорт 3D (исправлен) ----
+// ---- Экспорт 3D (UV-маппинг, но с текстурой из паттерна) ----
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -824,7 +849,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
 function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
 function cloneUniforms(src) { const dst = {}; for (const key in src) dst[key] = { value: src[key].value }; return dst; }
 
-// --- PBR рендер и превью ---
+// --- PBR рендер ---
 let pbrTimeout;
 function schedulePBRUpdate() {
   clearTimeout(pbrTimeout);
@@ -963,7 +988,7 @@ function initIntegration() {
   }
 }
 
-// --- Пресеты ---
+// --- Пресеты (были в предыдущей версии) ---
 const savePresetBtn = document.getElementById('savePresetBtn');
 const loadPresetInput = document.getElementById('loadPresetInput');
 const loadPresetBtn = document.getElementById('loadPresetBtn');
@@ -986,7 +1011,7 @@ savePresetBtn.onclick = () => { const p = getCurrentPreset(); const blob = new B
 loadPresetBtn.onclick = () => loadPresetInput.click();
 loadPresetInput.onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev => { try { applyPreset(JSON.parse(ev.target.result)); } catch(e) { alert('Ошибка'); } }; r.readAsText(f); };
 
-// --- Зум и Пан для 2D текстуры ---
+// --- Зум и Пан для 2D ---
 const zoomPanContainer = document.getElementById('zoomPanContainer');
 let zoomScale = 1;
 let panX = 0, panY = 0;
