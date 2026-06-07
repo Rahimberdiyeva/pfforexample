@@ -12,7 +12,7 @@ const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); camera2d.p
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
 const scene3d = new THREE.Scene(); scene3d.background = null;
-const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(2.2, 1.6, 2.8);
+const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000); camera3d.position.set(1.8, 1.4, 2.2);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
 container2d.appendChild(renderer2d.domElement);
@@ -74,12 +74,6 @@ function ensureUIControls() {
     paramsGroup.appendChild(row);
     document.getElementById('intensity').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
   }
-  if (!document.getElementById('tile3dScale')) {
-    const row = document.createElement('div'); row.className = 'control-row';
-    row.innerHTML = `<label>Масштаб 3D</label><input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0"><span class="value-display" id="tile3dScaleVal">1.00</span>`;
-    paramsGroup.appendChild(row);
-    document.getElementById('tile3dScale').addEventListener('input', () => { updateUniformsFromUI(); schedulePBRUpdate(); });
-  }
   addIfMissing('normalStrength', 'Сила Normal', 0.2, 3, 0.01, 1.0);
   addIfMissing('roughnessContrast', 'Контраст Roughness', 0.5, 3, 0.01, 1.5);
   addIfMissing('metalThreshold', 'Порог Metallic', 0, 1, 0.01, 0.4);
@@ -87,7 +81,7 @@ function ensureUIControls() {
 }
 
 const uniforms = {
-  uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 },
+  uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 2 },
   uColor0: { value: new THREE.Vector3() }, uColor1: { value: new THREE.Vector3() }, uColor2: { value: new THREE.Vector3() }, uColor3: { value: new THREE.Vector3() },
   uColor4: { value: new THREE.Vector3() }, uColor5: { value: new THREE.Vector3() }, uColor6: { value: new THREE.Vector3() }, uColor7: { value: new THREE.Vector3() },
   uColorsCount: { value: 4 }, uSaturation: { value: 1.5 }, uBlendMode: { value: 0 },
@@ -95,7 +89,7 @@ const uniforms = {
   uOctaves: { value: 3 }, uPersistence: { value: 0.5 }, uLacunarity: { value: 2.0 },
   uTileEnabled: { value: 0 }, uOverlayTexture: { value: null }, uUseOverlay: { value: 1 },
   uWarpEnable: { value: 0 }, uWarpStrength: { value: 0.3 }, uWarpOctaves: { value: 2 },
-  uShowRelief: { value: 0 }, uReliefStrength: { value: 1.0 }, uTile3DScale: { value: 1.0 },
+  uShowRelief: { value: 0 }, uReliefStrength: { value: 1.0 },
   uTime: { value: 0 }, uOverlayScale: { value: 1.0 }, uExportMode: { value: 0 },
   uNormalStrength: { value: 1.0 },
   uRoughnessContrast: { value: 1.5 },
@@ -150,9 +144,9 @@ varying vec2 vUv;
 varying vec2 vUvRaw;
 varying vec3 vWorldPosition;
 varying vec3 vNormalW;
-uniform float uTile3DScale;
+uniform float uScale;
 void main() {
-  vUv = uv * uTile3DScale;
+  vUv = uv * uScale;
   vUvRaw = uv;
   vec4 worldPos = modelMatrix * vec4(position, 1.0);
   vWorldPosition = worldPos.xyz;
@@ -541,8 +535,6 @@ function updateUniformsFromUI() {
   uniforms.uWarpOctaves.value = parseInt(document.getElementById('warpOctaves').value);
   uniforms.uShowRelief.value = document.getElementById('relief2d').checked ? 1 : 0;
   uniforms.uReliefStrength.value = parseFloat(document.getElementById('reliefStrength').value);
-  const tile3dEl = document.getElementById('tile3dScale');
-  if (tile3dEl) uniforms.uTile3DScale.value = parseFloat(tile3dEl.value);
   
   const normalStrengthEl = document.getElementById('normalStrength');
   if (normalStrengthEl) uniforms.uNormalStrength.value = parseFloat(normalStrengthEl.value);
@@ -562,7 +554,6 @@ function updateUniformsFromUI() {
     reliefStrengthVal: uniforms.uReliefStrength.value.toFixed(2)
   };
   if (document.getElementById('intensityVal')) vals.intensityVal = uniforms.uIntensity.value.toFixed(2);
-  if (document.getElementById('tile3dScaleVal')) vals.tile3dScaleVal = uniforms.uTile3DScale.value.toFixed(2);
   if (document.getElementById('normalStrengthVal')) vals.normalStrengthVal = uniforms.uNormalStrength.value.toFixed(2);
   if (document.getElementById('roughnessContrastVal')) vals.roughnessContrastVal = uniforms.uRoughnessContrast.value.toFixed(2);
   if (document.getElementById('metalThresholdVal')) vals.metalThresholdVal = uniforms.uMetalThreshold.value.toFixed(2);
@@ -594,10 +585,10 @@ function populateSelect(id, items, cur) {
   items.forEach(i => { const o = document.createElement('option'); o.value=i.v; o.textContent=i.name; if(i.v===cur) o.selected=true; sel.appendChild(o); });
   sel.addEventListener('change', e => { uniforms.uPatternType.value = parseInt(e.target.value); updateUniformsFromUI(); if (window.innerWidth <= 860) closeMenu(); });
 }
-populateSelect('selectNoise', noisePatterns, uniforms.uPatternType.value);
-populateSelect('selectFractal', fractalPatterns, uniforms.uPatternType.value);
-populateSelect('selectGradient', gradientPatterns, uniforms.uPatternType.value);
-populateSelect('selectGeometric', geometricPatterns, uniforms.uPatternType.value);
+populateSelect('selectNoise', noisePatterns, 2);
+populateSelect('selectFractal', fractalPatterns, 5);
+populateSelect('selectGradient', gradientPatterns, 17);
+populateSelect('selectGeometric', geometricPatterns, 8);
 
 // ---- Изменение ширины 2D и 3D окон ----
 const resizeHandle = document.getElementById('resizeHandle');
@@ -673,7 +664,7 @@ const loadPresetBtn = document.getElementById('loadPresetBtn');
 function getCurrentPreset() {
   return {
     colors: activeColors.map(c => c.getHexString()),
-    uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, tile3dScale:uniforms.uTile3DScale.value, normalStrength:uniforms.uNormalStrength.value, roughnessContrast:uniforms.uRoughnessContrast.value, metalThreshold:uniforms.uMetalThreshold.value, metalScale:uniforms.uMetalScale.value },
+    uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, normalStrength:uniforms.uNormalStrength.value, roughnessContrast:uniforms.uRoughnessContrast.value, metalThreshold:uniforms.uMetalThreshold.value, metalScale:uniforms.uMetalScale.value },
     patternType:uniforms.uPatternType.value
   };
 }
@@ -691,10 +682,10 @@ loadPresetInput.onchange = e => { const f = e.target.files[0]; if(!f) return; co
 
 // ---- 3D модель ----
 function createGeometry(type) {
-  if(type==='cube') return new THREE.BoxGeometry(1.2,1.2,1.2);
-  if(type==='torus') return new THREE.TorusKnotGeometry(0.85,0.22,200,32,3,4);
-  if(type==='sphere') return new THREE.SphereGeometry(0.9,128,128);
-  return new THREE.CylinderGeometry(0.8,0.8,1.2,64);
+  if(type==='cube') return new THREE.BoxGeometry(1.5,1.5,1.5);
+  if(type==='torus') return new THREE.TorusKnotGeometry(1.0,0.28,200,32,3,4);
+  if(type==='sphere') return new THREE.SphereGeometry(1.2,128,128);
+  return new THREE.CylinderGeometry(1.0,1.0,1.5,64);
 }
 function update3dModel() {
   if(currentMesh3d) scene3d.remove(currentMesh3d);
@@ -715,6 +706,7 @@ document.getElementById('modelFileInput')?.addEventListener('change', e => {
     setTimeout(()=>document.getElementById('modelStatus').textContent='',2000);
   }, undefined, () => document.getElementById('modelStatus').textContent='Ошибка');
 });
+
 
 // ---- Фоновое изображение ----
 document.getElementById('bgImageInput')?.addEventListener('change', e => {
@@ -917,7 +909,7 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// ---- Экспорт 3D ----
+// ---- Экспорт 3D (исправлен) ----
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -926,7 +918,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const texture = new THREE.CanvasTexture(img);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(uniforms.uTile3DScale.value, uniforms.uTile3DScale.value);
+    texture.repeat.set(uniforms.uScale.value, uniforms.uScale.value);
     const mat = new THREE.MeshStandardMaterial({ map: texture });
     
     let exportScene = new THREE.Scene();
@@ -1028,8 +1020,6 @@ function initAccordion() {
       group.classList.toggle('open');
     });
   });
-  // На мобильных можно оставить все группы закрытыми, чтобы не загромождать
-  // document.querySelectorAll('.accordion-group').forEach(g => g.classList.remove('open'));
 }
 
 // --- Табы для мобильных ---
@@ -1067,7 +1057,7 @@ function initMobileTabs() {
   });
 }
 
-// --- Интеграция ---
+// --- Интеграция (скачивание аддонов из того же репозитория) ---
 function initIntegration() {
   const btn = document.getElementById('integrationDownloadBtn');
   const select = document.getElementById('integrationSelect');
@@ -1075,9 +1065,14 @@ function initIntegration() {
     btn.addEventListener('click', () => {
       const engine = select.value;
       let url = '';
-      if (engine === 'blender') url = 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip';
-      else if (engine === 'unity') url = 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
-      else if (engine === 'godot') url = 'https://github.com/PatternForge/godot-plugin/releases/latest/download/patternforge_godot.zip';
+      // ЗАМЕНИТЕ НА ВАШИ РЕАЛЬНЫЕ ССЫЛКИ НА RAW-ФАЙЛЫ В РЕПОЗИТОРИИ
+      if (engine === 'blender') {
+        url = 'https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПО/main/patternforge_integration.py';
+      } else if (engine === 'unity') {
+        url = 'https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПО/main/PatternForge.unitypackage';
+      } else if (engine === 'godot') {
+        url = 'https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПО/main/patternforge_godot.zip';
+      }
       if (url) {
         const a = document.createElement('a');
         a.href = url;
@@ -1104,3 +1099,5 @@ generateOverlayTexture();
 initAccordion();
 initMobileTabs();
 initIntegration();
+
+
