@@ -27,7 +27,6 @@ function updateSizes() {
   let size2d = Math.min(rect2d.width, rect2d.height);
   if (size2d <= 0) size2d = 256;
   renderer2d.setSize(size2d, size2d);
-  
   const w3 = container3d.clientWidth, h3 = container3d.clientHeight;
   if (w3 && h3) { 
     renderer3d.setSize(w3, h3); 
@@ -138,7 +137,6 @@ async function updatePBRPreviews() {
     img.src = URL.createObjectURL(blob);
   }
 }
-
 const vertexShader = `
 varying vec2 vUv;
 varying vec2 vUvRaw;
@@ -472,7 +470,6 @@ void main() {
   }
 }
 `;
-
 let currentMaterial = null;
 function createMaterial() {
   const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, side: THREE.DoubleSide });
@@ -706,7 +703,6 @@ document.getElementById('modelFileInput')?.addEventListener('change', e => {
     setTimeout(()=>document.getElementById('modelStatus').textContent='',2000);
   }, undefined, () => document.getElementById('modelStatus').textContent='Ошибка');
 });
-
 
 // ---- Фоновое изображение ----
 document.getElementById('bgImageInput')?.addEventListener('change', e => {
@@ -1057,7 +1053,7 @@ function initMobileTabs() {
   });
 }
 
-// --- Интеграция (скачивание аддонов из того же репозитория) ---
+// --- Интеграция (скачивание аддонов) ---
 function initIntegration() {
   const btn = document.getElementById('integrationDownloadBtn');
   const select = document.getElementById('integrationSelect');
@@ -1065,7 +1061,7 @@ function initIntegration() {
     btn.addEventListener('click', () => {
       const engine = select.value;
       let url = '';
-      // ЗАМЕНИТЕ НА ВАШИ РЕАЛЬНЫЕ ССЫЛКИ НА RAW-ФАЙЛЫ В РЕПОЗИТОРИИ
+      // ЗАМЕНИТЕ НА ВАШИ ССЫЛКИ НА RAW-ФАЙЛЫ В РЕПОЗИТОРИИ
       if (engine === 'blender') {
         url = 'https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПО/main/patternforge_integration.py';
       } else if (engine === 'unity') {
@@ -1099,5 +1095,3 @@ generateOverlayTexture();
 initAccordion();
 initMobileTabs();
 initIntegration();
-
-
