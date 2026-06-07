@@ -279,13 +279,13 @@ canvas {
   color: #3b2a30;
 }
 
-/* Аккордеон — базовая стилизация (свёрнуто по умолчанию) */
+/* ===== АККОРДЕОН: НА ДЕСКТОПЕ ВСЕГДА ОТКРЫТ ===== */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
   border: 1px solid #fad3df;
+  margin-bottom: 12px;
   overflow: hidden;
-  transition: 0.2s;
 }
 
 .accordion-header {
@@ -323,19 +323,18 @@ canvas {
   padding: 0 18px 18px 18px;
 }
 
-/* ---------- ДЕСКТОП: БЛОКИ ВСЕГДА ОТКРЫТЫ (ДАЖЕ БЕЗ КЛАССА .OPEN) ---------- */
+/* ДЕСКТОП: принудительно показываем всё содержимое, игнорируем класс open */
 @media (min-width: 861px) {
   .accordion-content {
     max-height: none !important;
-    padding: 0 18px 18px 18px !important;
     overflow: visible !important;
+    padding: 0 18px 18px 18px !important;
   }
-  /* Стрелку можно оставить, но можно и убрать – на десктопе она не мешает */
   .accordion-header::after {
-    display: inline-block;
+    display: none;
   }
   .accordion-header {
-    cursor: pointer;
+    cursor: default;
   }
 }
 
