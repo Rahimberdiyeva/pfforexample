@@ -97,12 +97,6 @@
             <div class="control-row"><label>Интенсивность света</label><input type="range" id="lightIntensity" min="0.1" max="10" step="0.01" value="2.0"><span class="value-display" id="lightIntensityVal">2.00</span></div>
             <div class="control-row"><label>HDRI интенсивность</label><input type="range" id="hdriIntensity" min="0.1" max="5" step="0.01" value="1.0"><span class="value-display" id="hdriIntensityVal">1.00</span></div>
             <div class="control-row"><label>HDRI вращение</label><input type="range" id="hdriRotation" min="0" max="360" step="1" value="0"><span class="value-display" id="hdriRotationVal">0°</span></div>
-            <div class="bg-upload-row">
-              <input type="file" id="hdriFileInput" accept=".hdr,.jpg,.png" class="hidden">
-              <button id="uploadHdriBtn" class="center-btn btn-left" onclick="document.getElementById('hdriFileInput').click()">Загрузить HDRI</button>
-              <button id="resetHdriBtn" class="center-btn btn-left">Сбросить HDRI</button>
-            </div>
-            <div class="control-row"><label>Тестовый режим</label><select id="testMode" class="compact-select"><option value="none">Выкл</option><option value="roughness">Roughness Inspector</option><option value="metallic">Metallic Inspector</option><option value="normal">Normal Inspector</option></select></div>
           </div>
         </div>
 
@@ -191,7 +185,6 @@
         <select id="integrationSelect" class="compact-select">
           <option value="blender">Blender</option>
           <option value="unity">Unity</option>
-          <option value="godot">Godot</option>
         </select>
       </div>
       <button id="integrationDownloadBtn" class="export-btn">Скачать</button>
