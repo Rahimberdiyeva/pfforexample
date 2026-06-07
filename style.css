@@ -339,7 +339,7 @@ canvas {
   font-family: inherit;
 }
 
-/* --- Цвета --- */
+/* --- Цвета (круглые) --- */
 .color-list {
   display: flex;
   flex-wrap: wrap;
@@ -357,13 +357,16 @@ canvas {
 .color-circle-input {
   width: 56px;
   height: 56px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   border: 3px solid white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   cursor: pointer;
   padding: 0;
   background: none;
+  overflow: hidden;
 }
+.color-circle-input::-webkit-color-swatch-wrapper { padding: 0; }
+.color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 .remove-color-btn {
   width: 24px;
   height: 24px;
@@ -527,7 +530,10 @@ canvas {
   color: white;
   padding: 8px 18px;
   border-radius: 40px !important;
+  transition: opacity 0.2s;
 }
+.export-btn:hover { opacity: 0.85; background: linear-gradient(115deg, #b46e7e, #9a5a6a); }
+
 .mobile-tabs { display: none; }
 
 /* ========== ДЕСКТОП ========== */
