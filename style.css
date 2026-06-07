@@ -102,7 +102,7 @@ body {
   font-size: 0.85rem;
   min-width: 130px;
   cursor: pointer;
-  text-align: left;
+  text-align: left; /* выравнивание влево */
 }
 
 .menu-overlay {
@@ -259,14 +259,13 @@ canvas {
   color: #3b2a30;
 }
 
-/* --- Аккордеон: на десктопе все блоки всегда открыты --- */
+/* --- Аккордеон: на десктопе всегда открыт --- */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
   border: 1px solid #fad3df;
   margin-bottom: 12px;
 }
-
 .accordion-header {
   padding: 14px 18px;
   font-weight: 700;
@@ -279,29 +278,21 @@ canvas {
   user-select: none;
   border-radius: 20px;
 }
-
-.accordion-header::after {
-  display: none;
-}
-
+.accordion-header::after { display: none; }
 .accordion-content {
   padding: 0 18px 18px 18px;
 }
 
 /* Мобильные: аккордеон сворачивается */
 @media (max-width: 860px) {
-  .accordion-header {
-    cursor: pointer;
-  }
+  .accordion-header { cursor: pointer; }
   .accordion-header::after {
     content: "▼";
     display: inline-block;
     font-size: 0.8rem;
     transition: transform 0.2s;
   }
-  .accordion-group.open .accordion-header::after {
-    transform: rotate(180deg);
-  }
+  .accordion-group.open .accordion-header::after { transform: rotate(180deg); }
   .accordion-content {
     max-height: 0;
     overflow: hidden;
