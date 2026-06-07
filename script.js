@@ -145,7 +145,6 @@ async function updatePBRPreviews() {
   }
 }
 
-// ================= ШЕЙДЕРЫ (ИСПРАВЛЕНЫ) =================
 const vertexShader = `
 varying vec2 vUv;
 varying vec2 vUvRaw;
@@ -408,7 +407,6 @@ float computePattern(vec2 uv) {
 
 void main() {
   float patternValue;
-  // Для основного рендера (3D и 2D preview) используем трипланарное отображение
   if (uExportMode == 0) {
     vec3 blend = abs(vNormalW);
     blend = pow(blend, vec3(2.0));
@@ -425,12 +423,10 @@ void main() {
     float patZ = computePattern(uvZ);
     patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
   } else {
-    // Для PBR карт используем прямые UV (0..1) без трипланарного маппинга
     patternValue = computePattern(vUvRaw);
   }
   
   if (uExportMode == 0) {
-    // Основной цвет + оверлей + рельеф
     vec3 color = getColor(patternValue);
     float gray = dot(color, vec3(0.299, 0.587, 0.114));
     color = mix(vec3(gray), color, uSaturation);
@@ -450,7 +446,6 @@ void main() {
     gl_FragColor = vec4(finalColor, 1.0);
   } 
   else if (uExportMode == 1) {
-    // Normal map – касательное пространство, построено по 2D высоте
     vec2 texel = vec2(1.0) / vec2(512.0);
     float h = patternValue;
     float hL = computePattern(vUvRaw - vec2(texel.x, 0.0));
@@ -549,7 +544,6 @@ function updateUniformsFromUI() {
   const tile3dEl = document.getElementById('tile3dScale');
   if (tile3dEl) uniforms.uTile3DScale.value = parseFloat(tile3dEl.value);
   
-  // PBR параметры
   const normalStrengthEl = document.getElementById('normalStrength');
   if (normalStrengthEl) uniforms.uNormalStrength.value = parseFloat(normalStrengthEl.value);
   const roughnessContrastEl = document.getElementById('roughnessContrast');
@@ -1024,8 +1018,11 @@ patternBar?.addEventListener('touchend', e => {
   if (touchStartX - touchEndX > 50) closeMenu();
 }, {passive: true});
 
-// --- Аккордеон (исправлен – теперь следит за resize) ---
+// --- Аккордеон: только для мобильных, на десктопе не трогаем ---
 function initAccordion() {
+  // Если ширина экрана > 860, ничего не делаем (десктоп)
+  if (window.innerWidth > 860) return;
+  
   const headers = document.querySelectorAll('.accordion-header');
   headers.forEach(header => {
     header.addEventListener('click', () => {
@@ -1034,16 +1031,8 @@ function initAccordion() {
     });
   });
   
-  function updateAccordionState() {
-    if (window.innerWidth <= 860) {
-      document.querySelectorAll('.accordion-group').forEach(g => g.classList.remove('open'));
-    } else {
-      document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
-    }
-  }
-  
-  updateAccordionState();
-  window.addEventListener('resize', updateAccordionState);
+  // На мобильных изначально все закрыты (кроме первого, можно настроить)
+  // document.querySelectorAll('.accordion-group').forEach(g => g.classList.remove('open'));
 }
 
 // --- Табы для мобильных ---
@@ -1081,7 +1070,7 @@ function initMobileTabs() {
   });
 }
 
-// --- Интеграция (скачивание аддонов) ---
+// --- Интеграция ---
 function initIntegration() {
   const btn = document.getElementById('integrationDownloadBtn');
   const select = document.getElementById('integrationSelect');
@@ -1089,11 +1078,9 @@ function initIntegration() {
     btn.addEventListener('click', () => {
       const engine = select.value;
       let url = '';
-      // Замените ссылки на ваши реальные GitHub релизы или локальные файлы
       if (engine === 'blender') url = 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip';
       else if (engine === 'unity') url = 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
       else if (engine === 'godot') url = 'https://github.com/PatternForge/godot-plugin/releases/latest/download/patternforge_godot.zip';
-      
       if (url) {
         const a = document.createElement('a');
         a.href = url;
