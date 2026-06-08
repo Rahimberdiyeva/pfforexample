@@ -53,8 +53,8 @@ body {
     padding: 10px 20px; 
     border-bottom: 1px solid #e9cfd8;
     display: flex; 
-    justify-content: center; 
-    align-items: center; 
+    justify-content: flex-start; /* или start */
+align-items: flex-start;    /* или start */
     flex-shrink: 0; 
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
