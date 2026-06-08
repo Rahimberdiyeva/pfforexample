@@ -120,7 +120,7 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
 .pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
 .pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
 
-/* --- Аккордеон: на десктопе всегда открыт, без стрелок --- */
+/* --- Аккордеон: на десктопе всегда открыт, независимо от класса --- */
 .accordion-group {
     background: #ffeef3;
     border-radius: 20px;
@@ -141,12 +141,13 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
 }
 .accordion-group.open .accordion-content { max-height: 2000px; padding: 0 18px 18px 18px; }
 
-/* ДЕСКТОП: полностью убираем аккордеон — всегда видно */
+/* ДЕСКТОП: принудительно показываем содержимое, убираем стрелки */
 @media (min-width: 861px) {
     .accordion-group .accordion-content {
         max-height: none !important;
         padding: 0 18px 18px 18px !important;
         overflow: visible !important;
+        display: block !important;
     }
     .accordion-header {
         cursor: default !important;
