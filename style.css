@@ -301,23 +301,24 @@ canvas {
 }
 
 .accordion-group.open .accordion-content {
-    max-height: 2000px;
+    max-height: 800px;
     padding: 0 18px 18px 18px;
 }
 
-/* === НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА ОТКРЫТ === */
+/* === НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА ПОЛНОСТЬЮ ОТКРЫТ === */
 @media (min-width: 861px) {
-    .accordion-content {
+    .accordion-group .accordion-content {
         max-height: none !important;
-        padding: 0 18px 18px 18px !important;
         display: block !important;
+        padding: 0 18px 18px 18px !important;
+        overflow: visible !important;
     }
     .accordion-header::after {
         display: none !important;
     }
     .accordion-header {
         cursor: default !important;
-        pointer-events: none !important; /* Отключает клики по заголовку на десктопе */
+        pointer-events: none !important; /* Полностью отключает клики по заголовку на десктопе */
     }
 }
 
@@ -721,6 +722,8 @@ canvas {
         border: none;
     }
     .resize-handle { display: none; }
+    
+    /* Возвращаем кликабельность аккордеона на мобильных */
     .accordion-header {
         cursor: pointer !important;
         pointer-events: auto !important;
@@ -728,6 +731,7 @@ canvas {
     .accordion-header::after {
         display: inline-block !important;
     }
+    
     .control-row {
         flex-wrap: wrap;
         gap: 8px;
