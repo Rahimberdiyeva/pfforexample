@@ -17,7 +17,7 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (фон – тёмно-серый с голубизной)
+// 3D сцена (фон – тёмно-серый с голубизной, не чёрный)
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0x2a3a4a);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
@@ -28,7 +28,7 @@ container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (для превью и для экспорта – одинаковое)
+// Освещение (только для превью, в экспорт не попадает)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene3d.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -113,7 +113,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдеры (полные, без анимации) ---
+// --- Шейдеры (без анимации) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -386,6 +386,7 @@ document.getElementById('modelFileInput').addEventListener('change', e => {
   new GLTFLoader().load(url, gltf => {
     if (currentMesh3d) scene3d.remove(currentMesh3d);
     customModel = gltf.scene;
+    // Масштабируем и центрируем модель, чтобы поместилась в кадр
     const box = new THREE.Box3().setFromObject(customModel);
     const size = box.getSize(new THREE.Vector3()).length();
     const scl = 1.2 / size;
@@ -1011,7 +1012,7 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ИСПРАВЛЕННЫЙ ЭКСПОРТ 3D (СОВПАДАЕТ С ПРЕВЬЮ) ==========
+// ========== ИСПРАВЛЕННЫЙ ЭКСПОРТ 3D (РАБОТАЕТ БЕЗ ОШИБОК) ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1041,35 +1042,25 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       tex.repeat.set(1, 1);
     });
 
-    // Используем параметры материала из интерфейса
-    const material = new THREE.MeshStandardMaterial({
+    const exportMaterial = new THREE.MeshStandardMaterial({
       map: baseColorTex,
       normalMap: normalTex,
       roughnessMap: roughnessTex,
       metalnessMap: metallicTex,
       aoMap: aoTex,
       displacementMap: heightTex,
-      roughness: parseFloat(document.getElementById('roughnessContrast')?.value || 1.5) * 0.5,
-      metalness: parseFloat(document.getElementById('metalScale')?.value || 2.0) * 0.3,
+      roughness: 0.5,
+      metalness: 0.5,
       side: THREE.DoubleSide
     });
 
-    // Экспортируем модель с полным освещением (таким же, как в превью)
+    // Создаём сцену только для экспорта
     const exportScene = new THREE.Scene();
-    // Добавляем то же освещение, что и в превью
-    const expAmbient = new THREE.AmbientLight(0xffffff, 0.7);
-    const expMain = new THREE.DirectionalLight(0xffffff, 1.5);
-    expMain.position.set(2, 3, 2);
-    const expFill = new THREE.DirectionalLight(0xffffff, 0.5);
-    expFill.position.set(-1, 1, 1.5);
-    const expBack = new THREE.DirectionalLight(0xffffff, 0.4);
-    expBack.position.set(0, 1, -2);
-    exportScene.add(expAmbient, expMain, expFill, expBack);
-
     let modelToExport;
     if (customModel) {
+      // Клонируем пользовательскую модель с её текущими трансформациями
       const cloned = customModel.clone();
-      cloned.traverse(c => { if (c.isMesh) c.material = material; });
+      cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
     } else {
       let geom;
@@ -1077,18 +1068,21 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
       else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
       else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
-      modelToExport = new THREE.Mesh(geom, material);
+      modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
     exportScene.add(modelToExport);
 
+    // Экспортируем без дополнительных источников света (чтобы не было предупреждений)
     const exporter = new GLTFExporter();
     if (format === 'glb') {
       exporter.parse(exportScene, (result) => {
+        // Проверяем, не вернулась ли строка (ошибка)
         if (typeof result === 'string') {
           console.error('GLTFExporter error (string):', result);
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
+        // result должен быть ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
