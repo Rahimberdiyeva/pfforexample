@@ -997,7 +997,6 @@ setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Запекаем все текстуры в максимальном качестве
     const baseColorBlob = await captureBaseColorTexture(4096);
     const normalBlob = await renderPBRMap(4096, 'normal');
     const roughnessBlob = await renderPBRMap(4096, 'roughness');
@@ -1005,7 +1004,6 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const aoBlob = await renderPBRMap(4096, 'ao');
     const heightBlob = await renderPBRMap(4096, 'height');
 
-    // Функция загрузки текстуры из Blob
     const loadTexture = (blob) => new Promise((resolve) => {
       const img = new Image();
       img.onload = () => resolve(new THREE.CanvasTexture(img));
@@ -1018,14 +1016,12 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const aoTex = await loadTexture(aoBlob);
     const heightTex = await loadTexture(heightBlob);
 
-    // Настройка текстур
     [baseColorTex, normalTex, roughnessTex, metallicTex, aoTex, heightTex].forEach(tex => {
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(1, 1);
     });
 
-    // Создаём стандартный материал для экспорта
     const exportMaterial = new THREE.MeshStandardMaterial({
       map: baseColorTex,
       normalMap: normalTex,
@@ -1038,16 +1034,13 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       side: THREE.DoubleSide
     });
 
-    // Экспортируем именно ту модель, которая сейчас отображается в 3D-превью
     const exportScene = new THREE.Scene();
     let modelToExport;
     if (customModel) {
-      // Клонируем пользовательскую модель, сохраняя её трансформацию
       const cloned = customModel.clone();
       cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
     } else {
-      // Для стандартных геометрий создаём новый меш с экспортным материалом
       let geom;
       if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(1.0, 0.28, 200, 32, 3, 4);
@@ -1057,12 +1050,10 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     }
     exportScene.add(modelToExport);
 
-    // Добавляем минимальное освещение, чтобы материалы в экспортированной модели выглядели корректно
     const exportLight = new THREE.DirectionalLight(0xffffff, 1.0);
     exportLight.position.set(1, 2, 1);
     exportScene.add(exportLight);
 
-    // Экспорт в зависимости от формата
     const exporter = new GLTFExporter();
     if (format === 'glb') {
       exporter.parse(exportScene, (result) => {
