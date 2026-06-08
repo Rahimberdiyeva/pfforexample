@@ -120,10 +120,10 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
 .pbr-item canvas { width: 100%; border-radius: 8px; border: 1px solid #e9cfd8; background: #eee; }
 .pbr-item span { display: block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: #3b2a30; }
 
-/* --- Аккордеон --- */
+/* --- Аккордеон с закруглёнными углами --- */
 .accordion-group {
     background: #ffeef3;
-    border-radius: 16px;
+    border-radius: 20px;
     border: 1px solid #fad3df;
     overflow: hidden;
     transition: 0.2s;
@@ -142,7 +142,7 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
 }
 .accordion-group.open .accordion-content { max-height: 2000px; padding: 0 18px 18px 18px; }
 
-/* НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА РАСКРЫТ */
+/* На десктопе аккордеон всегда раскрыт */
 @media (min-width: 861px) {
     .accordion-group .accordion-content {
         max-height: none !important;
@@ -210,7 +210,7 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
 
 @media (max-width: 860px) {
     body { height: auto; min-height: 100vh; overflow-y: auto; }
-    .menu-toggle { display: block; }
+    .menu-toggle { display: block; left: 16px; top: 50%; transform: translateY(-50%); }
     .logo { font-size: 1.3rem; max-width: 70%; text-align: center; margin-left: 40px; }
     .pattern-bar {
         position: fixed; left: -100%; top: 0; bottom: 0; width: 280px; flex-direction: column; align-items: stretch;
@@ -221,11 +221,12 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
     .category-filters { display: flex; flex-direction: column; gap: 20px; width: 100%; }
     .category-group { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
     .category-label { font-size: 0.9rem; font-weight: 600; text-align: left; width: 100%; }
-    .category-select { width: 100%; min-width: unset; padding: 8px 12px; font-size: 0.85rem; text-align: left; direction: ltr; }
+    .category-select { width: 100%; min-width: unset; padding: 8px 12px; font-size: 0.85rem; text-align: left; }
     .category-select option { text-align: left; }
     
     .main-layout { flex-direction: column; overflow-y: visible; height: auto; gap: 0; }
-    .settings-column { flex: 0 0 auto; width: 100%; max-width: 100%; border-bottom: 2px solid #f0dfe6; height: auto; }
+    .settings-column { flex: 0 0 auto; width: 100%; max-width: 100%; border-bottom: 2px solid #f0dfe6; height: auto; order: 2; }
+    .preview-wrapper { order: 1; }
     .settings-panel { max-width: 600px; margin: 0 auto; width: 100%; overflow-y: visible; }
     .generation-header { position: sticky; top: 0; z-index: 20; background: #d9b7c2cc; backdrop-filter: blur(8px); }
     .preview-wrapper { flex-direction: column; overflow-y: visible; height: auto; border-left: none; }
@@ -250,7 +251,7 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
     .model-row select, .model-row .file-input-btn { width: 100%; margin: 0; }
     
     .global-footer { display: flex; flex-direction: column; gap: 12px; padding: 12px; background: #fcf0f5; align-items: stretch; }
-    .footer-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; background: transparent !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important; }
+    .footer-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; background: transparent !important; padding: 0 !important; margin: 0 !important; }
     .footer-label { white-space: nowrap; font-size: 0.8rem; font-weight: 700; }
     .footer-controls { display: flex; flex-direction: row; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
     .footer-item select { padding: 4px 10px; font-size: 0.7rem; min-height: 28px; height: auto; width: auto; min-width: 80px; }
