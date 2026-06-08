@@ -32,7 +32,7 @@ body {
     line-height: 1;
     padding: 8px;
     position: absolute;
-    left: 15px;
+    left: 16px; /* Жестко слева */
     top: 50%;
     transform: translateY(-50%);
     z-index: 1015;
@@ -45,6 +45,7 @@ body {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    margin-left: 40px; /* Отступ чтобы не наезжать на кнопку меню на мобильных */
 }
 
 /* --- Категории --- */
@@ -261,13 +262,14 @@ canvas {
     color: #3b2a30; 
 }
 
-/* --- Аккордеон --- */
+/* --- Аккордеон (ИСПРАВЛЕНЫ СКРУГЛЕНИЯ) --- */
 .accordion-group {
     background: #ffeef3;
-    border-radius: 20px;
+    border-radius: 16px; /* Округленные углы */
     border: 1px solid #fad3df;
-    overflow: hidden;
+    overflow: hidden; /* Предотвращает вылезание контента за углы */
     transition: 0.2s;
+    margin-bottom: 12px;
 }
 
 .accordion-header {
@@ -305,11 +307,8 @@ canvas {
     padding: 0 18px 18px 18px;
 }
 
-/* === НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА ОТКРЫТ === */
+/* На десктопе аккордеон всегда открыт */
 @media (min-width: 861px) {
-    .accordion-group {
-        overflow: visible !important;
-    }
     .accordion-content {
         max-height: none !important;
         padding: 0 18px 18px 18px !important;
@@ -611,6 +610,7 @@ canvas {
         font-size: 1.3rem;
         max-width: 70%;
         text-align: center;
+        margin-left: 40px; /* Гарантирует место для кнопки слева */
     }
     .pattern-bar {
         position: fixed; left: -100%; top: 0; bottom: 0;
@@ -653,6 +653,7 @@ canvas {
         text-align: left;
         direction: ltr;
     }
+    .category-select option { text-align: left; }
     .main-layout {
         flex-direction: column;
         overflow-y: visible;
@@ -671,6 +672,13 @@ canvas {
         margin: 0 auto;
         width: 100%;
         overflow-y: visible;
+    }
+    .generation-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #d9b7c2cc;
+        backdrop-filter: blur(8px);
     }
     .preview-wrapper {
         flex-direction: column;
@@ -717,7 +725,6 @@ canvas {
     }
     .resize-handle { display: none; }
     
-    /* Возвращаем кликабельность на мобильных */
     .accordion-header {
         cursor: pointer !important;
         pointer-events: auto !important;
@@ -803,6 +810,9 @@ canvas {
         width: 85px;
         text-align: center;
         white-space: nowrap;
+    }
+    .footer-item .compact-select {
+        width: auto;
     }
     .layers-list {
         max-height: 200px;
