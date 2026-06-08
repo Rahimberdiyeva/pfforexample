@@ -301,24 +301,26 @@ canvas {
 }
 
 .accordion-group.open .accordion-content {
-    max-height: 800px;
+    max-height: 2000px;
     padding: 0 18px 18px 18px;
 }
 
-/* === НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА ПОЛНОСТЬЮ ОТКРЫТ === */
+/* === НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА ОТКРЫТ === */
 @media (min-width: 861px) {
-    .accordion-group .accordion-content {
-        max-height: none !important;
-        display: block !important;
-        padding: 0 18px 18px 18px !important;
+    .accordion-group {
         overflow: visible !important;
+    }
+    .accordion-content {
+        max-height: none !important;
+        padding: 0 18px 18px 18px !important;
+        display: block !important;
     }
     .accordion-header::after {
         display: none !important;
     }
     .accordion-header {
         cursor: default !important;
-        pointer-events: none !important; /* Полностью отключает клики по заголовку на десктопе */
+        pointer-events: none !important;
     }
 }
 
@@ -651,7 +653,6 @@ canvas {
         text-align: left;
         direction: ltr;
     }
-    .category-select option { text-align: left; }
     .main-layout {
         flex-direction: column;
         overflow-y: visible;
@@ -670,13 +671,6 @@ canvas {
         margin: 0 auto;
         width: 100%;
         overflow-y: visible;
-    }
-    .generation-header {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #d9b7c2cc;
-        backdrop-filter: blur(8px);
     }
     .preview-wrapper {
         flex-direction: column;
@@ -723,7 +717,7 @@ canvas {
     }
     .resize-handle { display: none; }
     
-    /* Возвращаем кликабельность аккордеона на мобильных */
+    /* Возвращаем кликабельность на мобильных */
     .accordion-header {
         cursor: pointer !important;
         pointer-events: auto !important;
@@ -809,9 +803,6 @@ canvas {
         width: 85px;
         text-align: center;
         white-space: nowrap;
-    }
-    .footer-item .compact-select {
-        width: auto;
     }
     .layers-list {
         max-height: 200px;
