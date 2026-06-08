@@ -32,9 +32,9 @@ body {
     line-height: 1;
     padding: 8px;
     position: absolute;
-    left: 16px; /* Жестко слева */
+    left: 16px; /* Строго слева */
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%); /* Центрирование по вертикали */
     z-index: 1015;
 }
 
@@ -45,7 +45,7 @@ body {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    margin-left: 40px; /* Отступ чтобы не наезжать на кнопку меню на мобильных */
+    margin-left: 40px; /* Отступ, чтобы не наезжать на кнопку меню */
 }
 
 /* --- Категории --- */
@@ -262,12 +262,12 @@ canvas {
     color: #3b2a30; 
 }
 
-/* --- Аккордеон (ИСПРАВЛЕНЫ СКРУГЛЕНИЯ) --- */
+/* --- Аккордеон (Скругленные углы и фиксация на десктопе) --- */
 .accordion-group {
     background: #ffeef3;
     border-radius: 16px; /* Округленные углы */
     border: 1px solid #fad3df;
-    overflow: hidden; /* Предотвращает вылезание контента за углы */
+    overflow: hidden; /* Предотвращает вылезание контента */
     transition: 0.2s;
     margin-bottom: 12px;
 }
@@ -307,19 +307,20 @@ canvas {
     padding: 0 18px 18px 18px;
 }
 
-/* На десктопе аккордеон всегда открыт */
+/* НА ДЕСКТОПЕ АККОРДЕОН ВСЕГДА РАСКРЫТ */
 @media (min-width: 861px) {
-    .accordion-content {
+    .accordion-group .accordion-content {
         max-height: none !important;
-        padding: 0 18px 18px 18px !important;
         display: block !important;
-    }
-    .accordion-header::after {
-        display: none !important;
+        overflow: visible !important;
+        padding: 0 18px 18px 18px !important;
     }
     .accordion-header {
         cursor: default !important;
-        pointer-events: none !important;
+        pointer-events: none !important; /* Запрет кликов на десктопе */
+    }
+    .accordion-header::after {
+        display: none !important;
     }
 }
 
@@ -610,7 +611,7 @@ canvas {
         font-size: 1.3rem;
         max-width: 70%;
         text-align: center;
-        margin-left: 40px; /* Гарантирует место для кнопки слева */
+        margin-left: 40px;
     }
     .pattern-bar {
         position: fixed; left: -100%; top: 0; bottom: 0;
@@ -725,6 +726,7 @@ canvas {
     }
     .resize-handle { display: none; }
     
+    /* Возвращаем кликабельность на мобильных */
     .accordion-header {
         cursor: pointer !important;
         pointer-events: auto !important;
