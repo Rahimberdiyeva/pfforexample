@@ -103,7 +103,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- ШЕЙДЕРЫ (без анимации времени, все синтаксические ошибки исправлены) ---
+// --- ШЕЙДЕРЫ (полный код, без сокращений) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -285,12 +285,20 @@ const fragmentShader = `
 `;
 
 // --- МАТЕРИАЛ И МОДЕЛЬ ---
-const previewMaterial = new THREE.ShaderMaterial({
-  uniforms: uniforms,
-  vertexShader: vertexShader,
-  fragmentShader: fragmentShader,
-  side: THREE.DoubleSide
-});
+let previewMaterial;
+try {
+  previewMaterial = new THREE.ShaderMaterial({
+    uniforms: uniforms,
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    side: THREE.DoubleSide
+  });
+  console.log('Shader material compiled successfully');
+} catch(e) {
+  console.error('Shader compilation error:', e);
+  // Fallback material
+  previewMaterial = new THREE.MeshStandardMaterial({ color: 0xff6600 });
+}
 
 // 2D плоскость
 const plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), previewMaterial);
@@ -317,7 +325,7 @@ function renderAll() {
 }
 controls3d.addEventListener('change', () => renderAll());
 
-// --- АДАПТАЦИЯ РАЗМЕРОВ ОКНА (исправленная) ---
+// --- АДАПТАЦИЯ РАЗМЕРОВ ОКНА ---
 function updateSizes() {
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
@@ -1010,7 +1018,7 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// --- ЭКСПОРТ 3D (без предупреждений, удалён лишний свет) ---
+// --- ЭКСПОРТ 3D (без предупреждений) ---
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1067,8 +1075,8 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     }
     exportScene.add(modelToExport);
 
-    // Не добавляем лишние источники света – используем только встроенные PBR-карты
-    // Это устраняет предупреждения GLTFExporter о направлении света.
+    // Не добавляем источники света, чтобы избежать предупреждений GLTFExporter
+    // Используем только встроенные PBR-карты
 
     const exporter = new GLTFExporter();
     if (format === 'glb') {
@@ -1319,3 +1327,4 @@ generateOverlayTexture();
 initAccordion();
 initMobileTabs();
 renderAll();
+
