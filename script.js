@@ -43,6 +43,7 @@ const backLight = new THREE.DirectionalLight(0xffffff, 0.5); backLight.position.
 let currentMesh3d = null, currentGeometryType = 'cube', customModel = null, overlayTexture = null, backgroundImageEl = null;
 let activeColors = [ new THREE.Color('#FF6B8B'), new THREE.Color('#4CC9F0'), new THREE.Color('#F9C74F'), new THREE.Color('#9B5DE5') ];
 let layers = [], selectedLayerId = null, isDraggingLayer = false, dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
+let overlayDirty = true; // флаг для оптимизации
 
 const uniforms = {
     uScale: { value: 0.8 }, uIntensity: { value: 1.0 }, uPatternType: { value: 0 },
@@ -201,13 +202,14 @@ function updateUniformsFromUI() {
     const ids = ['scale','octaves','persistence','lacunarity','saturation','rotate','offsetX','offsetY','warpStrength','warpOctaves','reliefStrength','intensity','tile3dScale','normalStrength','roughnessContrast','metalThreshold','metalScale'];
     ids.forEach(id => { const el = document.getElementById(id+'Val'); if(el) el.innerText = parseFloat(document.getElementById(id).value).toFixed(2); });
     document.getElementById('rotateVal').innerText = uniforms.uRotation.value + '°';
+    overlayDirty = true;
     schedulePBRUpdate();
     generateOverlayTexture();
 }
 ['scale','octaves','persistence','lacunarity','saturation','blendMode','rotate','offsetX','offsetY','mirror','warpStrength','warpOctaves','reliefStrength','intensity','tile3dScale','normalStrength','roughnessContrast','metalThreshold','metalScale'].forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener('input', updateUniformsFromUI); });
 document.getElementById('warpEnable')?.addEventListener('change', updateUniformsFromUI);
 document.getElementById('relief2d')?.addEventListener('change', updateUniformsFromUI);
-document.getElementById('bgOpacity')?.addEventListener('input', (e) => { document.getElementById('bgOpacityVal').innerText = parseFloat(e.target.value).toFixed(2); generateOverlayTexture(); });
+document.getElementById('bgOpacity')?.addEventListener('input', (e) => { document.getElementById('bgOpacityVal').innerText = parseFloat(e.target.value).toFixed(2); overlayDirty = true; generateOverlayTexture(); });
 
 const noisePatterns = [{name:"Волны",v:0},{name:"Перлин",v:2},{name:"Симплекс",v:4},{name:"Вороного",v:1}];
 const fractalPatterns = [{name:"Реакция-диффузия",v:5},{name:"Потоковое поле",v:7},{name:"WFC",v:6},{name:"Гребневый мультифрактал",v:12}];
@@ -222,10 +224,11 @@ document.getElementById('geometrySelect').addEventListener('change', e => { cust
 document.getElementById('modelFileInput').addEventListener('change', e => { if(!e.target.files[0]) return; const url = URL.createObjectURL(e.target.files[0]); new GLTFLoader().load(url, gltf => { if(currentMesh3d) scene3d.remove(currentMesh3d); customModel = gltf.scene; const box = new THREE.Box3().setFromObject(customModel); const size = box.getSize(new THREE.Vector3()).length(); const scl = 1.2 / size; customModel.scale.set(scl,scl,scl); customModel.position.sub(box.getCenter(new THREE.Vector3()).multiplyScalar(scl)); update3dModel(); URL.revokeObjectURL(url); document.getElementById('modelStatus').textContent='Модель загружена'; setTimeout(()=>document.getElementById('modelStatus').textContent='',2000); }, undefined, () => document.getElementById('modelStatus').textContent='Ошибка загрузки'); });
 update3dModel();
 
-document.getElementById('bgImageInput').addEventListener('change', e => { if(e.target.files[0]) { const img = new Image(); img.onload = () => { backgroundImageEl = img; generateOverlayTexture(); }; img.src = URL.createObjectURL(e.target.files[0]); document.getElementById('clearBgBtn').classList.remove('hidden'); } });
-document.getElementById('clearBgBtn').addEventListener('click', () => { backgroundImageEl = null; document.getElementById('clearBgBtn').classList.add('hidden'); generateOverlayTexture(); });
+document.getElementById('bgImageInput').addEventListener('change', e => { if(e.target.files[0]) { const img = new Image(); img.onload = () => { backgroundImageEl = img; overlayDirty = true; generateOverlayTexture(); }; img.src = URL.createObjectURL(e.target.files[0]); document.getElementById('clearBgBtn').classList.remove('hidden'); } });
+document.getElementById('clearBgBtn').addEventListener('click', () => { backgroundImageEl = null; document.getElementById('clearBgBtn').classList.add('hidden'); overlayDirty = true; generateOverlayTexture(); });
 
 async function generateOverlayTexture() {
+    if (!overlayDirty) return;
     const size = 1024; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,size,size); ctx.imageSmoothingEnabled = true;
     if(backgroundImageEl) { ctx.globalAlpha = parseFloat(document.getElementById('bgOpacity').value); drawImageCover(ctx, backgroundImageEl, size, size); ctx.globalAlpha = 1.0; }
     const syncRot = uniforms.uRotation.value, syncOffX = uniforms.uOffset.value.x, syncOffY = uniforms.uOffset.value.y, syncMirror = uniforms.uMirror.value;
@@ -244,18 +247,19 @@ async function generateOverlayTexture() {
     const texture = new THREE.CanvasTexture(canvas); texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.needsUpdate = true;
     if(overlayTexture) overlayTexture.dispose?.(); overlayTexture = texture; uniforms.uOverlayTexture.value = overlayTexture; uniforms.uUseOverlay.value = (layers.length>0 || backgroundImageEl) ? 1 : 0;
     document.getElementById('clearOverlayBtn').classList.toggle('hidden', layers.length===0);
+    overlayDirty = false;
 }
 function drawImageCover(ctx, img, w, h) { const ratio = Math.max(w/img.width, h/img.height); const cx = (w - img.width*ratio)/2, cy = (h - img.height*ratio)/2; ctx.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width*ratio, img.height*ratio); }
 
 const overlayLayersDiv = document.getElementById('overlayLayersList');
-function updateLayersUI() { if(!overlayLayersDiv) return; overlayLayersDiv.innerHTML = ''; layers.forEach(layer => { const div = document.createElement('div'); div.className = `layer-item ${selectedLayerId === layer.id ? 'selected' : ''}`; const thumb = document.createElement('img'); thumb.className = 'layer-thumb'; thumb.src = layer.imgElement.src; const nameSpan = document.createElement('span'); nameSpan.className = 'layer-name'; nameSpan.textContent = layer.name; const delBtn = document.createElement('button'); delBtn.textContent = '🗑'; delBtn.onclick = (e) => { e.stopPropagation(); layers = layers.filter(l => l.id !== layer.id); if(selectedLayerId === layer.id) selectedLayerId = null; generateOverlayTexture(); updateLayersUI(); }; div.appendChild(thumb); div.appendChild(nameSpan); div.appendChild(delBtn); div.addEventListener('click', (e) => { if(!e.target.closest('button')) { selectedLayerId = layer.id; updateLayersUI(); if(document.getElementById('layerOpacity')) document.getElementById('layerOpacity').value = layer.opacity; } }); overlayLayersDiv.appendChild(div); }); }
-document.getElementById('multiTextureInput').addEventListener('change', async (e) => { if(e.target.files.length) { for(const file of e.target.files) { const img = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(file); }); layers.push({ id: Date.now()+Math.random(), imgElement: img, name: file.name, x:0.5, y:0.5, scale:0.4, rotation:0, mirror:0, opacity:1.0, syncWithPattern:false, tileX:1, tileY:1 }); selectedLayerId = layers[layers.length-1].id; } generateOverlayTexture(); updateLayersUI(); } e.target.value=''; });
-document.getElementById('clearOverlayBtn').addEventListener('click', () => { layers = []; selectedLayerId = null; generateOverlayTexture(); updateLayersUI(); });
+function updateLayersUI() { if(!overlayLayersDiv) return; overlayLayersDiv.innerHTML = ''; layers.forEach(layer => { const div = document.createElement('div'); div.className = `layer-item ${selectedLayerId === layer.id ? 'selected' : ''}`; const thumb = document.createElement('img'); thumb.className = 'layer-thumb'; thumb.src = layer.imgElement.src; const nameSpan = document.createElement('span'); nameSpan.className = 'layer-name'; nameSpan.textContent = layer.name; const delBtn = document.createElement('button'); delBtn.textContent = '🗑'; delBtn.onclick = (e) => { e.stopPropagation(); layers = layers.filter(l => l.id !== layer.id); if(selectedLayerId === layer.id) selectedLayerId = null; overlayDirty = true; generateOverlayTexture(); updateLayersUI(); }; div.appendChild(thumb); div.appendChild(nameSpan); div.appendChild(delBtn); div.addEventListener('click', (e) => { if(!e.target.closest('button')) { selectedLayerId = layer.id; updateLayersUI(); if(document.getElementById('layerOpacity')) document.getElementById('layerOpacity').value = layer.opacity; } }); overlayLayersDiv.appendChild(div); }); }
+document.getElementById('multiTextureInput').addEventListener('change', async (e) => { if(e.target.files.length) { for(const file of e.target.files) { const img = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(file); }); layers.push({ id: Date.now()+Math.random(), imgElement: img, name: file.name, x:0.5, y:0.5, scale:0.4, rotation:0, mirror:0, opacity:1.0, syncWithPattern:false, tileX:1, tileY:1 }); selectedLayerId = layers[layers.length-1].id; } overlayDirty = true; generateOverlayTexture(); updateLayersUI(); } e.target.value=''; });
+document.getElementById('clearOverlayBtn').addEventListener('click', () => { layers = []; selectedLayerId = null; overlayDirty = true; generateOverlayTexture(); updateLayersUI(); });
 document.getElementById('layerOpacity')?.addEventListener('input', (e) => { if(selectedLayerId) { const layer = layers.find(l => l.id === selectedLayerId); if(layer) { layer.opacity = parseFloat(e.target.value); document.getElementById('layerOpacityVal').innerText = layer.opacity.toFixed(2); } } });
 updateLayersUI();
 
 function getCurrentPreset() { return { colors: activeColors.map(c=>c.getHexString()), uniforms: { scale:uniforms.uScale.value, octaves:uniforms.uOctaves.value, persistence:uniforms.uPersistence.value, lacunarity:uniforms.uLacunarity.value, saturation:uniforms.uSaturation.value, blendMode:uniforms.uBlendMode.value, rotation:uniforms.uRotation.value, offsetX:uniforms.uOffset.value.x, offsetY:uniforms.uOffset.value.y, mirror:uniforms.uMirror.value, warpEnable:uniforms.uWarpEnable.value, warpStrength:uniforms.uWarpStrength.value, warpOctaves:uniforms.uWarpOctaves.value, reliefStrength:uniforms.uReliefStrength.value, intensity:uniforms.uIntensity.value, tile3dScale:uniforms.uTile3DScale.value, normalStrength:uniforms.uNormalStrength.value, roughnessContrast:uniforms.uRoughnessContrast.value, metalThreshold:uniforms.uMetalThreshold.value, metalScale:uniforms.uMetalScale.value }, patternType:uniforms.uPatternType.value }; }
-function applyPreset(p) { if(p.colors) { activeColors = p.colors.map(h=>new THREE.Color('#'+h)); rebuildColorUI(); updateColorUniforms(); } if(p.uniforms) { Object.keys(p.uniforms).forEach(k => { const el = document.getElementById(k); if(el) el.value = p.uniforms[k]; }); updateUniformsFromUI(); } if(p.patternType !== undefined) uniforms.uPatternType.value = p.patternType; updateMaterial(); }
+function applyPreset(p) { if(p.colors) { activeColors = p.colors.map(h=>new THREE.Color('#'+h)); rebuildColorUI(); updateColorUniforms(); } if(p.uniforms) { Object.keys(p.uniforms).forEach(k => { const el = document.getElementById(k); if(el) el.value = p.uniforms[k]; }); updateUniformsFromUI(); } if(p.patternType !== undefined) uniforms.uPatternType.value = p.patternType; updateMaterial(); overlayDirty = true; generateOverlayTexture(); }
 document.getElementById('savePresetBtn').onclick = () => { const p = getCurrentPreset(); const blob = new Blob([JSON.stringify(p)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`preset_${Date.now()}.json`; a.click(); };
 document.getElementById('loadPresetBtn').onclick = () => document.getElementById('loadPresetInput').click();
 document.getElementById('loadPresetInput').onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev => { try { applyPreset(JSON.parse(ev.target.result)); } catch(e) { alert('Ошибка загрузки пресета'); } }; r.readAsText(f); };
@@ -294,13 +298,21 @@ async function renderPBRMap(res, type) {
     return blob;
 }
 
+let pbrReady = false;
 async function updatePBRPreviews() {
+    if (!pbrReady) return;
     const pbrGrid = document.getElementById('pbrGrid'); if(!pbrGrid) return;
     if(pbrGrid.children.length === 0) { ['basecolor','normal','roughness','metallic','height','ao'].forEach((type,i) => { const div = document.createElement('div'); div.className = 'pbr-item'; const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=128; const span = document.createElement('span'); span.textContent = {basecolor:'Base Color', normal:'Normal', roughness:'Roughness', metallic:'Metallic', height:'Height', ao:'AO'}[type]; div.appendChild(canvas); div.appendChild(span); pbrGrid.appendChild(div); }); }
     const maps = ['basecolor','normal','roughness','metallic','height','ao'];
     for(let i=0;i<maps.length;i++) { const blob = await renderPBRMap(256, maps[i]); const img = new Image(); img.onload = () => { const ctx = pbrGrid.children[i].querySelector('canvas').getContext('2d'); ctx.drawImage(img,0,0,128,128); }; img.src = URL.createObjectURL(blob); }
 }
-let pbrTimeout; function schedulePBRUpdate() { clearTimeout(pbrTimeout); pbrTimeout = setTimeout(updatePBRPreviews, 400); }
+let pbrTimeout; function schedulePBRUpdate() { if (!pbrReady) return; clearTimeout(pbrTimeout); pbrTimeout = setTimeout(updatePBRPreviews, 500); }
+
+// Включаем PBR-превью только при первом переключении на вкладку PBR или через 2 секунды после загрузки
+let pbrActivated = false;
+function enablePBR() { if (!pbrActivated) { pbrActivated = true; pbrReady = true; updatePBRPreviews(); } }
+document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
+setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
 document.getElementById('export2DBtn').addEventListener('click', async () => {
     const format = document.getElementById('export2DFormat').value; const res = parseInt(document.getElementById('exportResolution').value);
@@ -359,4 +371,3 @@ document.getElementById('menuOverlay').addEventListener('click', () => { documen
 
 generateOverlayTexture();
 updateUniformsFromUI();
-schedulePBRUpdate();
