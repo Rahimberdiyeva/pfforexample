@@ -17,27 +17,27 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (фон – тёмно-серый с голубизной, не чёрный)
+// 3D сцена (светлый фон, не чёрный)
 const scene3d = new THREE.Scene();
-scene3d.background = new THREE.Color(0x2a3a4a);
+scene3d.background = new THREE.Color(0x4a5a6a); // Изменён на более светлый
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
 camera3d.position.set(2.5, 2, 3);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer3d.setClearColor(0x2a3a4a);
+renderer3d.setClearColor(0x4a5a6a);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (только для превью, в экспорт не попадает)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+// Освещение (усилено для светлого фона)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
 scene3d.add(ambientLight);
-const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
 mainLight.position.set(2, 3, 2);
 scene3d.add(mainLight);
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
 fillLight.position.set(-1, 1, 1.5);
 scene3d.add(fillLight);
-const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
 backLight.position.set(0, 1, -2);
 scene3d.add(backLight);
 
@@ -65,7 +65,7 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 let overlayDirty = true;
 
-// Uniform'ы
+// Uniform'ы (добавлен uUseTriplanar)
 const uniforms = {
   uScale: { value: 0.8 },
   uIntensity: { value: 1.0 },
@@ -100,7 +100,9 @@ const uniforms = {
   uRoughnessContrast: { value: 1.5 },
   uMetalThreshold: { value: 0.4 },
   uMetalScale: { value: 2.0 },
-  uTexelSize: { value: new THREE.Vector2(1/512, 1/512) }
+  uMetalBias: { value: 0.0 },     // новый параметр для металлик
+  uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
+  uUseTriplanar: { value: 0 }      // 0 = UV-маппинг, 1 = triplanar (старый режим)
 };
 
 function updateColorUniforms() {
@@ -113,7 +115,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдеры (без анимации) ---
+// --- Шейдеры (исправлен фрагментный шейдер: поддержка UV/triplanar) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -155,7 +157,9 @@ const fragmentShader = `
   uniform float uRoughnessContrast;
   uniform float uMetalThreshold;
   uniform float uMetalScale;
+  uniform float uMetalBias;
   uniform vec2 uTexelSize;
+  uniform int uUseTriplanar;
   varying vec2 vUv;
   varying vec3 vWorldPosition;
   varying vec3 vNormalW;
@@ -236,7 +240,8 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    if (uExportMode == 0) {
+    // Режим UV или Triplanar
+    if (uUseTriplanar == 1 && uExportMode == 0) {
       vec3 blend = abs(vNormalW);
       blend = pow(blend, vec3(2.0));
       blend /= (blend.x + blend.y + blend.z);
@@ -248,6 +253,7 @@ const fragmentShader = `
       float patZ = compute2DPattern(uvZ);
       patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
     } else {
+      // Для экспорта и 3D превью по умолчанию используем UV-координаты
       patternValue = compute2DPattern(vUv);
     }
 
@@ -262,7 +268,11 @@ const fragmentShader = `
 
     if (uExportMode == 1) { gl_FragColor = vec4(normalTS * 0.5 + 0.5, 1.0); return; }
     if (uExportMode == 2) { float r = 1.0 - pow(patternValue, uRoughnessContrast); r = clamp(r, 0.04, 0.96); gl_FragColor = vec4(r, r, r, 1.0); return; }
-    if (uExportMode == 3) { float m = clamp((patternValue - uMetalThreshold) * uMetalScale, 0.0, 1.0); gl_FragColor = vec4(m, m, m, 1.0); return; }
+    if (uExportMode == 3) { 
+      float m = clamp((patternValue - uMetalThreshold) * uMetalScale + uMetalBias, 0.0, 1.0);
+      gl_FragColor = vec4(m, m, m, 1.0);
+      return;
+    }
     if (uExportMode == 4) { gl_FragColor = vec4(height, height, height, 1.0); return; }
     if (uExportMode == 5) { 
       float h1 = compute2DPattern(vUv + texel);
@@ -294,7 +304,7 @@ const fragmentShader = `
   }
 `;
 
-// --- Материал для превью ---
+// --- Материал для превью (UV-режим по умолчанию) ---
 const previewMaterial = new THREE.ShaderMaterial({
   uniforms: uniforms,
   vertexShader: vertexShader,
@@ -379,20 +389,22 @@ function update3dModel() {
   fitCameraToObject(currentMesh3d, camera3d, controls3d);
 }
 
-// --- Загрузка пользовательской модели ---
+// --- Загрузка пользовательской модели (исправлено центрирование) ---
 document.getElementById('modelFileInput').addEventListener('change', e => {
   if (!e.target.files[0]) return;
   const url = URL.createObjectURL(e.target.files[0]);
   new GLTFLoader().load(url, gltf => {
     if (currentMesh3d) scene3d.remove(currentMesh3d);
     customModel = gltf.scene;
-    // Масштабируем и центрируем модель, чтобы поместилась в кадр
+    // Правильное центрирование и масштабирование
     const box = new THREE.Box3().setFromObject(customModel);
-    const size = box.getSize(new THREE.Vector3()).length();
-    const scl = 1.2 / size;
-    customModel.scale.set(scl, scl, scl);
+    const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scl = 1.2 / maxDim;
+    customModel.scale.set(scl, scl, scl);
     customModel.position.copy(center.clone().negate().multiplyScalar(scl));
+    customModel.traverse(c => { if (c.isMesh) c.material = previewMaterial; });
     update3dModel();
     URL.revokeObjectURL(url);
     document.getElementById('modelStatus').textContent = 'Модель загружена';
@@ -450,6 +462,7 @@ function updateUniformsFromUI() {
   uniforms.uRoughnessContrast.value = parseFloat(document.getElementById('roughnessContrast').value);
   uniforms.uMetalThreshold.value = parseFloat(document.getElementById('metalThreshold').value);
   uniforms.uMetalScale.value = parseFloat(document.getElementById('metalScale').value);
+  uniforms.uMetalBias.value = 0.0; // можно вынести в UI, пока фиксирован
   
   const ids = ['scale','octaves','persistence','lacunarity','saturation','rotate','offsetX','offsetY','warpStrength','warpOctaves','reliefStrength','intensity','normalStrength','roughnessContrast','metalThreshold','metalScale'];
   ids.forEach(id => {
@@ -921,6 +934,7 @@ async function captureBaseColorTexture(resolution = 2048) {
     else tuni[key] = { value: uniforms[key].value };
   }
   tuni.uExportMode = { value: 0 };
+  tuni.uUseTriplanar = { value: 0 }; // принудительно UV для экспорта
   tuni.uUseOverlay = { value: (layers.length > 0 || backgroundImageEl) ? 1 : 0 };
   tuni.uOverlayTexture = { value: overlayTexture };
   tuni.uShowRelief = { value: document.getElementById('relief2d').checked ? 1 : 0 };
@@ -947,6 +961,7 @@ async function renderPBRMap(res, type) {
   }
   tuni.uUseOverlay = { value: 0 };
   tuni.uShowRelief = { value: 0 };
+  tuni.uUseTriplanar = { value: 0 };
   tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
   tuni.uTexelSize = { value: new THREE.Vector2(1/res, 1/res) };
   const sc = new THREE.Scene();
@@ -1012,11 +1027,11 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ИСПРАВЛЕННЫЙ ЭКСПОРТ 3D (РАБОТАЕТ БЕЗ ОШИБОК) ==========
+// ========== ИСПРАВЛЕННЫЙ ЭКСПОРТ 3D ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Запекаем текстуры в высоком разрешении
+    // Запекаем текстуры в высоком разрешении (UV-режим)
     const baseColorBlob = await captureBaseColorTexture(4096);
     const normalBlob = await renderPBRMap(4096, 'normal');
     const roughnessBlob = await renderPBRMap(4096, 'roughness');
@@ -1054,11 +1069,9 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       side: THREE.DoubleSide
     });
 
-    // Создаём сцену только для экспорта
     const exportScene = new THREE.Scene();
     let modelToExport;
     if (customModel) {
-      // Клонируем пользовательскую модель с её текущими трансформациями
       const cloned = customModel.clone();
       cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
@@ -1072,17 +1085,14 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     }
     exportScene.add(modelToExport);
 
-    // Экспортируем без дополнительных источников света (чтобы не было предупреждений)
     const exporter = new GLTFExporter();
     if (format === 'glb') {
       exporter.parse(exportScene, (result) => {
-        // Проверяем, не вернулась ли строка (ошибка)
         if (typeof result === 'string') {
-          console.error('GLTFExporter error (string):', result);
+          console.error('GLTFExporter error:', result);
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
-        // result должен быть ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
@@ -1123,7 +1133,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-// --- Интеграция (без Godot) ---
+// --- Интеграция ---
 document.getElementById('integrationDownloadBtn')?.addEventListener('click', () => {
   const engine = document.getElementById('integrationSelect').value;
   let url = engine === 'blender' ? 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip' : 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
@@ -1159,7 +1169,7 @@ menuToggle?.addEventListener('click', e => {
 });
 menuOverlay?.addEventListener('click', closeMenu);
 
-// --- Аккордеон (только для мобильных) ---
+// --- Аккордеон ---
 function initAccordion() {
   if (window.innerWidth > 860) return;
   const headers = document.querySelectorAll('.accordion-header');
