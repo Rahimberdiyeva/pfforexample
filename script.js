@@ -17,7 +17,7 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (светлый фон)
+// 3D сцена
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0x4a5a6a);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
@@ -65,7 +65,7 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 let overlayDirty = true;
 
-// Uniform'ы (triplanar для 3D и экспорта модели)
+// Uniform'ы
 const uniforms = {
   uScale: { value: 0.8 },
   uIntensity: { value: 1.0 },
@@ -102,7 +102,7 @@ const uniforms = {
   uMetalScale: { value: 2.0 },
   uMetalBias: { value: 0.0 },
   uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
-  uIsExportingModel: { value: 0 }  // 1 при экспорте 3D модели (всегда triplanar)
+  uIsExportingModel: { value: 0 } // 1 при экспорте 3D модели (triplanar)
 };
 
 function updateColorUniforms() {
@@ -115,7 +115,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и для экспорта модели, UV для 2D и PBR-превью) ---
+// --- Шейдер (triplanar для 3D и экспорта) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -240,9 +240,7 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    // Используем triplanar для 3D отображения (uExportMode==0 && uIsExportingModel==0)
-    // а также при экспорте модели (uIsExportingModel==1) - чтобы все карты были бесшовными.
-    // Для экспорта 2D текстуры или PBR-превью (uIsExportingModel==0 && uExportMode!=0) используем UV.
+    // Если экспортируем модель (uIsExportingModel == 1) или обычный 3D-режим (uExportMode==0), используем triplanar
     bool useTriplanar = (uIsExportingModel == 1) || (uExportMode == 0);
     if (useTriplanar) {
       vec3 blend = abs(vNormalW);
@@ -926,7 +924,6 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// --- Функции для запекания текстур (с возможностью включить triplanar) ---
 async function captureBaseColorTexture(resolution = 2048, useTriplanar = true) {
   const tuni = {};
   for (const key in uniforms) {
@@ -1004,7 +1001,7 @@ async function updatePBRPreviews() {
   const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
   for (let i = 0; i < maps.length; i++) {
     const canvas = pbrGrid.children[i].querySelector('canvas');
-    const blob = await renderPBRMap(256, maps[i], false); // для превью используем UV (быстрее)
+    const blob = await renderPBRMap(256, maps[i], false);
     const img = new Image();
     img.onload = () => {
       const ctx = canvas.getContext('2d');
@@ -1030,11 +1027,11 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ (бесшовные triplanar-текстуры) ==========
+// ========== ЭКСПОРТ 3D МОДЕЛИ ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Запекаем текстуры через triplanar (бесшовно)
+    // Генерируем triplanar-текстуры (бесшовные)
     const baseColorBlob = await captureBaseColorTexture(4096, true);
     const normalBlob = await renderPBRMap(4096, 'normal', true);
     const roughnessBlob = await renderPBRMap(4096, 'roughness', true);
@@ -1096,7 +1093,6 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
-        // result - ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
