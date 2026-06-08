@@ -65,7 +65,7 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 let overlayDirty = true;
 
-// Uniform'ы (triplanar всегда включён)
+// Uniform'ы (triplanar для 3D и экспорта модели)
 const uniforms = {
   uScale: { value: 0.8 },
   uIntensity: { value: 1.0 },
@@ -101,8 +101,8 @@ const uniforms = {
   uMetalThreshold: { value: 0.4 },
   uMetalScale: { value: 2.0 },
   uMetalBias: { value: 0.0 },
-  uTexelSize: { value: new THREE.Vector2(1/512, 1/512) }
-  // Triplanar теперь всегда активен, отдельный uniform не нужен
+  uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
+  uIsExportingModel: { value: 0 }  // 1 при экспорте 3D модели (всегда triplanar)
 };
 
 function updateColorUniforms() {
@@ -115,7 +115,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (всегда triplanar для 3D, UV для 2D/экспорта) ---
+// --- Шейдер (triplanar для 3D и для экспорта модели, UV для 2D и PBR-превью) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -159,6 +159,7 @@ const fragmentShader = `
   uniform float uMetalScale;
   uniform float uMetalBias;
   uniform vec2 uTexelSize;
+  uniform int uIsExportingModel;
   varying vec2 vUv;
   varying vec3 vWorldPosition;
   varying vec3 vNormalW;
@@ -239,8 +240,11 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    // Для 3D (не экспорт) используем triplanar
-    if (uExportMode == 0) {
+    // Используем triplanar для 3D отображения (uExportMode==0 && uIsExportingModel==0)
+    // а также при экспорте модели (uIsExportingModel==1) - чтобы все карты были бесшовными.
+    // Для экспорта 2D текстуры или PBR-превью (uIsExportingModel==0 && uExportMode!=0) используем UV.
+    bool useTriplanar = (uIsExportingModel == 1) || (uExportMode == 0);
+    if (useTriplanar) {
       vec3 blend = abs(vNormalW);
       blend = pow(blend, vec3(2.0));
       blend /= (blend.x + blend.y + blend.z);
@@ -252,7 +256,6 @@ const fragmentShader = `
       float patZ = compute2DPattern(uvZ);
       patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
     } else {
-      // Для экспорта PBR-карт используем UV (чтобы текстуры можно было наложить на любую модель)
       patternValue = compute2DPattern(vUv);
     }
 
@@ -901,12 +904,12 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   const res = parseInt(document.getElementById('exportResolution').value);
   if (format === 'pbr') {
     const zip = new JSZip();
-    zip.file('basecolor.png', await renderPBRMap(res, 'basecolor'));
-    zip.file('normal.png', await renderPBRMap(res, 'normal'));
-    zip.file('roughness.png', await renderPBRMap(res, 'roughness'));
-    zip.file('height.png', await renderPBRMap(res, 'height'));
-    zip.file('ao.png', await renderPBRMap(res, 'ao'));
-    zip.file('metallic.png', await renderPBRMap(res, 'metallic'));
+    zip.file('basecolor.png', await renderPBRMap(res, 'basecolor', false));
+    zip.file('normal.png', await renderPBRMap(res, 'normal', false));
+    zip.file('roughness.png', await renderPBRMap(res, 'roughness', false));
+    zip.file('height.png', await renderPBRMap(res, 'height', false));
+    zip.file('ao.png', await renderPBRMap(res, 'ao', false));
+    zip.file('metallic.png', await renderPBRMap(res, 'metallic', false));
     const content = await zip.generateAsync({ type: 'blob' });
     downloadBlob(content, `pbr_${res}.zip`);
   } else if (format === 'svg') {
@@ -923,8 +926,8 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// --- Функции для запекания текстур (экспорт PBR) ---
-async function captureBaseColorTexture(resolution = 2048) {
+// --- Функции для запекания текстур (с возможностью включить triplanar) ---
+async function captureBaseColorTexture(resolution = 2048, useTriplanar = true) {
   const tuni = {};
   for (const key in uniforms) {
     if (uniforms[key].value instanceof THREE.Vector2) tuni[key] = { value: uniforms[key].value.clone() };
@@ -936,6 +939,8 @@ async function captureBaseColorTexture(resolution = 2048) {
   tuni.uOverlayTexture = { value: overlayTexture };
   tuni.uShowRelief = { value: document.getElementById('relief2d').checked ? 1 : 0 };
   tuni.uTexelSize = { value: new THREE.Vector2(1/resolution, 1/resolution) };
+  tuni.uIsExportingModel = { value: useTriplanar ? 1 : 0 };
+  
   const sc = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   cam.position.z = 1;
@@ -948,7 +953,7 @@ async function captureBaseColorTexture(resolution = 2048) {
   return blob;
 }
 
-async function renderPBRMap(res, type) {
+async function renderPBRMap(res, type, useTriplanar = true) {
   const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
   const tuni = {};
   for (const key in uniforms) {
@@ -960,6 +965,8 @@ async function renderPBRMap(res, type) {
   tuni.uShowRelief = { value: 0 };
   tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
   tuni.uTexelSize = { value: new THREE.Vector2(1/res, 1/res) };
+  tuni.uIsExportingModel = { value: useTriplanar ? 1 : 0 };
+  
   const sc = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   cam.position.z = 1;
@@ -997,7 +1004,7 @@ async function updatePBRPreviews() {
   const maps = ['basecolor', 'normal', 'roughness', 'metallic', 'height', 'ao'];
   for (let i = 0; i < maps.length; i++) {
     const canvas = pbrGrid.children[i].querySelector('canvas');
-    const blob = await renderPBRMap(256, maps[i]);
+    const blob = await renderPBRMap(256, maps[i], false); // для превью используем UV (быстрее)
     const img = new Image();
     img.onload = () => {
       const ctx = canvas.getContext('2d');
@@ -1023,20 +1030,17 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ (текстуры всегда бесшовные) ==========
+// ========== ЭКСПОРТ 3D МОДЕЛИ (бесшовные triplanar-текстуры) ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Запекаем текстуры в высоком разрешении (UV-режим, но с triplanar-шейдером при экспорте? 
-    // Для экспорта модели нужно, чтобы текстуры были в UV-координатах. Мы используем ту же функцию,
-    // которая для exportMode=0 генерирует triplanar-текстуру, но при exportMode=0 у нас всегда triplanar.
-    // Это даёт бесшовные текстуры, запечённые в UV-координаты. Идеально!
-    const baseColorBlob = await captureBaseColorTexture(4096);
-    const normalBlob = await renderPBRMap(4096, 'normal');
-    const roughnessBlob = await renderPBRMap(4096, 'roughness');
-    const metallicBlob = await renderPBRMap(4096, 'metallic');
-    const aoBlob = await renderPBRMap(4096, 'ao');
-    const heightBlob = await renderPBRMap(4096, 'height');
+    // Запекаем текстуры через triplanar (бесшовно)
+    const baseColorBlob = await captureBaseColorTexture(4096, true);
+    const normalBlob = await renderPBRMap(4096, 'normal', true);
+    const roughnessBlob = await renderPBRMap(4096, 'roughness', true);
+    const metallicBlob = await renderPBRMap(4096, 'metallic', true);
+    const aoBlob = await renderPBRMap(4096, 'ao', true);
+    const heightBlob = await renderPBRMap(4096, 'height', true);
 
     const loadTexture = (blob) => new Promise((resolve) => {
       const img = new Image();
@@ -1092,6 +1096,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
+        // result - ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
