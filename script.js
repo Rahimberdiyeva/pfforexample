@@ -7,38 +7,50 @@ import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 // --- Инициализация ---
 const container2d = document.getElementById('canvas2d');
 const container3d = document.getElementById('canvas3d');
+
+// 2D сцена
 const scene2d = new THREE.Scene();
 scene2d.background = null;
 const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
 camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
-const scene3d = new THREE.Scene();
-scene3d.background = new THREE.Color(0x2a2a3a);
-const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-camera3d.position.set(2, 1.5, 2.5);
-const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer3d.setClearColor(0x2a2a3a);
-
 container2d.appendChild(renderer2d.domElement);
+
+// 3D сцена (фон – тёмно-серый с голубизной, не чёрный)
+const scene3d = new THREE.Scene();
+scene3d.background = new THREE.Color(0x2a3a4a);
+const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+camera3d.position.set(2.5, 2, 3);
+const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer3d.setClearColor(0x2a3a4a);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение 3D (только для превью)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+// Освещение (только для превью, в экспорт не попадает)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene3d.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8);
-directionalLight.position.set(2, 3, 2);
-directionalLight.castShadow = true;
-scene3d.add(directionalLight);
-function updateLightIntensity(val) { directionalLight.intensity = val; }
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+mainLight.position.set(2, 3, 2);
+scene3d.add(mainLight);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+fillLight.position.set(-1, 1, 1.5);
+scene3d.add(fillLight);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
+backLight.position.set(0, 1, -2);
+scene3d.add(backLight);
+
+function updateLightIntensity(val) {
+  mainLight.intensity = val;
+  fillLight.intensity = val * 0.5;
+  backLight.intensity = val * 0.3;
+}
 
 // --- Общие переменные ---
 let currentMesh3d = null;
 let currentGeometryType = 'cube';
 let customModel = null;
-let customModelTransform = { scale: null, position: null, rotation: null };
 let overlayTexture = null;
 let backgroundImageEl = null;
 let activeColors = [
@@ -101,7 +113,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдеры ---
+// --- Шейдеры (без анимации) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -352,10 +364,6 @@ function fitCameraToObject(object, camera, controls, offset = 1.2) {
 function update3dModel() {
   if (currentMesh3d) scene3d.remove(currentMesh3d);
   if (customModel) {
-    // Применяем сохранённые трансформации (масштаб, позиция, поворот)
-    if (customModelTransform.scale) customModel.scale.copy(customModelTransform.scale);
-    if (customModelTransform.position) customModel.position.copy(customModelTransform.position);
-    if (customModelTransform.rotation) customModel.rotation.copy(customModelTransform.rotation);
     customModel.traverse(c => { if (c.isMesh) c.material = previewMaterial; });
     scene3d.add(customModel);
     currentMesh3d = customModel;
@@ -371,23 +379,20 @@ function update3dModel() {
   fitCameraToObject(currentMesh3d, camera3d, controls3d);
 }
 
-// --- Загрузка пользовательской модели с сохранением трансформаций ---
+// --- Загрузка пользовательской модели ---
 document.getElementById('modelFileInput').addEventListener('change', e => {
   if (!e.target.files[0]) return;
   const url = URL.createObjectURL(e.target.files[0]);
   new GLTFLoader().load(url, gltf => {
     if (currentMesh3d) scene3d.remove(currentMesh3d);
     customModel = gltf.scene;
+    // Масштабируем и центрируем модель, чтобы поместилась в кадр
     const box = new THREE.Box3().setFromObject(customModel);
     const size = box.getSize(new THREE.Vector3()).length();
     const scl = 1.2 / size;
     customModel.scale.set(scl, scl, scl);
     const center = box.getCenter(new THREE.Vector3());
-    customModel.position.sub(center.multiplyScalar(scl));
-    // Сохраняем трансформации для экспорта
-    customModelTransform.scale = customModel.scale.clone();
-    customModelTransform.position = customModel.position.clone();
-    customModelTransform.rotation = customModel.rotation.clone();
+    customModel.position.copy(center.clone().negate().multiplyScalar(scl));
     update3dModel();
     URL.revokeObjectURL(url);
     document.getElementById('modelStatus').textContent = 'Модель загружена';
@@ -610,7 +615,7 @@ async function generateOverlayTexture() {
   renderAll();
 }
 
-// --- Слои UI (полный код) ---
+// --- Слои UI ---
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
@@ -907,7 +912,7 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// --- Функции для запекания текстур при экспорте 3D ---
+// --- Функции для запекания текстур ---
 async function captureBaseColorTexture(resolution = 2048) {
   const tuni = {};
   for (const key in uniforms) {
@@ -923,7 +928,7 @@ async function captureBaseColorTexture(resolution = 2048) {
   const sc = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   cam.position.z = 1;
-  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader: vertexShader, fragmentShader: fragmentShader });
+  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
   sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
   offscreenRenderer.setSize(resolution, resolution);
   offscreenRenderer.render(sc, cam);
@@ -947,7 +952,7 @@ async function renderPBRMap(res, type) {
   const sc = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   cam.position.z = 1;
-  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader: vertexShader, fragmentShader: fragmentShader });
+  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
   sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
   offscreenRenderer.setSize(res, res);
   offscreenRenderer.render(sc, cam);
@@ -956,7 +961,7 @@ async function renderPBRMap(res, type) {
   return blob;
 }
 
-// --- PBR превью (отложенный запуск) ---
+// --- PBR превью ---
 let pbrReady = false;
 async function updatePBRPreviews() {
   if (!pbrReady) return;
@@ -1007,7 +1012,7 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ИСПРАВЛЕННЫЙ ЭКСПОРТ 3D ==========
+// ========== ИСПРАВЛЕННЫЙ ЭКСПОРТ 3D (РАБОТАЕТ БЕЗ ОШИБОК) ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1049,14 +1054,12 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       side: THREE.DoubleSide
     });
 
-    // Создаём сцену только для экспорта, без лишних источников света
+    // Создаём сцену только для экспорта
     const exportScene = new THREE.Scene();
     let modelToExport;
     if (customModel) {
-      // Клонируем модель и применяем все трансформации (масштаб, позицию, поворот)
+      // Клонируем пользовательскую модель с её текущими трансформациями
       const cloned = customModel.clone();
-      // Убеждаемся, что трансформации применены (они уже были в customModel)
-      // Применяем материал к мешам
       cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
     } else {
@@ -1069,11 +1072,11 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     }
     exportScene.add(modelToExport);
 
-    // Экспортируем без добавления источников света – материал уже содержит текстуры
+    // Экспортируем без дополнительных источников света (чтобы не было предупреждений)
     const exporter = new GLTFExporter();
     if (format === 'glb') {
       exporter.parse(exportScene, (result) => {
-        // Проверяем, не вернулась ли строка с ошибкой
+        // Проверяем, не вернулась ли строка (ошибка)
         if (typeof result === 'string') {
           console.error('GLTFExporter error (string):', result);
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
