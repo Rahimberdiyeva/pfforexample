@@ -4,37 +4,40 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 
-// --- Инициализация ---
+// --- ИНИЦИАЛИЗАЦИЯ ---
 const container2d = document.getElementById('canvas2d');
 const container3d = document.getElementById('canvas3d');
+
+// 2D сцена
 const scene2d = new THREE.Scene();
 scene2d.background = null;
 const camera2d = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
 camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
+container2d.appendChild(renderer2d.domElement);
+
+// 3D сцена (фон тёмно-серый, не чёрный)
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0x2a2a3a);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
 camera3d.position.set(2, 1.5, 2.5);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer3d.setClearColor(0x2a2a3a);
-
-container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение 3D
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+// Освещение (только для превью, в экспорт не попадает)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene3d.add(ambientLight);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8);
 directionalLight.position.set(2, 3, 2);
 directionalLight.castShadow = true;
 scene3d.add(directionalLight);
-function updateLightIntensity(value) { directionalLight.intensity = value; }
+function updateLightIntensity(val) { directionalLight.intensity = val; }
 
-// --- Общие переменные ---
+// --- ОБЩИЕ ПЕРЕМЕННЫЕ ---
 let currentMesh3d = null;
 let currentGeometryType = 'cube';
 let customModel = null;
@@ -52,7 +55,7 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 let overlayDirty = true;
 
-// Uniform'ы
+// --- UNIFORMS (те же самые, что и в шейдере) ---
 const uniforms = {
   uScale: { value: 0.8 },
   uIntensity: { value: 1.0 },
@@ -100,7 +103,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдеры (без анимации времени) ---
+// --- ШЕЙДЕРЫ (без анимации времени, все синтаксические ошибки исправлены) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -281,7 +284,7 @@ const fragmentShader = `
   }
 `;
 
-// --- Материал для превью (шейдерный) ---
+// --- МАТЕРИАЛ И МОДЕЛЬ ---
 const previewMaterial = new THREE.ShaderMaterial({
   uniforms: uniforms,
   vertexShader: vertexShader,
@@ -289,20 +292,24 @@ const previewMaterial = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
+// 2D плоскость
 const plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), previewMaterial);
 scene2d.add(plane2d);
-const defaultGeom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+
+// 3D модель по умолчанию (куб)
+const defaultGeom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
 const defaultMesh = new THREE.Mesh(defaultGeom, previewMaterial);
 scene3d.add(defaultMesh);
 currentMesh3d = defaultMesh;
 
-// --- Контролы и рендеринг ---
+// --- УПРАВЛЕНИЕ КАМЕРОЙ ---
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
 controls3d.enableDamping = true;
 controls3d.enableZoom = true;
 controls3d.zoomSpeed = 1.2;
 controls3d.panSpeed = 0.8;
 controls3d.rotateSpeed = 1.0;
+controls3d.target.set(0, 0, 0);
 
 function renderAll() {
   renderer2d.render(scene2d, camera2d);
@@ -310,13 +317,15 @@ function renderAll() {
 }
 controls3d.addEventListener('change', () => renderAll());
 
-// --- Функции изменения размеров ---
+// --- АДАПТАЦИЯ РАЗМЕРОВ ОКНА ---
 function updateSizes() {
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
   if (size2d <= 0) size2d = 256;
   renderer2d.setSize(size2d, size2d);
-  const w3 = container3d.clientWidth, h3 = container3d.clientHeight;
+
+  const w3 = container3d.clientWidth;
+  const h3 = container3d.clientHeight;
   if (w3 && h3) {
     renderer3d.setSize(w3, h3);
     camera3d.aspect = w3 / h3;
@@ -330,6 +339,7 @@ new ResizeObserver(() => updateSizes()).observe(container2d.parentElement);
 window.addEventListener('resize', updateSizes);
 updateSizes();
 
+// --- ФУНКЦИЯ ПОДСТРОЙКИ КАМЕРЫ ПОД МОДЕЛЬ ---
 function fitCameraToObject(object, camera, controls, offset = 1.2) {
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
@@ -344,6 +354,7 @@ function fitCameraToObject(object, camera, controls, offset = 1.2) {
   renderAll();
 }
 
+// --- ОБНОВЛЕНИЕ 3D МОДЕЛИ (ВЫЗЫВАЕТСЯ ПРИ СМЕНЕ ТИПА ИЛИ ЗАГРУЗКЕ) ---
 function update3dModel() {
   if (currentMesh3d) scene3d.remove(currentMesh3d);
   if (customModel) {
@@ -352,23 +363,24 @@ function update3dModel() {
     currentMesh3d = customModel;
   } else {
     let geom;
-    if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-    else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(1.0, 0.28, 200, 32, 3, 4);
-    else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.2, 128, 128);
-    else geom = new THREE.CylinderGeometry(1.0, 1.0, 1.5, 64);
+    if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+    else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
+    else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
+    else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
     currentMesh3d = new THREE.Mesh(geom, previewMaterial);
     scene3d.add(currentMesh3d);
   }
   fitCameraToObject(currentMesh3d, camera3d, controls3d);
 }
 
-// --- Загрузка пользовательской модели (исправленная) ---
+// --- ЗАГРУЗКА ПОЛЬЗОВАТЕЛЬСКОЙ МОДЕЛИ (GLB/GLTF) ---
 document.getElementById('modelFileInput').addEventListener('change', e => {
   if (!e.target.files[0]) return;
   const url = URL.createObjectURL(e.target.files[0]);
   new GLTFLoader().load(url, gltf => {
     if (currentMesh3d) scene3d.remove(currentMesh3d);
     customModel = gltf.scene;
+    // Корректируем размер и позицию, чтобы модель поместилась в кадр
     const box = new THREE.Box3().setFromObject(customModel);
     const size = box.getSize(new THREE.Vector3()).length();
     const scl = 1.2 / size;
@@ -383,11 +395,11 @@ document.getElementById('modelFileInput').addEventListener('change', e => {
   });
 });
 
-// --- Категории паттернов ---
-const noisePatterns = [{name:"Волны", v:0},{name:"Перлин", v:2},{name:"Вороного", v:1}];
-const fractalPatterns = [{name:"Реакция-диффузия", v:5},{name:"Потоковое поле", v:7},{name:"WFC", v:6},{name:"Гребневый мультифрактал", v:12}];
-const gradientPatterns = [{name:"Линейный градиент", v:17},{name:"Радиальный градиент", v:18},{name:"Угловой градиент", v:19}];
-const geometricPatterns = [{name:"Шахматная доска", v:8},{name:"Полосы", v:9},{name:"Концентрические круги", v:10},{name:"Сетка", v:11},{name:"Плитка", v:16},{name:"Древесина", v:14},{name:"Мрамор", v:15},{name:"Truchet", v:3}];
+// --- КАТЕГОРИИ ПАТТЕРНОВ ---
+const noisePatterns = [{name:"Волны",v:0},{name:"Перлин",v:2},{name:"Вороного",v:1}];
+const fractalPatterns = [{name:"Реакция-диффузия",v:5},{name:"Потоковое поле",v:7},{name:"WFC",v:6},{name:"Гребневый мультифрактал",v:12}];
+const gradientPatterns = [{name:"Линейный градиент",v:17},{name:"Радиальный градиент",v:18},{name:"Угловой градиент",v:19}];
+const geometricPatterns = [{name:"Шахматная доска",v:8},{name:"Полосы",v:9},{name:"Концентрические круги",v:10},{name:"Сетка",v:11},{name:"Плитка",v:16},{name:"Древесина",v:14},{name:"Мрамор",v:15},{name:"Truchet",v:3}];
 function populateSelect(id, items, cur) {
   const sel = document.getElementById(id);
   if (!sel) return;
@@ -410,7 +422,7 @@ populateSelect('selectFractal', fractalPatterns, 5);
 populateSelect('selectGradient', gradientPatterns, 17);
 populateSelect('selectGeometric', geometricPatterns, 8);
 
-// --- Обновление uniform'ов из UI ---
+// --- ОБНОВЛЕНИЕ UNIFORM ИЗ UI ---
 function updateUniformsFromUI() {
   uniforms.uScale.value = parseFloat(document.getElementById('scale').value);
   uniforms.uIntensity.value = parseFloat(document.getElementById('intensity').value);
@@ -462,7 +474,7 @@ document.getElementById('lightIntensity')?.addEventListener('input', e => {
   renderAll();
 });
 
-// --- Цвета ---
+// --- ЦВЕТОВАЯ ПАЛИТРА ---
 const colorContainer = document.getElementById('colorListContainer');
 const addColorBtn = document.getElementById('addColorBtn');
 function rebuildColorUI() {
@@ -506,7 +518,7 @@ addColorBtn.addEventListener('click', () => {
 });
 rebuildColorUI();
 
-// --- Фоновое изображение и оверлей ---
+// --- ФОНОВОЕ ИЗОБРАЖЕНИЕ И ОВЕРЛЕЙ ---
 document.getElementById('bgImageInput')?.addEventListener('change', e => {
   if (e.target.files[0]) {
     const img = new Image();
@@ -596,7 +608,7 @@ async function generateOverlayTexture() {
   renderAll();
 }
 
-// --- Слои UI ---
+// --- СЛОИ UI ---
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
@@ -754,7 +766,7 @@ document.getElementById('multiTextureInput')?.addEventListener('change', async e
   e.target.value = '';
 });
 
-// --- Drag & Drop на 2D холст ---
+// --- DRAG & DROP НА 2D ХОЛСТ ---
 const canvas2dElem = renderer2d.domElement;
 canvas2dElem.style.cursor = 'crosshair';
 canvas2dElem.addEventListener('dragover', e => {
@@ -865,7 +877,7 @@ canvas2dElem.addEventListener('wheel', e => {
   renderAll();
 });
 
-// --- Экспорт 2D и PBR ---
+// --- ЭКСПОРТ 2D И PBR ---
 document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('export2DFormat').value;
   const res = parseInt(document.getElementById('exportResolution').value);
@@ -893,7 +905,7 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// --- Функции для запекания текстур при экспорте 3D ---
+// --- ФУНКЦИИ ДЛЯ ЗАПЕКАНИЯ ТЕКСТУР ПРИ ЭКСПОРТЕ 3D ---
 async function captureBaseColorTexture(resolution = 2048) {
   const tuni = {};
   for (const key in uniforms) {
@@ -942,7 +954,7 @@ async function renderPBRMap(res, type) {
   return blob;
 }
 
-// --- PBR превью ---
+// --- PBR ПРЕВЬЮ (отложенный запуск) ---
 let pbrReady = false;
 async function updatePBRPreviews() {
   if (!pbrReady) return;
@@ -993,7 +1005,7 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// --- Экспорт 3D с полным набором PBR карт ---
+// --- ЭКСПОРТ 3D С ПОЛНЫМ НАБОРОМ PBR КАРТ ---
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1042,10 +1054,10 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       modelToExport = cloned;
     } else {
       let geom;
-      if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-      else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(1.0, 0.28, 200, 32, 3, 4);
-      else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.2, 128, 128);
-      else geom = new THREE.CylinderGeometry(1.0, 1.0, 1.5, 64);
+      if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+      else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
+      else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
+      else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
       modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
     exportScene.add(modelToExport);
@@ -1102,7 +1114,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-// --- Интеграция (без Godot) ---
+// --- ИНТЕГРАЦИЯ (без Godot) ---
 document.getElementById('integrationDownloadBtn')?.addEventListener('click', () => {
   const engine = document.getElementById('integrationSelect').value;
   let url = engine === 'blender' ? 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip' : 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
@@ -1117,7 +1129,7 @@ document.getElementById('integrationDownloadBtn')?.addEventListener('click', () 
   }
 });
 
-// --- Гамбургер-меню ---
+// --- ГАМБУРГЕР-МЕНЮ ---
 const menuToggle = document.getElementById('menuToggle');
 const patternBar = document.getElementById('patternBar');
 const menuOverlay = document.getElementById('menuOverlay');
@@ -1138,7 +1150,7 @@ menuToggle?.addEventListener('click', e => {
 });
 menuOverlay?.addEventListener('click', closeMenu);
 
-// --- Аккордеон (только для мобильных) ---
+// --- АККОРДЕОН (только для мобильных) ---
 function initAccordion() {
   if (window.innerWidth > 860) return;
   const headers = document.querySelectorAll('.accordion-header');
@@ -1151,7 +1163,7 @@ function initAccordion() {
   });
 }
 
-// --- Мобильные табы ---
+// --- МОБИЛЬНЫЕ ТАБЫ ---
 function initMobileTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
   const contents = {
@@ -1187,7 +1199,7 @@ function initMobileTabs() {
   });
 }
 
-// --- Пресеты ---
+// --- ПРЕСЕТЫ ---
 const savePresetBtn = document.getElementById('savePresetBtn');
 const loadPresetInput = document.getElementById('loadPresetInput');
 const loadPresetBtn = document.getElementById('loadPresetBtn');
@@ -1257,7 +1269,7 @@ loadPresetInput?.addEventListener('change', e => {
   r.readAsText(f);
 });
 
-// --- Зум и панорамирование 2D ---
+// --- ЗУМ И ПАНОРАМИРОВАНИЕ 2D ---
 const zoomPanContainer = document.getElementById('zoomPanContainer');
 let zoomScale = 1;
 let panX = 0, panY = 0;
@@ -1297,7 +1309,7 @@ zoomPanContainer?.addEventListener('dblclick', () => {
   updateZoomPan();
 });
 
-// --- Запуск ---
+// --- ЗАПУСК ---
 update3dModel();
 generateOverlayTexture();
 initAccordion();
