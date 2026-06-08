@@ -51,7 +51,6 @@
             <div class="generation-header">Параметры</div>
             <div class="settings-panel">
                 
-                <!-- Генерация -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Генерация</div>
                     <div class="accordion-content">
@@ -97,10 +96,29 @@
                             <input type="range" id="tile3dScale" min="0.2" max="5" step="0.02" value="1.0">
                             <span class="value-display" id="tile3dScaleVal">1.00</span>
                         </div>
+                        <div class="control-row">
+                            <label>Сила Normal</label>
+                            <input type="range" id="normalStrength" min="0.2" max="3" step="0.01" value="1.0">
+                            <span class="value-display" id="normalStrengthVal">1.00</span>
+                        </div>
+                        <div class="control-row">
+                            <label>Контраст Roughness</label>
+                            <input type="range" id="roughnessContrast" min="0.5" max="3" step="0.01" value="1.5">
+                            <span class="value-display" id="roughnessContrastVal">1.50</span>
+                        </div>
+                        <div class="control-row">
+                            <label>Порог Metallic</label>
+                            <input type="range" id="metalThreshold" min="0" max="1" step="0.01" value="0.4">
+                            <span class="value-display" id="metalThresholdVal">0.40</span>
+                        </div>
+                        <div class="control-row">
+                            <label>Контраст Metallic</label>
+                            <input type="range" id="metalScale" min="0.5" max="4" step="0.01" value="2.0">
+                            <span class="value-display" id="metalScaleVal">2.00</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Трансформы -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Трансформы</div>
                     <div class="accordion-content">
@@ -131,7 +149,6 @@
                     </div>
                 </div>
 
-                <!-- Domain Warping -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Domain Warping</div>
                     <div class="accordion-content">
@@ -152,7 +169,6 @@
                     </div>
                 </div>
 
-                <!-- Рельеф (2D) -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Рельеф (2D)</div>
                     <div class="accordion-content">
@@ -168,7 +184,6 @@
                     </div>
                 </div>
 
-                <!-- Цветовая палитра -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Цветовая палитра</div>
                     <div class="accordion-content">
@@ -177,7 +192,6 @@
                     </div>
                 </div>
 
-                <!-- 3D модель -->
                 <div class="accordion-group open">
                     <div class="accordion-header">3D модель</div>
                     <div class="accordion-content">
@@ -197,7 +211,6 @@
                     </div>
                 </div>
 
-                <!-- Фоновое изображение -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Фоновое изображение</div>
                     <div class="accordion-content">
@@ -216,7 +229,6 @@
                     </div>
                 </div>
 
-                <!-- Паттерны (Слои) -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Паттерны (Слои)</div>
                     <div class="accordion-content">
@@ -236,7 +248,6 @@
                     </div>
                 </div>
 
-                <!-- Пресет -->
                 <div class="accordion-group open">
                     <div class="accordion-header">Пресет</div>
                     <div class="accordion-content">
@@ -254,7 +265,6 @@
             </div>
         </aside>
 
-        <!-- Правая часть: Предпросмотр -->
         <main class="preview-wrapper">
             <div class="mobile-tabs">
                 <button class="tab-btn active" data-tab="texture">2D Текстура</button>
@@ -287,7 +297,6 @@
         </main>
     </div>
 
-    <!-- Футер -->
     <footer class="global-footer">
         <div class="footer-item">
             <span class="footer-label">Экспорт 2D</span>
@@ -326,7 +335,7 @@
                 <select id="integrationSelect" class="compact-select">
                     <option value="blender">Blender</option>
                     <option value="unity">Unity</option>
-                   
+                    <option value="godot">Godot</option>
                 </select>
                 <button id="integrationDownloadBtn" class="export-btn">Скачать</button>
             </div>
