@@ -123,9 +123,9 @@ canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height:
 /* --- Аккордеон --- */
 .accordion-group {
     background: #ffeef3;
-    border-radius: 16px; /* Округленные углы */
+    border-radius: 16px;
     border: 1px solid #fad3df;
-    overflow: hidden; /* Предотвращает вылезание контента */
+    overflow: hidden;
     transition: 0.2s;
     margin-bottom: 12px;
 }
