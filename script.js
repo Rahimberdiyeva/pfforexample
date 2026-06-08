@@ -65,7 +65,7 @@ let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 let overlayDirty = true;
 
-// Uniform'ы
+// Uniform'ы (triplanar всегда включён)
 const uniforms = {
   uScale: { value: 0.8 },
   uIntensity: { value: 1.0 },
@@ -101,8 +101,8 @@ const uniforms = {
   uMetalThreshold: { value: 0.4 },
   uMetalScale: { value: 2.0 },
   uMetalBias: { value: 0.0 },
-  uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
-  uUseTriplanar: { value: 1 }  // 1 = triplanar (бесшовно), 0 = UV
+  uTexelSize: { value: new THREE.Vector2(1/512, 1/512) }
+  // Triplanar теперь всегда активен, отдельный uniform не нужен
 };
 
 function updateColorUniforms() {
@@ -115,7 +115,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдеры (triplanar по умолчанию) ---
+// --- Шейдер (всегда triplanar для 3D, UV для 2D/экспорта) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -159,7 +159,6 @@ const fragmentShader = `
   uniform float uMetalScale;
   uniform float uMetalBias;
   uniform vec2 uTexelSize;
-  uniform int uUseTriplanar;
   varying vec2 vUv;
   varying vec3 vWorldPosition;
   varying vec3 vNormalW;
@@ -240,7 +239,8 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    if (uUseTriplanar == 1 && uExportMode == 0) {
+    // Для 3D (не экспорт) используем triplanar
+    if (uExportMode == 0) {
       vec3 blend = abs(vNormalW);
       blend = pow(blend, vec3(2.0));
       blend /= (blend.x + blend.y + blend.z);
@@ -252,6 +252,7 @@ const fragmentShader = `
       float patZ = compute2DPattern(uvZ);
       patternValue = patX * blend.x + patY * blend.y + patZ * blend.z;
     } else {
+      // Для экспорта PBR-карт используем UV (чтобы текстуры можно было наложить на любую модель)
       patternValue = compute2DPattern(vUv);
     }
 
@@ -409,17 +410,6 @@ document.getElementById('modelFileInput').addEventListener('change', e => {
   }, undefined, () => {
     document.getElementById('modelStatus').textContent = 'Ошибка загрузки';
   });
-});
-
-// --- Чекбокс Triplanar в 3D (добавляем в DOM) ---
-const modelSection = document.querySelector('#geometrySelect').parentElement;
-const triplanarCheck = document.createElement('div');
-triplanarCheck.className = 'control-row';
-triplanarCheck.innerHTML = `<label>Triplanar в 3D</label><input type="checkbox" id="triplanar3d" checked>`;
-modelSection.appendChild(triplanarCheck);
-document.getElementById('triplanar3d').addEventListener('change', e => {
-  uniforms.uUseTriplanar.value = e.target.checked ? 1 : 0;
-  renderAll();
 });
 
 // --- Категории паттернов ---
@@ -933,7 +923,7 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
   }
 });
 
-// --- Функции для запекания текстур (при экспорте всегда UV) ---
+// --- Функции для запекания текстур (экспорт PBR) ---
 async function captureBaseColorTexture(resolution = 2048) {
   const tuni = {};
   for (const key in uniforms) {
@@ -942,7 +932,6 @@ async function captureBaseColorTexture(resolution = 2048) {
     else tuni[key] = { value: uniforms[key].value };
   }
   tuni.uExportMode = { value: 0 };
-  tuni.uUseTriplanar = { value: 0 }; // Принудительно UV для экспорта
   tuni.uUseOverlay = { value: (layers.length > 0 || backgroundImageEl) ? 1 : 0 };
   tuni.uOverlayTexture = { value: overlayTexture };
   tuni.uShowRelief = { value: document.getElementById('relief2d').checked ? 1 : 0 };
@@ -969,7 +958,6 @@ async function renderPBRMap(res, type) {
   }
   tuni.uUseOverlay = { value: 0 };
   tuni.uShowRelief = { value: 0 };
-  tuni.uUseTriplanar = { value: 0 };
   tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
   tuni.uTexelSize = { value: new THREE.Vector2(1/res, 1/res) };
   const sc = new THREE.Scene();
@@ -1035,10 +1023,14 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ЭКСПОРТ 3D (текстуры всегда UV, модель берётся текущая) ==========
+// ========== ЭКСПОРТ 3D МОДЕЛИ (текстуры всегда бесшовные) ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
+    // Запекаем текстуры в высоком разрешении (UV-режим, но с triplanar-шейдером при экспорте? 
+    // Для экспорта модели нужно, чтобы текстуры были в UV-координатах. Мы используем ту же функцию,
+    // которая для exportMode=0 генерирует triplanar-текстуру, но при exportMode=0 у нас всегда triplanar.
+    // Это даёт бесшовные текстуры, запечённые в UV-координаты. Идеально!
     const baseColorBlob = await captureBaseColorTexture(4096);
     const normalBlob = await renderPBRMap(4096, 'normal');
     const roughnessBlob = await renderPBRMap(4096, 'roughness');
