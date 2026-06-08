@@ -102,7 +102,7 @@ body {
   font-size: 0.85rem;
   min-width: 130px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
 
 .menu-overlay {
@@ -177,7 +177,9 @@ body {
   border-left: 1px solid #f0dfe6;
 }
 
-.texture-column, .view3d-column, .pbr-column {
+.texture-column,
+.view3d-column,
+.pbr-column {
   display: flex;
   flex-direction: column;
   min-width: 200px;
@@ -188,7 +190,8 @@ body {
   border-left: 1px solid #f0dfe6;
 }
 
-.texture-column, .view3d-column {
+.texture-column,
+.view3d-column {
   flex: 1;
 }
 
@@ -276,12 +279,13 @@ canvas {
   color: #3b2a30;
 }
 
-/* Аккордеон — на десктопе всегда открыт */
+/* Аккордеон — универсальный */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
   border: 1px solid #fad3df;
-  margin-bottom: 12px;
+  overflow: hidden;
+  transition: 0.2s;
 }
 
 .accordion-header {
@@ -290,45 +294,33 @@ canvas {
   font-size: 1rem;
   color: #2e1e24;
   background: #ffeef3;
+  cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   user-select: none;
-  border-radius: 20px;
 }
 
 .accordion-header::after {
-  display: none;
+  content: "▼";
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+}
+
+.accordion-group.open .accordion-header::after {
+  transform: rotate(180deg);
 }
 
 .accordion-content {
-  padding: 0 18px 18px 18px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  padding: 0 18px;
 }
 
-/* Мобильные: аккордеон сворачивается */
-@media (max-width: 860px) {
-  .accordion-header {
-    cursor: pointer;
-  }
-  .accordion-header::after {
-    content: "▼";
-    display: inline-block;
-    font-size: 0.8rem;
-    transition: transform 0.2s;
-  }
-  .accordion-group.open .accordion-header::after {
-    transform: rotate(180deg);
-  }
-  .accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    padding: 0 18px;
-  }
-  .accordion-group.open .accordion-content {
-    max-height: 1200px;
-    padding: 0 18px 18px 18px;
-  }
+.accordion-group.open .accordion-content {
+  max-height: 1200px;
+  padding: 0 18px 18px 18px;
 }
 
 /* Элементы управления */
@@ -378,7 +370,7 @@ canvas {
   font-family: inherit;
 }
 
-/* Цвета (круглые) */
+/* Цвета */
 .color-list {
   display: flex;
   flex-wrap: wrap;
@@ -398,7 +390,7 @@ canvas {
 .color-circle-input {
   width: 56px;
   height: 56px;
-  border-radius: 50% !important;
+  border-radius: 50%;
   border: 3px solid white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
@@ -433,7 +425,11 @@ canvas {
 }
 
 /* Кнопки */
-.center-btn, .file-input-btn, select, button, .integration-btn {
+.center-btn,
+.file-input-btn,
+select,
+button,
+.integration-btn {
   background: white;
   border: 1px solid #e2b7c4;
   border-radius: 40px !important;
@@ -450,7 +446,10 @@ canvas {
   line-height: 1.4;
 }
 
-.center-btn:hover, .file-input-btn:hover, button:hover, .integration-btn:hover {
+.center-btn:hover,
+.file-input-btn:hover,
+button:hover,
+.integration-btn:hover {
   background: #fff0f5;
   border-color: #cf8e9e;
 }
@@ -469,7 +468,8 @@ canvas {
   margin-bottom: 8px;
 }
 
-.model-row select, .model-row .file-input-btn {
+.model-row select,
+.model-row .file-input-btn {
   margin: 0;
   height: 36px;
   padding: 0 16px;
@@ -485,7 +485,7 @@ canvas {
 }
 
 .layers-list {
-  max-height: 350px;
+  max-height: 250px;
   overflow-y: auto;
   background: #fff9fb;
   border-radius: 20px;
@@ -546,7 +546,10 @@ canvas {
   border-radius: 50% !important;
 }
 
-#addColorBtn, #savePresetBtn, #clearOverlayBtn, #clearBgBtn {
+#addColorBtn,
+#savePresetBtn,
+#clearOverlayBtn,
+#clearBgBtn {
   background: #cf8e9e;
   color: white;
   border: none;
@@ -617,12 +620,10 @@ canvas {
   width: auto;
   display: inline-flex;
   border-radius: 40px !important;
-  transition: opacity 0.2s;
 }
 
 .export-btn:hover {
-  opacity: 0.85;
-  background: linear-gradient(115deg, #b46e7e, #9a5a6a);
+  opacity: 0.9;
 }
 
 .mobile-tabs {
@@ -630,7 +631,7 @@ canvas {
 }
 
 /* ==========================================================================
-   ДЕСКТОП
+   ДЕСКТОП (усиление скролла)
    ========================================================================== */
 @media (min-width: 861px) {
   .settings-column {
@@ -655,9 +656,6 @@ canvas {
    МОБИЛЬНАЯ АДАПТАЦИЯ (<=860px)
    ========================================================================== */
 @media (max-width: 860px) {
-  html {
-    overflow: auto;
-  }
   body {
     height: auto;
     min-height: 100vh;
@@ -733,23 +731,14 @@ canvas {
     overflow-y: visible;
     height: auto;
     gap: 0;
-    display: flex;
   }
-  /* Меняем порядок: сначала превью, потом настройки */
+
   .settings-column {
-    order: 2;
     flex: 0 0 auto;
     width: 100%;
     max-width: 100%;
     border-bottom: 2px solid #f0dfe6;
     height: auto;
-  }
-  .preview-wrapper {
-    order: 1;
-    flex-direction: column;
-    overflow-y: visible;
-    height: auto;
-    border-left: none;
   }
 
   .settings-panel {
@@ -766,6 +755,13 @@ canvas {
     z-index: 20;
     background: #d9b7c2cc;
     backdrop-filter: blur(8px);
+  }
+
+  .preview-wrapper {
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+    border-left: none;
   }
 
   .mobile-tabs {
@@ -806,7 +802,9 @@ canvas {
     display: flex !important;
   }
 
-  .texture-column, .view3d-column, .pbr-column {
+  .texture-column,
+  .view3d-column,
+  .pbr-column {
     min-height: 400px;
     border: none;
   }
@@ -835,18 +833,24 @@ canvas {
     text-align: right;
   }
 
-  .compact-select, .center-btn, .file-input-btn, button, .export-btn {
+  .compact-select,
+  .center-btn,
+  .file-input-btn,
+  button,
+  .export-btn {
     width: 100%;
     justify-content: center;
   }
 
-  .model-row, .bg-upload-row {
+  .model-row,
+  .bg-upload-row {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
 
-  .model-row select, .model-row .file-input-btn {
+  .model-row select,
+  .model-row .file-input-btn {
     width: 100%;
     margin: 0;
   }
@@ -937,7 +941,8 @@ canvas {
     gap: 6px;
   }
 
-  .footer-item select, .footer-item .export-btn {
+  .footer-item select,
+  .footer-item .export-btn {
     padding: 3px 8px;
     font-size: 0.65rem;
   }
