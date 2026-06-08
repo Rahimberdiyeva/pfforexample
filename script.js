@@ -24,10 +24,9 @@ container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
 
 // Offscreen рендерер для PBR и экспорта
-const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-offscreenRenderer.setSize(1024, 1024);
+const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение 3D
+// Освещение 3D (только для интерактивного просмотра, в экспорт не попадает)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene3d.add(ambientLight);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -283,18 +282,18 @@ const fragmentShader = `
   }
 `;
 
-// --- Материал ---
-const material = new THREE.ShaderMaterial({
+// --- Материал для превью (шейдерный) ---
+const previewMaterial = new THREE.ShaderMaterial({
   uniforms: uniforms,
   vertexShader: vertexShader,
   fragmentShader: fragmentShader,
   side: THREE.DoubleSide
 });
 
-const plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+const plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), previewMaterial);
 scene2d.add(plane2d);
 const defaultGeom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-const defaultMesh = new THREE.Mesh(defaultGeom, material);
+const defaultMesh = new THREE.Mesh(defaultGeom, previewMaterial);
 scene3d.add(defaultMesh);
 currentMesh3d = defaultMesh;
 
@@ -345,7 +344,7 @@ function fitCameraToObject(object, camera, controls, offset = 1.2) {
 function update3dModel() {
   if (currentMesh3d) scene3d.remove(currentMesh3d);
   if (customModel) {
-    customModel.traverse(c => { if (c.isMesh) c.material = material; });
+    customModel.traverse(c => { if (c.isMesh) c.material = previewMaterial; });
     scene3d.add(customModel);
     currentMesh3d = customModel;
   } else {
@@ -354,7 +353,7 @@ function update3dModel() {
     else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(1.0, 0.28, 200, 32, 3, 4);
     else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.2, 128, 128);
     else geom = new THREE.CylinderGeometry(1.0, 1.0, 1.5, 64);
-    currentMesh3d = new THREE.Mesh(geom, material);
+    currentMesh3d = new THREE.Mesh(geom, previewMaterial);
     scene3d.add(currentMesh3d);
   }
   fitCameraToObject(currentMesh3d, camera3d, controls3d);
@@ -521,7 +520,7 @@ async function generateOverlayTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.clearRect(0, 0, size, size);
   ctx.imageSmoothingEnabled = true;
   if (backgroundImageEl) {
@@ -900,7 +899,7 @@ async function captureBaseColorTexture(resolution = 2048) {
   const sc = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   cam.position.z = 1;
-  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
+  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader: vertexShader, fragmentShader: fragmentShader });
   sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
   offscreenRenderer.setSize(resolution, resolution);
   offscreenRenderer.render(sc, cam);
@@ -924,7 +923,7 @@ async function renderPBRMap(res, type) {
   const sc = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   cam.position.z = 1;
-  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
+  const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader: vertexShader, fragmentShader: fragmentShader });
   sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
   offscreenRenderer.setSize(res, res);
   offscreenRenderer.render(sc, cam);
@@ -988,13 +987,15 @@ setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    const baseColorBlob = await captureBaseColorTexture(2048);
-    const normalBlob = await renderPBRMap(2048, 'normal');
-    const roughnessBlob = await renderPBRMap(2048, 'roughness');
-    const metallicBlob = await renderPBRMap(2048, 'metallic');
-    const aoBlob = await renderPBRMap(2048, 'ao');
-    const heightBlob = await renderPBRMap(2048, 'height');
-    
+    // Запекаем все текстуры в максимальном качестве
+    const baseColorBlob = await captureBaseColorTexture(4096);
+    const normalBlob = await renderPBRMap(4096, 'normal');
+    const roughnessBlob = await renderPBRMap(4096, 'roughness');
+    const metallicBlob = await renderPBRMap(4096, 'metallic');
+    const aoBlob = await renderPBRMap(4096, 'ao');
+    const heightBlob = await renderPBRMap(4096, 'height');
+
+    // Функция загрузки текстуры из Blob
     const loadTexture = (blob) => new Promise((resolve) => {
       const img = new Image();
       img.onload = () => resolve(new THREE.CanvasTexture(img));
@@ -1006,14 +1007,16 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const metallicTex = await loadTexture(metallicBlob);
     const aoTex = await loadTexture(aoBlob);
     const heightTex = await loadTexture(heightBlob);
-    
+
+    // Настройка текстур
     [baseColorTex, normalTex, roughnessTex, metallicTex, aoTex, heightTex].forEach(tex => {
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(1, 1);
     });
-    
-    const material = new THREE.MeshStandardMaterial({
+
+    // Создаём стандартный материал для экспорта
+    const exportMaterial = new THREE.MeshStandardMaterial({
       map: baseColorTex,
       normalMap: normalTex,
       roughnessMap: roughnessTex,
@@ -1024,34 +1027,54 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       metalness: 0.5,
       side: THREE.DoubleSide
     });
-    
+
+    // Экспортируем именно ту модель, которая сейчас отображается в 3D-превью
+    // Создаём новую сцену только с моделью (без лишних источников света)
     const exportScene = new THREE.Scene();
-    exportScene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    exportScene.add(new THREE.DirectionalLight(0xffffff, 1));
-    
+    let modelToExport;
     if (customModel) {
+      // Клонируем пользовательскую модель, сохраняя её трансформацию
       const cloned = customModel.clone();
-      cloned.traverse(c => { if (c.isMesh) c.material = material; });
-      exportScene.add(cloned);
+      cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
+      modelToExport = cloned;
     } else {
+      // Для стандартных геометрий создаём новый меш с экспортным материалом
       let geom;
       if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.5, 1.5, 1.5);
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(1.0, 0.28, 200, 32, 3, 4);
       else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.2, 128, 128);
       else geom = new THREE.CylinderGeometry(1.0, 1.0, 1.5, 64);
-      exportScene.add(new THREE.Mesh(geom, material));
+      modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
-    
+    exportScene.add(modelToExport);
+
+    // Добавляем минимальное освещение, чтобы материалы в экспортированной модели выглядели корректно
+    // но без лишних предупреждений (используем только directional light)
+    const exportLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    exportLight.position.set(1, 2, 1);
+    exportScene.add(exportLight);
+
+    // Экспорт в зависимости от формата
+    const exporter = new GLTFExporter();
     if (format === 'glb') {
-      new GLTFExporter().parse(exportScene, result => {
-        const blob = result instanceof ArrayBuffer ? new Blob([result], {type: 'application/octet-stream'}) : new Blob([result], {type: 'application/octet-stream'});
+      exporter.parse(exportScene, (result) => {
+        if (typeof result === 'string') {
+          // Если вернулась строка — скорее всего ошибка
+          console.error('GLTFExporter error (string):', result);
+          alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
+          return;
+        }
+        // result должен быть ArrayBuffer
+        const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
-      }, { binary: true });
+      }, { binary: true, trs: true, onlyVisible: true });
     } else if (format === 'gltf') {
-      new GLTFExporter().parse(exportScene, result => {
+      exporter.parse(exportScene, (result) => {
+        // result — объект JSON
         const jsonStr = JSON.stringify(result, null, 2);
-        downloadBlob(new Blob([jsonStr], {type: 'application/json'}), 'model.gltf');
-      }, { binary: false });
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        downloadBlob(blob, 'model.gltf');
+      }, { binary: false, trs: true, onlyVisible: true });
     } else if (format === 'obj') {
       const objExporter = new OBJExporter();
       const obj = objExporter.parse(exportScene);
@@ -1065,11 +1088,11 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       zip.file('metallic.png', metallicBlob);
       zip.file('ao.png', aoBlob);
       zip.file('height.png', heightBlob);
-      const blob = await zip.generateAsync({type: 'blob'});
-      downloadBlob(blob, 'model_obj.zip');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(zipBlob, 'model_obj.zip');
     }
   } catch (e) {
-    console.error(e);
+    console.error('Export error:', e);
     alert('Ошибка экспорта 3D: ' + e.message);
   }
 });
