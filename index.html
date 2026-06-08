@@ -37,7 +37,7 @@
     <aside class="settings-column">
         <div class="generation-header">Параметры</div>
         <div class="settings-panel">
-            <div class="accordion-group"><div class="accordion-header">Генерация</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Генерация</div><div class="accordion-content">
                 <div class="control-row"><label>Масштаб</label><input type="range" id="scale" min="0.1" max="5" step="0.01" value="0.8"><span class="value-display" id="scaleVal">0.80</span></div>
                 <div class="control-row"><label>Октавы</label><input type="range" id="octaves" min="1" max="8" step="1" value="3"><span class="value-display" id="octavesVal">3</span></div>
                 <div class="control-row"><label>Персистенс</label><input type="range" id="persistence" min="0.1" max="1.0" step="0.01" value="0.50"><span class="value-display" id="persistenceVal">0.50</span></div>
@@ -52,49 +52,49 @@
                 <div class="control-row"><label>Контраст Metallic</label><input type="range" id="metalScale" min="0.5" max="4" step="0.01" value="2.0"><span class="value-display" id="metalScaleVal">2.00</span></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Трансформы</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Трансформы</div><div class="accordion-content">
                 <div class="control-row"><label>Поворот</label><input type="range" id="rotate" min="0" max="360" step="1" value="0"><span class="value-display" id="rotateVal">0°</span></div>
                 <div class="control-row"><label>Сдвиг X</label><input type="range" id="offsetX" min="-1" max="1" step="0.01" value="0.00"><span class="value-display" id="offsetXVal">0.00</span></div>
                 <div class="control-row"><label>Сдвиг Y</label><input type="range" id="offsetY" min="-1" max="1" step="0.01" value="0.00"><span class="value-display" id="offsetYVal">0.00</span></div>
                 <div class="control-row"><label>Зеркало</label><select id="mirror" class="compact-select"><option value="0">Нет</option><option value="1">X</option><option value="2">Y</option><option value="3">X+Y</option></select></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Domain Warping</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Domain Warping</div><div class="accordion-content">
                 <div class="control-row"><label>Активно</label><input type="checkbox" id="warpEnable"></div>
                 <div class="control-row"><label>Сила</label><input type="range" id="warpStrength" min="0.0" max="2.0" step="0.01" value="0.30"><span class="value-display" id="warpStrengthVal">0.30</span></div>
                 <div class="control-row"><label>Октавы warp</label><input type="range" id="warpOctaves" min="1" max="5" step="1" value="2"><span class="value-display" id="warpOctavesVal">2</span></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Рельеф (2D)</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Рельеф (2D)</div><div class="accordion-content">
                 <div class="control-row"><label>Включить</label><input type="checkbox" id="relief2d"></div>
                 <div class="control-row"><label>Высота рельефа</label><input type="range" id="reliefStrength" min="0.0" max="5.0" step="0.01" value="1.00"><span class="value-display" id="reliefStrengthVal">1.00</span></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Цветовая палитра</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Цветовая палитра</div><div class="accordion-content">
                 <div id="colorListContainer" class="color-list"></div>
                 <button id="addColorBtn" class="center-btn">Добавить цвет</button>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">3D модель</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">3D модель</div><div class="accordion-content">
                 <div class="model-row"><select id="geometrySelect" class="compact-select"><option value="cube">Куб</option><option value="torus">Тор-узел</option><option value="sphere">Сфера</option><option value="cylinder">Цилиндр</option></select>
                 <label class="file-input-btn">Загрузить свою<input type="file" id="modelFileInput" accept=".gltf,.glb" style="display: none;"></label></div>
                 <div id="modelStatus" style="font-size: 0.75rem; color: #cf8e9e; text-align: center; margin-top: 6px;"></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Фоновое изображение</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Фоновое изображение</div><div class="accordion-content">
                 <div class="bg-upload-row"><label class="file-input-btn">Выбрать фон<input type="file" id="bgImageInput" accept="image/*" style="display: none;"></label>
                 <button id="clearBgBtn" class="center-btn hidden">Удалить фон</button></div>
                 <div class="control-row"><label>Прозрачность</label><input type="range" id="bgOpacity" min="0" max="1" step="0.01" value="1.00"><span class="value-display" id="bgOpacityVal">1.00</span></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Паттерны (Слои)</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Паттерны (Слои)</div><div class="accordion-content">
                 <div class="bg-upload-row"><label class="file-input-btn">Добавить картинку<input type="file" id="multiTextureInput" accept="image/*" multiple style="display: none;"></label>
                 <button id="clearOverlayBtn" class="center-btn hidden">Удалить все</button></div>
                 <div id="overlayLayersList" class="layers-list"></div>
                 <div class="control-row"><label>Прозрачность слоя</label><input type="range" id="layerOpacity" min="0" max="1" step="0.01" value="1.00"><span class="value-display" id="layerOpacityVal">1.00</span></div>
             </div></div>
             
-            <div class="accordion-group"><div class="accordion-header">Пресет</div><div class="accordion-content">
+            <div class="accordion-group open"><div class="accordion-header">Пресет</div><div class="accordion-content">
                 <div class="bg-upload-row"><button id="savePresetBtn" class="center-btn">Сохранить</button>
                 <label class="file-input-btn">Загрузить<input type="file" id="loadPresetInput" accept=".json" style="display: none;"></label>
                 <button id="loadPresetBtn" class="center-btn">Обзор...</button></div>
