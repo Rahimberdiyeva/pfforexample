@@ -14,11 +14,12 @@ camera2d.position.z = 1;
 const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
 renderer2d.setClearColor(0x000000, 0);
 const scene3d = new THREE.Scene();
-scene3d.background = new THREE.Color(0x111122);
+// Фон – светлый тёмно‑серый с лёгким оттенком (чтобы не был чёрным)
+scene3d.background = new THREE.Color(0x2a2a3a);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
 camera3d.position.set(2, 1.5, 2.5);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer3d.setClearColor(0x111122);
+renderer3d.setClearColor(0x2a2a3a); // синхронизируем с фоном сцены
 
 container2d.appendChild(renderer2d.domElement);
 container3d.appendChild(renderer3d.domElement);
@@ -27,9 +28,9 @@ container3d.appendChild(renderer3d.domElement);
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
 // Освещение 3D (только для интерактивного просмотра, в экспорт не попадает)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene3d.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8);
 directionalLight.position.set(2, 3, 2);
 directionalLight.castShadow = true;
 scene3d.add(directionalLight);
@@ -301,6 +302,9 @@ currentMesh3d = defaultMesh;
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
 controls3d.enableDamping = true;
 controls3d.enableZoom = true;
+controls3d.zoomSpeed = 1.2;
+controls3d.panSpeed = 0.8;
+controls3d.rotateSpeed = 1.0;
 
 function renderAll() {
   renderer2d.render(scene2d, camera2d);
@@ -319,6 +323,7 @@ function updateSizes() {
     renderer3d.setSize(w3, h3);
     camera3d.aspect = w3 / h3;
     camera3d.updateProjectionMatrix();
+    controls3d.update(); // важно для корректного масштабирования после ресайза
     renderAll();
   }
 }
@@ -1049,7 +1054,6 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     exportScene.add(modelToExport);
 
     // Добавляем минимальное освещение, чтобы материалы в экспортированной модели выглядели корректно
-    // но без лишних предупреждений (используем только directional light)
     const exportLight = new THREE.DirectionalLight(0xffffff, 1.0);
     exportLight.position.set(1, 2, 1);
     exportScene.add(exportLight);
@@ -1059,18 +1063,15 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     if (format === 'glb') {
       exporter.parse(exportScene, (result) => {
         if (typeof result === 'string') {
-          // Если вернулась строка — скорее всего ошибка
           console.error('GLTFExporter error (string):', result);
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
-        // result должен быть ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
     } else if (format === 'gltf') {
       exporter.parse(exportScene, (result) => {
-        // result — объект JSON
         const jsonStr = JSON.stringify(result, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
         downloadBlob(blob, 'model.gltf');
