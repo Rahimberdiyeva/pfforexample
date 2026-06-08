@@ -176,7 +176,7 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 200px;
-  height: 100%; /* важно для 3D */
+  height: 100%;
 }
 .pbr-column { flex: 0 0 300px; border-left: 1px solid #f0dfe6; }
 .texture-column, .view3d-column { flex: 1; }
