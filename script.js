@@ -68,12 +68,12 @@ const uniforms = {
     uWarpEnable: { value: 0 }, uWarpStrength: { value: 0.3 }, uWarpOctaves: { value: 2 },
     uShowRelief: { value: 0 }, uReliefStrength: { value: 1.0 },
     uTime: { value: 0 }, uOverlayScale: { value: 1.0 }, uExportMode: { value: 0 },
+    uUseTriplanar: { value: 0 },
     uTexelSize: { value: new THREE.Vector2(1/1024, 1/1024) },
     uNormalStrength: { value: 1.0 },
     uRoughnessContrast: { value: 1.5 },
     uMetalThreshold: { value: 0.4 },
-    uMetalScale: { value: 2.0 },
-    uUseTriplanar: { value: 0 } // 0 для 2D/PBR, 1 для 3D-превью
+    uMetalScale: { value: 2.0 }
 };
 
 function updateColorUniforms() {
@@ -205,7 +205,6 @@ float truchetPattern(vec2 uv, float t) {
     return step(length(uv), 0.4 + 0.2 * sin(angle * 20.0 + t));
 }
 
-// Анимация убрана (нет + uTime)
 vec2 domainWarp(vec2 uv, float strength, int octaves) {
     vec2 warped = uv;
     for(int i=0; i < 5; i++) {
@@ -337,7 +336,6 @@ float computePattern(vec2 uv) {
 void main() {
     float patternValue;
     
-    // ГЛАВНОЕ ИСПРАВЛЕНИЕ: 3D-превью использует трипланар (бесшовно), 2D и PBR используют строгий UV (совпадение 100%)
     if (uUseTriplanar == 1) {
         vec3 blend = abs(vNormalW);
         blend = pow(blend, vec3(2.0));
@@ -402,12 +400,7 @@ void main() {
 let currentMaterial = null;
 
 function createMaterial() {
-    const mat = new THREE.ShaderMaterial({ 
-        uniforms: { ...uniforms, uUseTriplanar: { value: 0 } }, 
-        vertexShader, 
-        fragmentShader, 
-        side: THREE.DoubleSide 
-    });
+    const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, side: THREE.DoubleSide });
     if (uniforms.uOverlayTexture.value) {
         mat.uniforms.uOverlayTexture.value.wrapS = THREE.RepeatWrapping;
         mat.uniforms.uOverlayTexture.value.wrapT = THREE.RepeatWrapping;
@@ -421,7 +414,6 @@ function updateMaterial() {
     plane2d.material = currentMaterial;
     
     if (currentMesh3d) {
-        // Для 3D-превью создаём копию материала с включенным трипланарным маппингом (бесшовность)
         const mat3d = currentMaterial.clone();
         mat3d.uniforms.uUseTriplanar.value = 1;
         if (customModel) {
@@ -863,8 +855,6 @@ canvas2dElem.addEventListener('wheel', (e) => {
     generateOverlayTexture(); updateLayersUI();
 });
 
-// --- ИСПРАВЛЕННЫЙ ЭКСПОРТ ---
-// Берёт ТОЧНЫЙ снимок 2D-превью (с оверлеями, слоями и рельефом)
 async function getCurrentPreviewBlob() {
     return new Promise(resolve => {
         renderer2d.domElement.toBlob(blob => resolve(blob), 'image/png');
@@ -899,6 +889,198 @@ document.getElementById('export2DBtn')?.addEventListener('click', async () => {
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
     const format = document.getElementById('exportModelFormat').value;
     try {
-        // Используем снимок 2D превью для всех 3D экспортов (GLB, glTF, OBJ)
         const textureBlob = await getCurrentPreviewBlob();
-        const img = await new Promise(res => { const i =
+        const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = URL.createObjectURL(textureBlob); });
+        const texture = new THREE.CanvasTexture(img); 
+        texture.wrapS = THREE.RepeatWrapping; 
+        texture.wrapT = THREE.RepeatWrapping; 
+        texture.repeat.set(1, 1);
+        
+        const mat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.5, metalness: 0.0 });
+        let exportScene = new THREE.Scene();
+        
+        if (customModel) { 
+            const c = customModel.clone(); 
+            c.traverse(ch => { if(ch.isMesh) ch.material = mat; }); 
+            exportScene.add(c); 
+        } else { 
+            exportScene.add(new THREE.Mesh(createGeometry(currentGeometryType), mat)); 
+        }
+        
+        const exporter = new GLTFExporter();
+        
+        if (format === 'glb') {
+            exporter.parse(exportScene, (result) => {
+                if (result instanceof ArrayBuffer) {
+                    downloadBlob(new Blob([result], {type:'application/octet-stream'}), 'model.glb');
+                } else {
+                    console.error("GLB Export failed: expected ArrayBuffer, got:", result);
+                    alert("Ошибка экспорта GLB: неверный формат данных");
+                }
+            }, (error) => {
+                console.error("GLB Export error:", error);
+                alert("Ошибка экспорта GLB: " + error.message);
+            }, { binary: true });
+        } else if (format === 'gltf') {
+            exporter.parse(exportScene, (result) => {
+                const jsonStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+                downloadBlob(new Blob([jsonStr], {type:'application/json'}), 'model.gltf');
+            }, (error) => {
+                console.error("glTF Export error:", error);
+                alert("Ошибка экспорта glTF: " + error.message);
+            }, { binary: false });
+        } else if (format === 'obj') {
+            const obj = new OBJExporter().parse(exportScene);
+            const mtl = `newmtl material0\nmap_Kd texture.png\n`;
+            const zip = new JSZip(); 
+            zip.file("model.obj", obj); 
+            zip.file("model.mtl", mtl); 
+            zip.file("texture.png", textureBlob);
+            downloadBlob(await zip.generateAsync({type: "blob"}), 'model_obj.zip');
+        }
+    } catch(e) { 
+        console.error(e);
+        alert("Ошибка экспорта: "+e.message); 
+    }
+});
+
+function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+
+function cloneUniforms(src) { 
+    const dst = {}; 
+    for (const key in src) {
+        if (src[key].value instanceof THREE.Vector2 || src[key].value instanceof THREE.Vector3) {
+            dst[key] = { value: src[key].value.clone() };
+        } else {
+            dst[key] = { value: src[key].value };
+        }
+    } 
+    return dst; 
+}
+
+async function renderPBRMap(res, type) {
+    const modeMap = { 'basecolor': 0, 'normal': 1, 'roughness': 2, 'metallic': 3, 'height': 4, 'ao': 5 };
+    const tuni = cloneUniforms(uniforms);
+    tuni.uUseOverlay = { value: 0 }; 
+    tuni.uShowRelief = { value: 0 };
+    tuni.uExportMode = { value: modeMap[type] !== undefined ? modeMap[type] : 0 };
+    tuni.uTexelSize = { value: new THREE.Vector2(1/res, 1/res) };
+    
+    const sc = new THREE.Scene();
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+    cam.position.z = 1;
+    const mat = new THREE.ShaderMaterial({ uniforms: tuni, vertexShader, fragmentShader });
+    sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+    offscreenRenderer.setSize(res, res);
+    offscreenRenderer.render(sc, cam);
+    const blob = await new Promise(r => offscreenRenderer.domElement.toBlob(r, 'image/png'));
+    mat.dispose();
+    return blob;
+}
+
+const menuToggle = document.getElementById('menuToggle');
+const patternBar = document.getElementById('patternBar');
+const menuOverlay = document.getElementById('menuOverlay');
+
+function openMenu() { patternBar.classList.add('open'); menuOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
+function closeMenu() { patternBar.classList.remove('open'); menuOverlay.classList.remove('active'); document.body.style.overflow = ''; }
+
+menuToggle?.addEventListener('click', (e) => { e.stopPropagation(); if (patternBar.classList.contains('open')) closeMenu(); else openMenu(); });
+menuOverlay?.addEventListener('click', closeMenu);
+
+let touchStartX = 0, touchEndX = 0;
+patternBar?.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+patternBar?.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchStartX - touchEndX > 50) closeMenu();
+}, {passive: true});
+
+function initAccordion() {
+    const headers = document.querySelectorAll('.accordion-header');
+    headers.forEach(header => {
+        header.addEventListener('click', (e) => {
+            if (window.innerWidth > 860) return;
+            const group = header.closest('.accordion-group');
+            if (group) group.classList.toggle('open');
+        });
+    });
+    if (window.innerWidth > 860) {
+        document.querySelectorAll('.accordion-group').forEach(g => g.classList.add('open'));
+    }
+}
+
+function initMobileTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = {
+        texture: document.getElementById('tab-texture'),
+        view3d: document.getElementById('tab-view3d'),
+        pbr: document.getElementById('tab-pbr')
+    };
+    if (!tabs.length) return;
+    
+    const activateTab = (target) => {
+        tabs.forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab-btn[data-tab="${target}"]`).classList.add('active');
+        Object.values(contents).forEach(content => content?.classList.remove('active'));
+        if (target === 'texture') contents.texture?.classList.add('active');
+        if (target === 'view3d') contents.view3d?.classList.add('active');
+        if (target === 'pbr') contents.pbr?.classList.add('active');
+        setTimeout(() => { updateSizes(); renderer2d.render(scene2d, camera2d); renderer3d.render(scene3d, camera3d); }, 50);
+    };
+    
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+            activateTab(target);
+        });
+    });
+    
+    if (!document.querySelector('.tab-content.active')) {
+        activateTab('texture');
+    }
+    
+    window.addEventListener('resize', () => {
+        if (window.innerWidth <= 860) {
+            const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+            if (activeTab) activateTab(activeTab);
+        }
+    });
+}
+
+function initIntegration() {
+    const btn = document.getElementById('integrationDownloadBtn');
+    const select = document.getElementById('integrationSelect');
+    if (btn && select) {
+        btn.addEventListener('click', () => {
+            const engine = select.value;
+            let url = '';
+            if (engine === 'blender') url = 'https://github.com/PatternForge/blender-addon/releases/latest/download/patternforge_blender.zip';
+            else if (engine === 'unity') url = 'https://github.com/PatternForge/unity-package/releases/latest/download/PatternForge.unitypackage';
+            
+            if (url) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '';
+                a.target = '_blank';
+                a.click();
+            } else {
+                alert(`Скачивание аддона для ${select.options[select.selectedIndex]?.text} временно недоступно.`);
+            }
+        });
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    uniforms.uTime.value += 0.01;
+    renderer2d.render(scene2d, camera2d);
+    controls3d.update();
+    renderer3d.render(scene3d, camera3d);
+}
+
+animate();
+update3dModel();
+generateOverlayTexture();
+initAccordion();
+initMobileTabs();
+initIntegration();
