@@ -21,14 +21,14 @@ container2d.appendChild(renderer2d.domElement);
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0xffffff);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-camera3d.position.set(3.5, 3.0, 4.5); // увеличенный зум
+camera3d.position.set(3.5, 3.0, 4.5);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer3d.setClearColor(0xffffff);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (яркое, для белого фона)
+// Освещение
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene3d.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -67,6 +67,7 @@ let overlayDirty = true;
 let overlayTimeout = null;
 let pbrTimeout = null;
 let pbrReady = false;
+let updatePending = false;
 
 // Uniform'ы
 const uniforms = {
@@ -118,7 +119,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и экспорта модели, UV для 2D-экспорта) ---
+// --- Шейдер с исправленным масштабом (убраны множители 0.8) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -248,9 +249,10 @@ const fragmentShader = `
       vec3 blend = abs(vNormalW);
       blend = pow(blend, vec3(2.0));
       blend /= (blend.x + blend.y + blend.z);
-      vec2 uvX = vWorldPosition.yz * 0.8;
-      vec2 uvY = vWorldPosition.xz * 0.8;
-      vec2 uvZ = vWorldPosition.xy * 0.8;
+      // Исправлен масштаб: убраны множители 0.8, теперь используется тот же uScale, что и в 2D
+      vec2 uvX = vWorldPosition.yz;
+      vec2 uvY = vWorldPosition.xz;
+      vec2 uvZ = vWorldPosition.xy;
       float patX = compute2DPattern(uvX);
       float patY = compute2DPattern(uvY);
       float patZ = compute2DPattern(uvZ);
@@ -335,6 +337,7 @@ function renderAll() {
 }
 controls3d.addEventListener('change', () => renderAll());
 
+// --- Оптимизированное обновление размеров ---
 function updateSizes() {
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
@@ -439,7 +442,8 @@ populateSelect('selectFractal', fractalPatterns, 5);
 populateSelect('selectGradient', gradientPatterns, 17);
 populateSelect('selectGeometric', geometricPatterns, 8);
 
-// --- Обновление uniform из UI ---
+// --- Обновление uniform из UI (оптимизировано) ---
+let updateTimer = null;
 function updateUniformsFromUI() {
   uniforms.uScale.value = parseFloat(document.getElementById('scale').value);
   uniforms.uIntensity.value = parseFloat(document.getElementById('intensity').value);
@@ -468,12 +472,13 @@ function updateUniformsFromUI() {
     if (el) el.innerText = parseFloat(document.getElementById(id).value).toFixed(2);
   });
   document.getElementById('rotateVal').innerText = uniforms.uRotation.value + '°';
-  // отложенный вызов оверлея, чтобы не тормозить
+  
+  // Отложенный вызов оверлея
   if (layers.some(l => l.syncWithPattern)) {
     if (overlayTimeout) clearTimeout(overlayTimeout);
-    overlayTimeout = setTimeout(() => generateOverlayTexture(), 100);
+    overlayTimeout = setTimeout(() => generateOverlayTexture(), 200);
   }
-  schedulePBRUpdate();
+  // Не вызываем PBR-превью при каждом движении ползунка, только при переключении на вкладку
   renderAll();
 }
 
@@ -630,7 +635,7 @@ async function generateOverlayTexture() {
   renderAll();
 }
 
-// --- Слои UI ---
+// --- Слои UI (без изменений) ---
 const overlayLayersDiv = document.getElementById('overlayLayersList');
 const layerOpacitySlider = document.getElementById('layerOpacity');
 const layerOpacityVal = document.getElementById('layerOpacityVal');
@@ -979,7 +984,7 @@ async function renderPBRMap(res, type, useTriplanar = true) {
   return blob;
 }
 
-// --- PBR превью с debounce ---
+// --- PBR превью с debounce и отложенным запуском ---
 async function updatePBRPreviews() {
   if (!pbrReady) return;
   const pbrGrid = document.getElementById('pbrGrid');
@@ -1015,7 +1020,7 @@ async function updatePBRPreviews() {
 function schedulePBRUpdate() {
   if (!pbrReady) return;
   if (pbrTimeout) clearTimeout(pbrTimeout);
-  pbrTimeout = setTimeout(updatePBRPreviews, 500);
+  pbrTimeout = setTimeout(updatePBRPreviews, 300);
 }
 let pbrActivated = false;
 function enablePBR() {
@@ -1026,10 +1031,10 @@ function enablePBR() {
   }
 }
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
-setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
+setTimeout(() => { if (!pbrActivated) enablePBR(); }, 1000);
 
-// --- Функция пересчёта UV для triplanar (бесшовный экспорт) ---
-function generateTriplanarUVs(geometry, scale = 1.0) {
+// --- Функция пересчёта UV для triplanar (экспорт) ---
+function generateTriplanarUVs(geometry) {
   const positions = geometry.attributes.position.array;
   if (!geometry.attributes.normal) geometry.computeVertexNormals();
   const normals = geometry.attributes.normal.array;
@@ -1044,21 +1049,21 @@ function generateTriplanarUVs(geometry, scale = 1.0) {
     const pz = positions[ix+2];
     let u = 0, v = 0;
     if (nx >= ny && nx >= nz) {
-      u = (py + 0.6) * 0.8;
-      v = (pz + 0.6) * 0.8;
+      u = py;
+      v = pz;
     } else if (ny >= nx && ny >= nz) {
-      u = (px + 0.6) * 0.8;
-      v = (pz + 0.6) * 0.8;
+      u = px;
+      v = pz;
     } else {
-      u = (px + 0.6) * 0.8;
-      v = (py + 0.6) * 0.8;
+      u = px;
+      v = py;
     }
     uvs.push(u, v);
   }
   geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
 }
 
-// --- ЭКСПОРТ 3D МОДЕЛИ с пересчётом UV под triplanar ---
+// --- ЭКСПОРТ 3D МОДЕЛИ ---
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1110,7 +1115,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
       else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
       else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
-      generateTriplanarUVs(geom, 1.0);
+      generateTriplanarUVs(geom);
       modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
     const exportScene = new THREE.Scene();
@@ -1228,7 +1233,10 @@ function initMobileTabs() {
     Object.values(contents).forEach(content => content?.classList.remove('active'));
     if (target === 'texture') contents.texture?.classList.add('active');
     if (target === 'view3d') contents.view3d?.classList.add('active');
-    if (target === 'pbr') contents.pbr?.classList.add('active');
+    if (target === 'pbr') {
+      contents.pbr?.classList.add('active');
+      enablePBR();
+    }
     setTimeout(() => {
       updateSizes();
       renderAll();
