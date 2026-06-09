@@ -17,34 +17,35 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (белый фон)
+// 3D сцена (БЕЛЫЙ фон)
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0xffffff);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-camera3d.position.set(3, 2.5, 4); // увеличено расстояние
+// Увеличенный зум: камера дальше
+camera3d.position.set(3.2, 2.8, 4.2);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer3d.setClearColor(0xffffff);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (для белого фона нужно контрастное)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+// Освещение (для белого фона – чуть ярче)
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene3d.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
 mainLight.position.set(2, 3, 2);
 scene3d.add(mainLight);
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
-fillLight.position.set(-1.5, 1, 1.5);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+fillLight.position.set(-1, 1, 1.5);
 scene3d.add(fillLight);
-const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
 backLight.position.set(0, 1, -2);
 scene3d.add(backLight);
 
 function updateLightIntensity(val) {
   mainLight.intensity = val;
-  fillLight.intensity = val * 0.5;
-  backLight.intensity = val * 0.3;
+  fillLight.intensity = val * 0.6;
+  backLight.intensity = val * 0.4;
 }
 
 // --- Общие переменные ---
@@ -102,7 +103,7 @@ const uniforms = {
   uMetalScale: { value: 2.0 },
   uMetalBias: { value: 0.0 },
   uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
-  uIsExportingModel: { value: 0 } // 1 при экспорте 3D модели (triplanar)
+  uIsExportingModel: { value: 0 }  // 1 при экспорте модели (triplanar)
 };
 
 function updateColorUniforms() {
@@ -115,7 +116,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и экспорта) ---
+// --- Шейдер (triplanar для 3D и экспорта, UV для 2D-текстуры и PBR-превью) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -240,7 +241,8 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    // Используем triplanar для 3D отображения (uExportMode==0) и при экспорте модели (uIsExportingModel==1)
+    // Используем triplanar для 3D отображения (uExportMode==0 && uIsExportingModel==0)
+    // и при экспорте модели (uIsExportingModel==1)
     bool useTriplanar = (uIsExportingModel == 1) || (uExportMode == 0);
     if (useTriplanar) {
       vec3 blend = abs(vNormalW);
@@ -337,13 +339,17 @@ function renderAll() {
 }
 controls3d.addEventListener('change', () => renderAll());
 
-// --- Адаптация размеров окна ---
+// --- Адаптация размеров окна (исправлено для мобильных) ---
 function updateSizes() {
+  // 2D
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
   if (size2d <= 0) size2d = 256;
   renderer2d.setSize(size2d, size2d);
-  const w3 = container3d.clientWidth, h3 = container3d.clientHeight;
+  
+  // 3D – берём реальные размеры контейнера
+  const w3 = container3d.clientWidth;
+  const h3 = container3d.clientHeight;
   if (w3 && h3) {
     renderer3d.setSize(w3, h3);
     camera3d.aspect = w3 / h3;
@@ -352,12 +358,15 @@ function updateSizes() {
     renderAll();
   }
 }
+// Наблюдатели для изменения размеров
 new ResizeObserver(() => updateSizes()).observe(container3d);
 new ResizeObserver(() => updateSizes()).observe(container2d.parentElement);
 window.addEventListener('resize', updateSizes);
+// Также обновляем при смене табов
+setTimeout(updateSizes, 100);
 updateSizes();
 
-function fitCameraToObject(object, camera, controls, offset = 1.5) { // увеличен offset
+function fitCameraToObject(object, camera, controls, offset = 1.6) { // увеличен offset для большего обзора
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
@@ -386,7 +395,7 @@ function update3dModel() {
     currentMesh3d = new THREE.Mesh(geom, previewMaterial);
     scene3d.add(currentMesh3d);
   }
-  fitCameraToObject(currentMesh3d, camera3d, controls3d);
+  fitCameraToObject(currentMesh3d, camera3d, controls3d, 1.8);
 }
 
 // --- Загрузка пользовательской модели ---
@@ -1027,11 +1036,11 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ (triplanar-текстуры) ==========
+// ========== ЭКСПОРТ 3D МОДЕЛИ (исправлен GLB, всегда triplanar) ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Генерируем triplanar-текстуры (бесшовные) размером 4096
+    // Генерируем triplanar-текстуры (бесшовные)
     const baseColorBlob = await captureBaseColorTexture(4096, true);
     const normalBlob = await renderPBRMap(4096, 'normal', true);
     const roughnessBlob = await renderPBRMap(4096, 'roughness', true);
@@ -1093,6 +1102,7 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
+        // result - ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
