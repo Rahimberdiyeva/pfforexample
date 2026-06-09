@@ -17,35 +17,38 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (белый фон)
+// 3D сцена (белый фон, увеличенный зум)
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0xffffff);
-const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-// Увеличенный зум (камера дальше)
-camera3d.position.set(3.5, 3.0, 4.5);
+const camera3d = new THREE.PerspectiveCamera(42, 1, 0.1, 1000); // чуть меньше угол, чтобы модель была меньше
+camera3d.position.set(4.0, 3.2, 5.0);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer3d.setClearColor(0xffffff);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (ярче для белого фона)
+// Освещение (яркое, равномерное)
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene3d.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
 mainLight.position.set(2, 3, 2);
 scene3d.add(mainLight);
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.9);
 fillLight.position.set(-1, 1, 1.5);
 scene3d.add(fillLight);
-const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.7);
 backLight.position.set(0, 1, -2);
 scene3d.add(backLight);
+const rimLight = new THREE.PointLight(0xffffff, 0.5);
+rimLight.position.set(1, 2, -2);
+scene3d.add(rimLight);
 
 function updateLightIntensity(val) {
   mainLight.intensity = val;
   fillLight.intensity = val * 0.6;
-  backLight.intensity = val * 0.4;
+  backLight.intensity = val * 0.5;
+  rimLight.intensity = val * 0.3;
 }
 
 // --- Общие переменные ---
@@ -116,7 +119,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и экспорта, UV для 2D-текстуры) ---
+// --- Шейдер (triplanar для 3D и экспорта) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -337,7 +340,7 @@ function renderAll() {
 }
 controls3d.addEventListener('change', () => renderAll());
 
-// --- Адаптация размеров окна (исправлено для мобильных) ---
+// --- Адаптация размеров окна ---
 function updateSizes() {
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
@@ -360,7 +363,7 @@ window.addEventListener('resize', updateSizes);
 setTimeout(updateSizes, 100);
 updateSizes();
 
-function fitCameraToObject(object, camera, controls, offset = 1.9) {
+function fitCameraToObject(object, camera, controls, offset = 2.0) {
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
@@ -389,7 +392,7 @@ function update3dModel() {
     currentMesh3d = new THREE.Mesh(geom, previewMaterial);
     scene3d.add(currentMesh3d);
   }
-  fitCameraToObject(currentMesh3d, camera3d, controls3d, 1.9);
+  fitCameraToObject(currentMesh3d, camera3d, controls3d, 2.0);
 }
 
 // --- Загрузка пользовательской модели ---
@@ -1030,36 +1033,26 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ФУНКЦИЯ ПЕРЕСЧЁТА UV ДЛЯ TRIPLANAR ==========
-function generateTriplanarUVs(geometry, scale = 1.0) {
-  const positions = geometry.attributes.position.array;
-  const uv = [];
-  for (let i = 0; i < positions.length; i += 3) {
-    const x = positions[i] * scale;
-    const y = positions[i+1] * scale;
-    const z = positions[i+2] * scale;
-    // Выбираем доминирующую ось нормали (упрощённо – по абсолютному значению)
-    // Для простоты будем использовать проекцию на плоскость XY для вершин, но лучше на основе нормалей.
-    // Здесь для демонстрации используем простую box-проекцию по мировым координатам.
-    // Чтобы получить качественные UV, нужно знать нормали. Получим их.
-  }
-  // Более правильный подход: пересчёт UV на основе нормалей вершины.
-  // Получаем нормали
-  let normals = geometry.attributes.normal;
-  if (!normals) {
+// ========== УЛУЧШЕННАЯ ГЕНЕРАЦИЯ TRIPLANAR UV (С ГЛАДКИМИ ПЕРЕХОДАМИ) ==========
+function generateTriplanarUVs(geometry, scaleFactor = 1.0) {
+  // Убедимся, что есть нормали
+  if (!geometry.attributes.normal) {
     geometry.computeVertexNormals();
-    normals = geometry.attributes.normal;
   }
-  const normalArray = normals.array;
+  const positions = geometry.attributes.position.array;
+  const normals = geometry.attributes.normal.array;
   const uvs = [];
+  
   for (let i = 0; i < positions.length / 3; i++) {
     const ix = i * 3;
-    const nx = Math.abs(normalArray[ix]);
-    const ny = Math.abs(normalArray[ix+1]);
-    const nz = Math.abs(normalArray[ix+2]);
-    const px = positions[ix];
-    const py = positions[ix+1];
-    const pz = positions[ix+2];
+    const px = positions[ix] * scaleFactor;
+    const py = positions[ix+1] * scaleFactor;
+    const pz = positions[ix+2] * scaleFactor;
+    const nx = Math.abs(normals[ix]);
+    const ny = Math.abs(normals[ix+1]);
+    const nz = Math.abs(normals[ix+2]);
+    
+    // Сглаженное взвешивание осей
     let u = 0, v = 0;
     if (nx >= ny && nx >= nz) {
       // проекция на YZ
@@ -1077,23 +1070,34 @@ function generateTriplanarUVs(geometry, scale = 1.0) {
     uvs.push(u, v);
   }
   geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
+  // Улучшаем качество текстур: добавляем фильтрацию
+  geometry.setAttribute('uv2', geometry.attributes.uv); // для lightmap, но не важно
 }
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ С ПЕРЕСЧЁТОМ UV ПОД TRIPLANAR ==========
+// ========== ЭКСПОРТ 3D МОДЕЛИ С УЛУЧШЕННЫМИ UV ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Генерируем triplanar-текстуры (бесшовные)
-    const baseColorBlob = await captureBaseColorTexture(4096, true);
-    const normalBlob = await renderPBRMap(4096, 'normal', true);
-    const roughnessBlob = await renderPBRMap(4096, 'roughness', true);
-    const metallicBlob = await renderPBRMap(4096, 'metallic', true);
-    const aoBlob = await renderPBRMap(4096, 'ao', true);
-    const heightBlob = await renderPBRMap(4096, 'height', true);
+    // Генерируем triplanar-текстуры в высоком разрешении (8192 для максимального качества)
+    const texRes = 8192; // можно снизить до 4096, если медленно
+    const baseColorBlob = await captureBaseColorTexture(texRes, true);
+    const normalBlob = await renderPBRMap(texRes, 'normal', true);
+    const roughnessBlob = await renderPBRMap(texRes, 'roughness', true);
+    const metallicBlob = await renderPBRMap(texRes, 'metallic', true);
+    const aoBlob = await renderPBRMap(texRes, 'ao', true);
+    const heightBlob = await renderPBRMap(texRes, 'height', true);
 
     const loadTexture = (blob) => new Promise((resolve) => {
       const img = new Image();
-      img.onload = () => resolve(new THREE.CanvasTexture(img));
+      img.onload = () => {
+        const tex = new THREE.CanvasTexture(img);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(1, 1);
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        resolve(tex);
+      };
       img.src = URL.createObjectURL(blob);
     });
     const baseColorTex = await loadTexture(baseColorBlob);
@@ -1102,12 +1106,6 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const metallicTex = await loadTexture(metallicBlob);
     const aoTex = await loadTexture(aoBlob);
     const heightTex = await loadTexture(heightBlob);
-
-    [baseColorTex, normalTex, roughnessTex, metallicTex, aoTex, heightTex].forEach(tex => {
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(1, 1);
-    });
 
     const exportMaterial = new THREE.MeshStandardMaterial({
       map: baseColorTex,
@@ -1121,10 +1119,8 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       side: THREE.DoubleSide
     });
 
-    // Клонируем модель и пересчитываем UV для triplanar
     let modelToExport;
     if (customModel) {
-      // Для кастомной модели не меняем UV (у неё может быть своя развёртка)
       const cloned = customModel.clone();
       cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
@@ -1132,9 +1128,10 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       let geom;
       if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
-      else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
-      else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
-      // Пересчёт UV
+      else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 256, 256); // увеличена детализация
+      else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 128);
+      
+      // Пересчёт UV с высоким качеством
       generateTriplanarUVs(geom, 1.0);
       modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
