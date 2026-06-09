@@ -42,22 +42,33 @@ def setup_pbr_material(mat, textures, use_triplanar=True):
     principled.location = (400, 0)
     links.new(principled.outputs["BSDF"], output.inputs["Surface"])
     
-    # Координаты: либо Generated (для трипланара), либо UV
-    tex_coord = nodes.new("ShaderNodeTexCoord")
-    tex_coord.location = (-800, 0)
-    mapping = nodes.new("ShaderNodeMapping")
-    mapping.location = (-600, 0)
+    # Координаты: либо UV, либо Generated (для трипланара)
     if use_triplanar:
+        tex_coord = nodes.new("ShaderNodeTexCoord")
+        tex_coord.location = (-800, 0)
+        mapping = nodes.new("ShaderNodeMapping")
+        mapping.location = (-600, 0)
         links.new(tex_coord.outputs["Generated"], mapping.inputs["Vector"])
     else:
+        tex_coord = nodes.new("ShaderNodeTexCoord")
+        tex_coord.location = (-800, 0)
+        mapping = nodes.new("ShaderNodeMapping")
+        mapping.location = (-600, 0)
         links.new(tex_coord.outputs["UV"], mapping.inputs["Vector"])
     
-    def add_texture(img, label, y, is_non_color=False):
-        tex = nodes.new("ShaderNodeTexImage")
-        tex.image = img
-        tex.label = label
-        tex.location = (-400, y)
-        links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
+    def add_texture(img, label, y, is_non_color=False, use_triplanar=use_triplanar):
+        if use_triplanar:
+            tex = nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            tex.label = label
+            tex.location = (-400, y)
+            links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
+        else:
+            tex = nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            tex.label = label
+            tex.location = (-400, y)
+            links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
         if is_non_color and img:
             img.colorspace_settings.name = 'Non-Color'
         return tex
