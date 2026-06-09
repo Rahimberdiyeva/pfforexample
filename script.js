@@ -17,38 +17,34 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (белый фон, увеличенный зум)
+// 3D сцена (белый фон)
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0xffffff);
-const camera3d = new THREE.PerspectiveCamera(42, 1, 0.1, 1000); // чуть меньше угол, чтобы модель была меньше
-camera3d.position.set(4.0, 3.2, 5.0);
+const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+camera3d.position.set(3.5, 3.0, 4.5); // увеличенный зум
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer3d.setClearColor(0xffffff);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (яркое, равномерное)
+// Освещение (яркое, для белого фона)
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene3d.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
 mainLight.position.set(2, 3, 2);
 scene3d.add(mainLight);
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.9);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
 fillLight.position.set(-1, 1, 1.5);
 scene3d.add(fillLight);
-const backLight = new THREE.DirectionalLight(0xffffff, 0.7);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
 backLight.position.set(0, 1, -2);
 scene3d.add(backLight);
-const rimLight = new THREE.PointLight(0xffffff, 0.5);
-rimLight.position.set(1, 2, -2);
-scene3d.add(rimLight);
 
 function updateLightIntensity(val) {
   mainLight.intensity = val;
   fillLight.intensity = val * 0.6;
-  backLight.intensity = val * 0.5;
-  rimLight.intensity = val * 0.3;
+  backLight.intensity = val * 0.4;
 }
 
 // --- Общие переменные ---
@@ -68,6 +64,9 @@ let selectedLayerId = null;
 let isDraggingLayer = false;
 let dragStart = { x: 0, y: 0, layerX: 0, layerY: 0 };
 let overlayDirty = true;
+let overlayTimeout = null;
+let pbrTimeout = null;
+let pbrReady = false;
 
 // Uniform'ы
 const uniforms = {
@@ -119,7 +118,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и экспорта) ---
+// --- Шейдер (triplanar для 3D и экспорта модели, UV для 2D-экспорта) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -243,8 +242,8 @@ const fragmentShader = `
   }
 
   void main() {
-    float patternValue;
     bool useTriplanar = (uIsExportingModel == 1) || (uExportMode == 0);
+    float patternValue;
     if (useTriplanar) {
       vec3 blend = abs(vNormalW);
       blend = pow(blend, vec3(2.0));
@@ -307,7 +306,6 @@ const fragmentShader = `
   }
 `;
 
-// --- Материал для превью ---
 const previewMaterial = new THREE.ShaderMaterial({
   uniforms: uniforms,
   vertexShader: vertexShader,
@@ -315,17 +313,14 @@ const previewMaterial = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
-// 2D плоскость
 const plane2d = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), previewMaterial);
 scene2d.add(plane2d);
 
-// 3D модель по умолчанию
 const defaultGeom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
 const defaultMesh = new THREE.Mesh(defaultGeom, previewMaterial);
 scene3d.add(defaultMesh);
 currentMesh3d = defaultMesh;
 
-// --- Управление камерой ---
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
 controls3d.enableDamping = true;
 controls3d.enableZoom = true;
@@ -340,13 +335,11 @@ function renderAll() {
 }
 controls3d.addEventListener('change', () => renderAll());
 
-// --- Адаптация размеров окна ---
 function updateSizes() {
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
   if (size2d <= 0) size2d = 256;
   renderer2d.setSize(size2d, size2d);
-  
   const w3 = container3d.clientWidth;
   const h3 = container3d.clientHeight;
   if (w3 && h3) {
@@ -363,7 +356,7 @@ window.addEventListener('resize', updateSizes);
 setTimeout(updateSizes, 100);
 updateSizes();
 
-function fitCameraToObject(object, camera, controls, offset = 2.0) {
+function fitCameraToObject(object, camera, controls, offset = 1.9) {
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
@@ -392,7 +385,7 @@ function update3dModel() {
     currentMesh3d = new THREE.Mesh(geom, previewMaterial);
     scene3d.add(currentMesh3d);
   }
-  fitCameraToObject(currentMesh3d, camera3d, controls3d, 2.0);
+  fitCameraToObject(currentMesh3d, camera3d, controls3d, 1.9);
 }
 
 // --- Загрузка пользовательской модели ---
@@ -475,7 +468,11 @@ function updateUniformsFromUI() {
     if (el) el.innerText = parseFloat(document.getElementById(id).value).toFixed(2);
   });
   document.getElementById('rotateVal').innerText = uniforms.uRotation.value + '°';
-  if (layers.some(l => l.syncWithPattern)) generateOverlayTexture();
+  // отложенный вызов оверлея, чтобы не тормозить
+  if (layers.some(l => l.syncWithPattern)) {
+    if (overlayTimeout) clearTimeout(overlayTimeout);
+    overlayTimeout = setTimeout(() => generateOverlayTexture(), 100);
+  }
   schedulePBRUpdate();
   renderAll();
 }
@@ -982,8 +979,7 @@ async function renderPBRMap(res, type, useTriplanar = true) {
   return blob;
 }
 
-// --- PBR превью ---
-let pbrReady = false;
+// --- PBR превью с debounce ---
 async function updatePBRPreviews() {
   if (!pbrReady) return;
   const pbrGrid = document.getElementById('pbrGrid');
@@ -1016,10 +1012,9 @@ async function updatePBRPreviews() {
     img.src = URL.createObjectURL(blob);
   }
 }
-let pbrTimeout;
 function schedulePBRUpdate() {
   if (!pbrReady) return;
-  clearTimeout(pbrTimeout);
+  if (pbrTimeout) clearTimeout(pbrTimeout);
   pbrTimeout = setTimeout(updatePBRPreviews, 500);
 }
 let pbrActivated = false;
@@ -1033,71 +1028,50 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== УЛУЧШЕННАЯ ГЕНЕРАЦИЯ TRIPLANAR UV (С ГЛАДКИМИ ПЕРЕХОДАМИ) ==========
-function generateTriplanarUVs(geometry, scaleFactor = 1.0) {
-  // Убедимся, что есть нормали
-  if (!geometry.attributes.normal) {
-    geometry.computeVertexNormals();
-  }
+// --- Функция пересчёта UV для triplanar (бесшовный экспорт) ---
+function generateTriplanarUVs(geometry, scale = 1.0) {
   const positions = geometry.attributes.position.array;
+  if (!geometry.attributes.normal) geometry.computeVertexNormals();
   const normals = geometry.attributes.normal.array;
   const uvs = [];
-  
   for (let i = 0; i < positions.length / 3; i++) {
     const ix = i * 3;
-    const px = positions[ix] * scaleFactor;
-    const py = positions[ix+1] * scaleFactor;
-    const pz = positions[ix+2] * scaleFactor;
     const nx = Math.abs(normals[ix]);
     const ny = Math.abs(normals[ix+1]);
     const nz = Math.abs(normals[ix+2]);
-    
-    // Сглаженное взвешивание осей
+    const px = positions[ix];
+    const py = positions[ix+1];
+    const pz = positions[ix+2];
     let u = 0, v = 0;
     if (nx >= ny && nx >= nz) {
-      // проекция на YZ
       u = (py + 0.6) * 0.8;
       v = (pz + 0.6) * 0.8;
     } else if (ny >= nx && ny >= nz) {
-      // проекция на XZ
       u = (px + 0.6) * 0.8;
       v = (pz + 0.6) * 0.8;
     } else {
-      // проекция на XY
       u = (px + 0.6) * 0.8;
       v = (py + 0.6) * 0.8;
     }
     uvs.push(u, v);
   }
   geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
-  // Улучшаем качество текстур: добавляем фильтрацию
-  geometry.setAttribute('uv2', geometry.attributes.uv); // для lightmap, но не важно
 }
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ С УЛУЧШЕННЫМИ UV ==========
+// --- ЭКСПОРТ 3D МОДЕЛИ с пересчётом UV под triplanar ---
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
-    // Генерируем triplanar-текстуры в высоком разрешении (8192 для максимального качества)
-    const texRes = 8192; // можно снизить до 4096, если медленно
-    const baseColorBlob = await captureBaseColorTexture(texRes, true);
-    const normalBlob = await renderPBRMap(texRes, 'normal', true);
-    const roughnessBlob = await renderPBRMap(texRes, 'roughness', true);
-    const metallicBlob = await renderPBRMap(texRes, 'metallic', true);
-    const aoBlob = await renderPBRMap(texRes, 'ao', true);
-    const heightBlob = await renderPBRMap(texRes, 'height', true);
+    const baseColorBlob = await captureBaseColorTexture(4096, true);
+    const normalBlob = await renderPBRMap(4096, 'normal', true);
+    const roughnessBlob = await renderPBRMap(4096, 'roughness', true);
+    const metallicBlob = await renderPBRMap(4096, 'metallic', true);
+    const aoBlob = await renderPBRMap(4096, 'ao', true);
+    const heightBlob = await renderPBRMap(4096, 'height', true);
 
     const loadTexture = (blob) => new Promise((resolve) => {
       const img = new Image();
-      img.onload = () => {
-        const tex = new THREE.CanvasTexture(img);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(1, 1);
-        tex.minFilter = THREE.LinearMipmapLinearFilter;
-        tex.magFilter = THREE.LinearFilter;
-        resolve(tex);
-      };
+      img.onload = () => resolve(new THREE.CanvasTexture(img));
       img.src = URL.createObjectURL(blob);
     });
     const baseColorTex = await loadTexture(baseColorBlob);
@@ -1106,6 +1080,12 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const metallicTex = await loadTexture(metallicBlob);
     const aoTex = await loadTexture(aoBlob);
     const heightTex = await loadTexture(heightBlob);
+
+    [baseColorTex, normalTex, roughnessTex, metallicTex, aoTex, heightTex].forEach(tex => {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(1, 1);
+    });
 
     const exportMaterial = new THREE.MeshStandardMaterial({
       map: baseColorTex,
@@ -1128,10 +1108,8 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       let geom;
       if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
-      else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 256, 256); // увеличена детализация
-      else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 128);
-      
-      // Пересчёт UV с высоким качеством
+      else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
+      else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
       generateTriplanarUVs(geom, 1.0);
       modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
