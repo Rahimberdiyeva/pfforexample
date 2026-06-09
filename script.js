@@ -17,34 +17,34 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена
+// 3D сцена (белый фон)
 const scene3d = new THREE.Scene();
-scene3d.background = new THREE.Color(0x4a5a6a);
+scene3d.background = new THREE.Color(0xffffff);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
 camera3d.position.set(2.5, 2, 3);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer3d.setClearColor(0x4a5a6a);
+renderer3d.setClearColor(0xffffff);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+// Освещение (для белого фона нужно достаточно яркое)
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene3d.add(ambientLight);
-const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
+const mainLight = new THREE.DirectionalLight(0xffffff, 2.0);
 mainLight.position.set(2, 3, 2);
 scene3d.add(mainLight);
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
 fillLight.position.set(-1, 1, 1.5);
 scene3d.add(fillLight);
-const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
 backLight.position.set(0, 1, -2);
 scene3d.add(backLight);
 
 function updateLightIntensity(val) {
   mainLight.intensity = val;
-  fillLight.intensity = val * 0.5;
-  backLight.intensity = val * 0.3;
+  fillLight.intensity = val * 0.6;
+  backLight.intensity = val * 0.4;
 }
 
 // --- Общие переменные ---
@@ -102,7 +102,7 @@ const uniforms = {
   uMetalScale: { value: 2.0 },
   uMetalBias: { value: 0.0 },
   uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
-  uIsExportingModel: { value: 0 } // 1 при экспорте 3D модели (triplanar)
+  uIsExportingModel: { value: 0 }
 };
 
 function updateColorUniforms() {
@@ -115,7 +115,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и экспорта) ---
+// --- Шейдер ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -240,7 +240,8 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    // Если экспортируем модель (uIsExportingModel == 1) или обычный 3D-режим (uExportMode==0), используем triplanar
+    // Для 3D отображения и экспорта модели используем triplanar (бесшовно)
+    // Примечание: uIsExportingModel = 1 означает, что мы генерируем текстуру для экспортируемой модели
     bool useTriplanar = (uIsExportingModel == 1) || (uExportMode == 0);
     if (useTriplanar) {
       vec3 blend = abs(vNormalW);
@@ -322,7 +323,7 @@ const defaultMesh = new THREE.Mesh(defaultGeom, previewMaterial);
 scene3d.add(defaultMesh);
 currentMesh3d = defaultMesh;
 
-// --- Управление камерой ---
+// --- Управление камерой (увеличенный зум) ---
 const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
 controls3d.enableDamping = true;
 controls3d.enableZoom = true;
@@ -330,6 +331,8 @@ controls3d.zoomSpeed = 1.2;
 controls3d.panSpeed = 0.8;
 controls3d.rotateSpeed = 1.0;
 controls3d.target.set(0, 0, 0);
+controls3d.maxDistance = 10;  // Увеличенный зум
+controls3d.minDistance = 0.5;
 
 function renderAll() {
   renderer2d.render(scene2d, camera2d);
@@ -1027,7 +1030,7 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ ==========
+// ========== ЭКСПОРТ 3D МОДЕЛИ (исправлен, использует triplanar для текстур) ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1072,10 +1075,12 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
     const exportScene = new THREE.Scene();
     let modelToExport;
     if (customModel) {
+      // Для пользовательской модели сохраняем её геометрию и накладываем triplanar-текстуру
       const cloned = customModel.clone();
       cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
     } else {
+      // Для встроенных примитивов создаём новую геометрию с теми же параметрами
       let geom;
       if (currentGeometryType === 'cube') geom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
