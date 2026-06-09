@@ -17,19 +17,19 @@ const renderer2d = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuf
 renderer2d.setClearColor(0x000000, 0);
 container2d.appendChild(renderer2d.domElement);
 
-// 3D сцена (БЕЛЫЙ фон)
+// 3D сцена (белый фон)
 const scene3d = new THREE.Scene();
 scene3d.background = new THREE.Color(0xffffff);
 const camera3d = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-// Увеличенный зум: камера дальше
-camera3d.position.set(3.2, 2.8, 4.2);
+// Увеличенный зум (камера дальше)
+camera3d.position.set(3.5, 3.0, 4.5);
 const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer3d.setClearColor(0xffffff);
 container3d.appendChild(renderer3d.domElement);
 
 const offscreenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
 
-// Освещение (для белого фона – чуть ярче)
+// Освещение (ярче для белого фона)
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene3d.add(ambientLight);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -103,7 +103,7 @@ const uniforms = {
   uMetalScale: { value: 2.0 },
   uMetalBias: { value: 0.0 },
   uTexelSize: { value: new THREE.Vector2(1/512, 1/512) },
-  uIsExportingModel: { value: 0 }  // 1 при экспорте модели (triplanar)
+  uIsExportingModel: { value: 0 }
 };
 
 function updateColorUniforms() {
@@ -116,7 +116,7 @@ function updateColorUniforms() {
 }
 updateColorUniforms();
 
-// --- Шейдер (triplanar для 3D и экспорта, UV для 2D-текстуры и PBR-превью) ---
+// --- Шейдер (triplanar для 3D и экспорта, UV для 2D-текстуры) ---
 const vertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -241,8 +241,6 @@ const fragmentShader = `
 
   void main() {
     float patternValue;
-    // Используем triplanar для 3D отображения (uExportMode==0 && uIsExportingModel==0)
-    // и при экспорте модели (uIsExportingModel==1)
     bool useTriplanar = (uIsExportingModel == 1) || (uExportMode == 0);
     if (useTriplanar) {
       vec3 blend = abs(vNormalW);
@@ -341,13 +339,11 @@ controls3d.addEventListener('change', () => renderAll());
 
 // --- Адаптация размеров окна (исправлено для мобильных) ---
 function updateSizes() {
-  // 2D
   const rect2d = container2d.parentElement.getBoundingClientRect();
   let size2d = Math.min(rect2d.width, rect2d.height);
   if (size2d <= 0) size2d = 256;
   renderer2d.setSize(size2d, size2d);
   
-  // 3D – берём реальные размеры контейнера
   const w3 = container3d.clientWidth;
   const h3 = container3d.clientHeight;
   if (w3 && h3) {
@@ -358,15 +354,13 @@ function updateSizes() {
     renderAll();
   }
 }
-// Наблюдатели для изменения размеров
 new ResizeObserver(() => updateSizes()).observe(container3d);
 new ResizeObserver(() => updateSizes()).observe(container2d.parentElement);
 window.addEventListener('resize', updateSizes);
-// Также обновляем при смене табов
 setTimeout(updateSizes, 100);
 updateSizes();
 
-function fitCameraToObject(object, camera, controls, offset = 1.6) { // увеличен offset для большего обзора
+function fitCameraToObject(object, camera, controls, offset = 1.9) {
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
@@ -395,7 +389,7 @@ function update3dModel() {
     currentMesh3d = new THREE.Mesh(geom, previewMaterial);
     scene3d.add(currentMesh3d);
   }
-  fitCameraToObject(currentMesh3d, camera3d, controls3d, 1.8);
+  fitCameraToObject(currentMesh3d, camera3d, controls3d, 1.9);
 }
 
 // --- Загрузка пользовательской модели ---
@@ -1036,7 +1030,56 @@ function enablePBR() {
 document.querySelector('.tab-btn[data-tab="pbr"]')?.addEventListener('click', enablePBR);
 setTimeout(() => { if (!pbrActivated) enablePBR(); }, 2000);
 
-// ========== ЭКСПОРТ 3D МОДЕЛИ (исправлен GLB, всегда triplanar) ==========
+// ========== ФУНКЦИЯ ПЕРЕСЧЁТА UV ДЛЯ TRIPLANAR ==========
+function generateTriplanarUVs(geometry, scale = 1.0) {
+  const positions = geometry.attributes.position.array;
+  const uv = [];
+  for (let i = 0; i < positions.length; i += 3) {
+    const x = positions[i] * scale;
+    const y = positions[i+1] * scale;
+    const z = positions[i+2] * scale;
+    // Выбираем доминирующую ось нормали (упрощённо – по абсолютному значению)
+    // Для простоты будем использовать проекцию на плоскость XY для вершин, но лучше на основе нормалей.
+    // Здесь для демонстрации используем простую box-проекцию по мировым координатам.
+    // Чтобы получить качественные UV, нужно знать нормали. Получим их.
+  }
+  // Более правильный подход: пересчёт UV на основе нормалей вершины.
+  // Получаем нормали
+  let normals = geometry.attributes.normal;
+  if (!normals) {
+    geometry.computeVertexNormals();
+    normals = geometry.attributes.normal;
+  }
+  const normalArray = normals.array;
+  const uvs = [];
+  for (let i = 0; i < positions.length / 3; i++) {
+    const ix = i * 3;
+    const nx = Math.abs(normalArray[ix]);
+    const ny = Math.abs(normalArray[ix+1]);
+    const nz = Math.abs(normalArray[ix+2]);
+    const px = positions[ix];
+    const py = positions[ix+1];
+    const pz = positions[ix+2];
+    let u = 0, v = 0;
+    if (nx >= ny && nx >= nz) {
+      // проекция на YZ
+      u = (py + 0.6) * 0.8;
+      v = (pz + 0.6) * 0.8;
+    } else if (ny >= nx && ny >= nz) {
+      // проекция на XZ
+      u = (px + 0.6) * 0.8;
+      v = (pz + 0.6) * 0.8;
+    } else {
+      // проекция на XY
+      u = (px + 0.6) * 0.8;
+      v = (py + 0.6) * 0.8;
+    }
+    uvs.push(u, v);
+  }
+  geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
+}
+
+// ========== ЭКСПОРТ 3D МОДЕЛИ С ПЕРЕСЧЁТОМ UV ПОД TRIPLANAR ==========
 document.getElementById('exportModelBtn')?.addEventListener('click', async () => {
   const format = document.getElementById('exportModelFormat').value;
   try {
@@ -1078,9 +1121,10 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       side: THREE.DoubleSide
     });
 
-    const exportScene = new THREE.Scene();
+    // Клонируем модель и пересчитываем UV для triplanar
     let modelToExport;
     if (customModel) {
+      // Для кастомной модели не меняем UV (у неё может быть своя развёртка)
       const cloned = customModel.clone();
       cloned.traverse(c => { if (c.isMesh) c.material = exportMaterial; });
       modelToExport = cloned;
@@ -1090,8 +1134,11 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
       else if (currentGeometryType === 'torus') geom = new THREE.TorusKnotGeometry(0.9, 0.25, 200, 32, 3, 4);
       else if (currentGeometryType === 'sphere') geom = new THREE.SphereGeometry(1.0, 128, 128);
       else geom = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 64);
+      // Пересчёт UV
+      generateTriplanarUVs(geom, 1.0);
       modelToExport = new THREE.Mesh(geom, exportMaterial);
     }
+    const exportScene = new THREE.Scene();
     exportScene.add(modelToExport);
 
     const exporter = new GLTFExporter();
@@ -1102,7 +1149,6 @@ document.getElementById('exportModelBtn')?.addEventListener('click', async () =>
           alert('Ошибка экспорта GLB: ' + result.substring(0, 200));
           return;
         }
-        // result - ArrayBuffer
         const blob = new Blob([result], { type: 'application/octet-stream' });
         downloadBlob(blob, 'model.glb');
       }, { binary: true, trs: true, onlyVisible: true });
