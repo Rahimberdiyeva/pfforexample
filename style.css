@@ -58,7 +58,7 @@ body {
   max-width: 80%;
 }
 
-/* --- Панель категорий --- */
+/* --- Панель категорий (гамбургер-меню) --- */
 .pattern-bar {
   background: #fce9ef;
   padding: 10px 20px;
@@ -254,7 +254,7 @@ canvas {
   color: #3b2a30;
 }
 
-/* ========== АККОРДЕОН — ДЕСКТОП: ВСЕГДА ОТКРЫТ ========== */
+/* ========== АККОРДЕОН ========== */
 .accordion-group {
   background: #ffeef3;
   border-radius: 20px;
@@ -273,291 +273,34 @@ canvas {
   user-select: none;
   border-radius: 20px;
 }
-.accordion-header::after { display: none; }
 .accordion-content { padding: 0 18px 18px 18px; }
-
-/* ========== МОБИЛЬНЫЕ: АККОРДЕОН СВОРАЧИВАЕТСЯ ========== */
-@media (max-width: 860px) {
-  .accordion-header { cursor: pointer; }
-  .accordion-header::after {
-    content: "▼";
-    display: inline-block;
-    font-size: 0.8rem;
-    transition: transform 0.2s;
-  }
-  .accordion-group.open .accordion-header::after { transform: rotate(180deg); }
-  .accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    padding: 0 18px;
-  }
-  .accordion-group.open .accordion-content {
-    max-height: 1200px;
-    padding: 0 18px 18px 18px;
-  }
-}
-
-/* --- Элементы управления --- */
-.control-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  flex-wrap: nowrap;
-}
-.control-row label {
-  width: 110px;
-  flex-shrink: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #3b2a30;
-}
-.control-row input[type="range"] {
-  flex: 1;
-  min-width: 0;
-  height: 6px;
-  background: #f0cdd8;
-  border-radius: 6px;
-  accent-color: #cf8e9e;
-  cursor: pointer;
-}
-.value-display {
-  width: 45px;
-  text-align: right;
-  flex-shrink: 0;
-  font-family: 'Space Grotesk', monospace;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-.compact-select {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 12px;
-  border-radius: 40px;
-  background: white;
-  border: 1px solid #e2b7c4;
-  font-size: 0.85rem;
-  font-family: inherit;
-}
-
-/* --- Цвета (круглые) --- */
-.color-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-.color-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 60px;
-}
-.color-circle-input {
-  width: 56px;
-  height: 56px;
-  border-radius: 50% !important;
-  border: 3px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-  padding: 0;
-  background: none;
-  overflow: hidden;
-}
-.color-circle-input::-webkit-color-swatch-wrapper { padding: 0; }
-.color-circle-input::-webkit-color-swatch { border: none; border-radius: 50%; }
-.remove-color-btn {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-  font-weight: bold;
-  color: white;
-  background: #ef7e8a;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* --- Кнопки --- */
-.center-btn, .file-input-btn, select, button, .integration-btn {
-  background: white;
-  border: 1px solid #e2b7c4;
-  border-radius: 40px !important;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  transition: all 0.2s;
-  font-family: inherit;
-  line-height: 1.4;
-}
-.center-btn:hover, .file-input-btn:hover, button:hover, .integration-btn:hover {
-  background: #fff0f5;
-  border-color: #cf8e9e;
-}
-.btn-left {
-  margin-left: 0 !important;
-  margin-right: auto !important;
-  display: inline-flex !important;
-}
-.model-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: nowrap;
-  margin-bottom: 8px;
-}
-.model-row select, .model-row .file-input-btn {
-  margin: 0;
-  height: 36px;
-  padding: 0 16px;
-}
-.bg-upload-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-  justify-content: flex-start;
-}
-.layers-list {
-  max-height: 350px;
-  overflow-y: auto;
-  background: #fff9fb;
-  border-radius: 20px;
-  padding: 8px;
-  margin: 10px 0;
-  border: 1px solid #fad3df;
-}
-.layer-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  margin-bottom: 6px;
-  background: #fff0f5;
-  border-radius: 30px;
-  cursor: pointer;
-  flex-wrap: wrap;
-}
-.layer-item.selected {
-  background: #ffd9e2;
-  border-left: 4px solid #cf8e9e;
-}
-.layer-thumb {
-  width: 40px;
-  height: 40px;
-  background: #eee;
-  border-radius: 8px;
-  object-fit: cover;
-}
-.layer-name {
-  flex: 1;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.layer-controls { display: flex; gap: 4px; }
-.layer-controls button {
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50% !important;
-}
-
-#addColorBtn, #savePresetBtn, #clearOverlayBtn, #clearBgBtn {
-  background: #cf8e9e;
-  color: white;
-  border: none;
-}
-#loadPresetBtn {
-  background: #ffffff;
-  color: #cf8e9e;
-  border: 2px solid #cf8e9e;
-  font-weight: 700;
-}
-#clearOverlayBtn { background: #b46e7e; }
-.hidden { display: none !important; }
-
-/* --- Футер --- */
-.global-footer {
-  background: #fcf0f5;
-  border-top: 1px solid #f0d9e2;
-  padding: 12px 20px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 32px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.footer-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 16px;
-}
-.footer-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.footer-label {
-  font-weight: 700;
-  color: #2e1e24;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  margin: 0;
-}
-.export-btn {
-  background: linear-gradient(115deg, #cf8e9e, #b46e7e);
-  border: none;
-  color: white;
-  padding: 8px 18px;
-  margin: 0;
-  width: auto;
-  display: inline-flex;
-  border-radius: 40px !important;
-  transition: opacity 0.2s;
-}
-.export-btn:hover {
-  opacity: 0.85;
-  background: linear-gradient(115deg, #b46e7e, #9a5a6a);
-}
-.mobile-tabs { display: none; }
-
-/* ========== ДЕСКТОП ========== */
-@media (min-width: 861px) {
-  .settings-column { flex: 0 0 420px; height: 100%; min-height: 0; }
-  .settings-panel { overflow-y: auto !important; }
-  .main-layout { overflow: hidden; }
-  html, body { overflow: hidden; }
-}
 
 /* ========== МОБИЛЬНЫЕ (<=860px) ========== */
 @media (max-width: 860px) {
-  html { overflow: auto; }
-  body { height: auto; min-height: 100vh; overflow-y: auto; }
-  .menu-toggle { display: block; left: 15px !important; right: auto !important; }
-  .logo { font-size: 1.3rem; max-width: 70%; margin: 0 auto; }
+  /* Убираем скролл у body, делаем вертикальную прокрутку */
+  html, body {
+    overflow: auto;
+    height: auto;
+  }
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
 
+  /* Бургер-меню слева, логотип по центру */
+  .menu-toggle {
+    display: block;
+    left: 15px;
+    right: auto;
+  }
+  .logo {
+    font-size: 1.3rem;
+    max-width: 70%;
+    margin: 0 auto;
+  }
+
+  /* Выпадающая панель категорий – прижата к левому краю, под иконкой */
   .pattern-bar {
     position: fixed;
     left: -100%;
@@ -573,62 +316,160 @@ canvas {
     overflow-y: auto;
     background: #fce9ef;
   }
-  .pattern-bar.open { left: 0; }
-  .category-filters { flex-direction: column; gap: 20px; width: 100%; }
-  .category-group { flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
-  .category-label { font-size: 0.9rem; text-align: left; width: 100%; }
-  .category-select { width: 100%; min-width: unset; text-align: left; }
-
-  .main-layout { flex-direction: column; overflow-y: visible; height: auto; gap: 0; display: flex; }
-  .settings-column { order: 2; flex: 0 0 auto; width: 100%; height: auto; }
-  .preview-wrapper { order: 1; flex-direction: column; overflow-y: visible; height: auto; border-left: none; }
-
-  .mobile-tabs {
-    display: flex;
-    background: #fce9ef;
-    border-bottom: 1px solid #e9cfd8;
-    justify-content: space-around;
-    padding: 8px 0;
-    position: sticky;
-    top: 0;
-    z-index: 15;
+  .pattern-bar.open {
+    left: 0;
   }
-  .tab-btn {
-    background: none;
-    border: none;
-    padding: 8px 16px;
+  .category-filters {
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    align-items: stretch;
+  }
+  .category-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+  .category-label {
     font-size: 0.9rem;
-    font-weight: 600;
-    color: #3b2a30;
-    border-radius: 40px;
-    cursor: pointer;
+    text-align: left;
+    width: 100%;
   }
-  .tab-btn.active { background: #cf8e9e; color: white; }
-  .tab-content { display: none !important; flex-direction: column; width: 100%; }
-  .tab-content.active { display: flex !important; }
+  .category-select {
+    width: 100%;
+    min-width: unset;
+    text-align: left;
+  }
 
-  .texture-column, .view3d-column, .pbr-column { min-height: 300px; border: none; }
-  .resize-handle { display: none; }
+  /* Основная сетка – колонка настроек и превью идут вертикально, без табов */
+  .main-layout {
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+    gap: 0;
+  }
+  .settings-column {
+    order: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    max-height: none;
+  }
+  .preview-wrapper {
+    order: 1;
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+    border-left: none;
+  }
+  /* Убираем мобильные табы, так как теперь всё видно одновременно */
+  .mobile-tabs {
+    display: none;
+  }
+  .tab-content {
+    display: flex !important;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .texture-column, .view3d-column, .pbr-column {
+    min-height: 300px;
+    border: none;
+  }
+  .resize-handle {
+    display: none;
+  }
 
-  .control-row { flex-wrap: wrap; gap: 8px; }
-  .control-row label { width: 100%; margin-bottom: 4px; }
-  .control-row input[type="range"] { width: 100%; }
-  .value-display { width: auto; min-width: 45px; text-align: right; }
-  .compact-select, .center-btn, .file-input-btn, button, .export-btn { width: 100%; justify-content: center; }
-  .model-row, .bg-upload-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  /* Элементы управления */
+  .control-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .control-row label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  .control-row input[type="range"] {
+    width: 100%;
+  }
+  .value-display {
+    width: auto;
+    min-width: 45px;
+    text-align: right;
+  }
+  .compact-select, .center-btn, .file-input-btn, button, .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .model-row, .bg-upload-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
 
-  .global-footer { display: flex; flex-direction: column; gap: 12px; padding: 12px; align-items: stretch; }
+  /* Футер */
+  .global-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    align-items: stretch;
+  }
   .footer-item {
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 8px;
   }
-  .footer-label { white-space: nowrap; font-size: 0.8rem; }
-  .footer-controls { flex-direction: row; gap: 6px; justify-content: flex-start; }
-  .footer-item select { padding: 4px 10px; font-size: 0.7rem; min-height: 28px; width: auto; min-width: 80px; }
-  .footer-item .export-btn { padding: 4px 12px; font-size: 0.7rem; min-height: 28px; width: 85px; }
-  .layers-list { max-height: 200px; }
+  .footer-label {
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+  .footer-controls {
+    flex-direction: row;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+  .footer-item select {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    min-height: 28px;
+    width: auto;
+    min-width: 80px;
+  }
+  .footer-item .export-btn {
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    min-height: 28px;
+    width: 85px;
+  }
+  .layers-list {
+    max-height: 200px;
+  }
+
+  /* Аккордеон на мобильных – сворачиваемый */
+  .accordion-header {
+    cursor: pointer;
+  }
+  .accordion-header::after {
+    content: "▼";
+    display: inline-block;
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+  }
+  .accordion-group.open .accordion-header::after {
+    transform: rotate(180deg);
+  }
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    padding: 0 18px;
+  }
+  .accordion-group.open .accordion-content {
+    max-height: 1200px;
+    padding: 0 18px 18px 18px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -644,11 +485,7 @@ canvas {
 @media (max-width: 860px) and (orientation: landscape) {
   .settings-column { max-height: 60vh; overflow-y: auto; }
   .preview-wrapper { max-height: 60vh; }
-  .mobile-tabs { position: sticky; top: 0; }
   .tab-content { min-height: 50vh; }
 }
 
-@media (min-width: 861px) and (max-width: 1280px) {
-  .settings-column { flex: 0 0 380px; }
-  .pbr-column { flex: 0 0 260px; }
-}
+/* Десктоп: если нужно фиксированное окно настроек – можно добавить позже */
